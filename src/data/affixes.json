@@ -1,6 +1,7 @@
 [
   {
     "id": "life",
+    "name": "Healthy",
     "kind": "prefix",
     "group": "life",
     "mods": [
@@ -76,6 +77,7 @@
   },
   {
     "id": "mana",
+    "name": "Learned",
     "kind": "prefix",
     "group": "mana",
     "mods": [
@@ -141,6 +143,7 @@
   },
   {
     "id": "flat_armour",
+    "name": "Plated",
     "kind": "prefix",
     "group": "armour_flat",
     "mods": [
@@ -203,6 +206,7 @@
   },
   {
     "id": "pct_armour",
+    "name": "Reinforced",
     "kind": "prefix",
     "group": "armour_pct",
     "mods": [
@@ -253,6 +257,7 @@
   },
   {
     "id": "flat_evasion",
+    "name": "Agile",
     "kind": "prefix",
     "group": "evasion_flat",
     "mods": [
@@ -314,6 +319,7 @@
   },
   {
     "id": "pct_evasion",
+    "name": "Elusive",
     "kind": "prefix",
     "group": "evasion_pct",
     "mods": [
@@ -364,6 +370,7 @@
   },
   {
     "id": "physical_attack",
+    "name": "Barbed",
     "kind": "prefix",
     "group": "added_physical",
     "mods": [
@@ -453,6 +460,7 @@
   },
   {
     "id": "fire_attack",
+    "name": "Smouldering",
     "kind": "prefix",
     "group": "added_fire",
     "mods": [
@@ -542,6 +550,7 @@
   },
   {
     "id": "cold_attack",
+    "name": "Frosted",
     "kind": "prefix",
     "group": "added_cold",
     "mods": [
@@ -631,6 +640,7 @@
   },
   {
     "id": "lightning_attack",
+    "name": "Humming",
     "kind": "prefix",
     "group": "added_lightning",
     "mods": [
@@ -720,6 +730,7 @@
   },
   {
     "id": "phys_pct",
+    "name": "Brutal",
     "kind": "prefix",
     "group": "physical_pct",
     "mods": [
@@ -774,6 +785,7 @@
   },
   {
     "id": "spell_damage",
+    "name": "Mystic",
     "kind": "prefix",
     "group": "spell_damage",
     "mods": [
@@ -828,6 +840,7 @@
   },
   {
     "id": "elemental_damage",
+    "name": "Prismatic",
     "kind": "prefix",
     "group": "elemental_damage",
     "mods": [
@@ -872,6 +885,7 @@
   },
   {
     "id": "strength",
+    "name": "of the Brute",
     "kind": "suffix",
     "group": "strength",
     "mods": [
@@ -936,6 +950,7 @@
   },
   {
     "id": "dexterity",
+    "name": "of the Fox",
     "kind": "suffix",
     "group": "dexterity",
     "mods": [
@@ -1000,6 +1015,7 @@
   },
   {
     "id": "intelligence",
+    "name": "of the Sage",
     "kind": "suffix",
     "group": "intelligence",
     "mods": [
@@ -1064,6 +1080,7 @@
   },
   {
     "id": "fire_res",
+    "name": "of the Salamander",
     "kind": "suffix",
     "group": "fire_res",
     "mods": [
@@ -1138,6 +1155,7 @@
   },
   {
     "id": "cold_res",
+    "name": "of the Seal",
     "kind": "suffix",
     "group": "cold_res",
     "mods": [
@@ -1212,6 +1230,7 @@
   },
   {
     "id": "lightning_res",
+    "name": "of Grounding",
     "kind": "suffix",
     "group": "lightning_res",
     "mods": [
@@ -1286,6 +1305,7 @@
   },
   {
     "id": "chaos_res",
+    "name": "of the Lost",
     "kind": "suffix",
     "group": "chaos_res",
     "mods": [
@@ -1338,6 +1358,7 @@
   },
   {
     "id": "attack_speed",
+    "name": "of Skill",
     "kind": "suffix",
     "group": "attack_speed",
     "mods": [
@@ -1392,6 +1413,7 @@
   },
   {
     "id": "cast_speed",
+    "name": "of Talent",
     "kind": "suffix",
     "group": "cast_speed",
     "mods": [
@@ -1447,6 +1469,7 @@
   },
   {
     "id": "crit_chance",
+    "name": "of Precision",
     "kind": "suffix",
     "group": "crit_chance",
     "mods": [
@@ -1498,6 +1521,7 @@
   },
   {
     "id": "crit_bonus",
+    "name": "of Ire",
     "kind": "suffix",
     "group": "crit_bonus",
     "mods": [
@@ -1549,6 +1573,7 @@
   },
   {
     "id": "mana_regen",
+    "name": "of Flowing",
     "kind": "suffix",
     "group": "mana_regen",
     "mods": [
@@ -1602,6 +1627,7 @@
   },
   {
     "id": "life_leech",
+    "name": "of the Leech",
     "kind": "suffix",
     "group": "life_leech",
     "mods": [
@@ -1657,6 +1683,7 @@
   },
   {
     "id": "mana_leech",
+    "name": "of Thirst",
     "kind": "suffix",
     "group": "mana_leech",
     "mods": [
@@ -1709,6 +1736,7 @@
   },
   {
     "id": "movement_speed",
+    "name": "of the Wind",
     "kind": "suffix",
     "group": "movement_speed",
     "mods": [
@@ -1759,6 +1787,7 @@
   },
   {
     "id": "accuracy",
+    "name": "of the Hawk",
     "kind": "suffix",
     "group": "accuracy",
     "mods": [

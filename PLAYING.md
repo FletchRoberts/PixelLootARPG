@@ -35,8 +35,8 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 | Skill 1 / 2 / 3 / 4 | Right click / Q / E / R | R1 / □ / △ / L1 |
 | Dodge roll | Space | ○ |
 | **Pick up** the highlighted gem | F | ✕ |
-| Menu (Character / Inventory / Debug, pauses the game) | C | Options |
-| Straight to Inventory | I | Touchpad click (or Options → R1) |
+| Menu (Character / Gear / Gems / Debug, pauses the game) | C | Options |
+| Straight to Gear | I | Touchpad click (or Options → R1) |
 | Next zone / retry | Enter, Space or click | ✕ |
 
 **In the menu:** D-pad / WASD to move, ✕ / Enter to choose, ○ / Esc to go back or close, L1 / R1 (Q / Tab) to switch tabs.
@@ -45,34 +45,41 @@ Controller: plug it in, open the page, press any button. A "Controller connected
 
 ## What to do
 
-1. **Your character is saved in the browser.** Refreshing or closing the page keeps your level, gems and bag. (Menu → Debug → Reset character starts over.)
-2. You start with **Frost Bolt** on Skill 1 (R1 / right click) and **one random support gem** in your bag.
-3. **Monsters drop gems.** They appear on the floor with a teal name; the closest one shows the pick-up button. Press **✕ / F** to pick it up. The end-of-zone pack drops the most. Gem colour = attribute: red Strength, green Dexterity, blue Intelligence.
-4. **Equip them in Menu → Inventory:**
-   - The top row is your **weapon attack** with 2 support sockets; below are your **4 skill buttons**.
-   - Move to a skill button and press ✕ to equip a skill gem from your bag.
-   - Move right onto a **socket** and press ✕ to put in a support. Only supports that fit that skill are offered. Choose "Remove" to take one out.
-   - The right side explains the selected gem and what the whole skill now does.
-5. **Skill gems level up** as you kill things while they're equipped: more damage, and more sockets (2 at first, then 3, 4 and 5). Supports socketed in a gem stay with it if you unequip it.
-6. Skills: Frost Bolt, Fireball, Ice Nova, Earthsplitter, Fanning Shot, Magma Strike. Supports: Volley, Pierce, Chain, Fork, Shatter, Echo, Cast on Kill, Added Cold, Concentrated, Knockback, **Life Leech**, **Mana Leech**. (See the right side of the Inventory tab for what each does.)
-7. **Dying** keeps everything you picked up and costs 10% of your current level's XP (you never lose a level). You retry the same zone.
-8. Reach the glowing EXIT to clear the zone. Each cleared zone raises the monster level by 1.
-9. **Menu → Debug** can give you any gem, switch weapon (Sword / Bow / Wand) or reset the character. Handy for trying combos without farming.
+1. **Your character is saved in the browser.** Refreshing or closing the page keeps your level, gear, gems and bag. (Menu → Debug → Reset character starts over.)
+2. You start with a **Rusty Sword** equipped, **Frost Bolt** on Skill 1 (R1 / right click) and one random support gem.
+3. **Monsters drop loot**: gear and gems. Names on the floor are coloured by type:
+   - **white** = normal gear, **blue** = magic (1–2 mods), **yellow** = rare (4–6 mods), **orange** = unique,
+   - **teal** = gems.
+
+   The closest item shows the pick-up button: **✕ / F**. The end-of-zone pack drops the most.
+4. **Menu → Gear** (touchpad / I goes straight there):
+   - The top 9 rows are your equipment slots; below them is the gear in your bag.
+   - Select an item to see its tooltip: item level, requirements, its mods with their **tier** (T1 is best), and for bag items **what you're currently wearing** in that slot for comparison.
+   - ✕ / Enter on a bag item **equips** it (whatever was there goes back to the bag). ✕ on a slot **takes it off**.
+   - Better items need a **level** and sometimes **Strength / Dexterity / Intelligence**. Attribute mods on other gear can get you there.
+   - The **weapon decides your R2 attack**: swords swing, bows shoot arrows, wands fire lightning bolts. Take your weapon off and you punch.
+5. **Uniques change your skills.** Examples: *Duplicator's Coil* gives every projectile skill Volley, *Glacier Heart* adds cold damage to everything, *The Patient Blade* makes your attacks Echo.
+6. **Menu → Gems:** equip skill gems on your 4 buttons and socket support gems, same as before. Skill gems level up as you kill things and gain sockets.
+7. Higher zones (monster level) drop **higher item level** gear: better bases and stronger mod tiers.
+8. **Dying** keeps everything and costs 10% of your current level's XP (never a level). You retry the same zone.
+9. **Menu → Debug** can spawn random gear of any rarity, any unique, rare weapons, any gem, or reset the character.
 
 ## Reading the screen
 
 - Top left: life and mana bars, level, zone name and monster level, kills, timer, button hints.
 - Bottom: skill bar (button, skill, mana cost; dim when you can't afford it) and the XP bar.
 - Damage numbers: white = your hits, **yellow with "!" = critical**, red = damage you take, grey "evade" = dodged.
-- Gems on the floor: teal name; the one you'd pick up is highlighted with the button to press. Teal squares on the minimap.
+- Loot on the floor: name coloured by rarity (gems teal); the one you'd pick up is highlighted with the button to press. Coloured squares on the minimap.
 - Enemy status: **blue ring = chilled** (slowed), **solid icy disc = frozen** (can't move or attack), **flickering embers = burning**.
 - Menu → Character tab: attributes, defences, and damage/speed/DPS for your weapon attack and each skill.
 
 ## New in this version
 
-- **Cast on Kill aims for you:** the triggered skill's main shot now flies at the next nearest enemy instead of straight past it. Its follow-ups (Shatter shards, Fireball explosions) still spread normally.
-- **New supports: Life Leech and Mana Leech.** A share of the damage you deal flows back as life or mana over time (up to 20% of your max per second). Gear will add leech too. The Character tab shows each skill's leech.
-- New support gems drop like the others, or grab them from Menu → Debug.
+- **Gear!** 26 item types across 10 slots (weapon, helmet, body, gloves, boots, belt, amulet, 2 rings), with random magic and rare mods, and 5 uniques.
+- **Weapons are items now**: find better swords, bows and wands (the debug weapon switcher is gone).
+- **Gear tab** with tooltips, mod tiers and comparison against what you're wearing.
+- **Requirements**: better items need levels and attributes.
+- Your previous save carries over, with your old weapon equipped.
 
 ## Extras
 

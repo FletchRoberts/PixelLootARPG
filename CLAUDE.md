@@ -239,8 +239,8 @@ they show `E` or `✕` depending on the last-used device.
 | skill slots 1–4 | right click, Q, E, R | R1, □, △, L1 |
 | dodge roll | Space | ○ |
 | pickup | F | ✕ |
-| menu (Character/Inventory/Debug tabs) | C | Options |
-| inventory tab shortcut | I | touchpad click |
+| menu (Character/Gear/Gems/Debug tabs) | C | Options |
+| gear tab shortcut | I | touchpad click |
 | confirm (menus/overlays) | Enter / Space / click | ✕ |
 | cancel / back (menus) | Esc | ○ |
 | tab prev / next (menus) | Q / Tab | L1 / R1 |
@@ -283,7 +283,8 @@ src/
     input/InputManager.ts keyboard/mouse + gamepad -> PlayerInput and UI actions
     input/gamepad.ts      standard-mapping buttons, deadzones (pure, tested)
     input/aim.ts          controller aim assist (pure, tested)
-    ui/GameMenu.ts        pause menu: Character, Inventory (gems/sockets), Debug tabs
+    ui/GameMenu.ts        pause menu: Character, Gear, Gems (sockets), Debug tabs
+    ui/items.ts           item names, rarity colours, icon keys, gear tooltips
     save/storage.ts       character save in localStorage (guarded)
     scenes/BootScene.ts   builds placeholder textures + biome tilesets
     scenes/GameScene.ts   fixed-step loop, input -> sim, sim state -> tilemap/sprites/HUD/minimap
@@ -303,7 +304,8 @@ src/
     items/save.ts         newCharacter, loadoutOf (save -> compiler loadout), death penalty
     items/gems.ts         gem levels, XP, socket counts
     items/drops.ts        weighted nestable drop tables
-    items/inventory.ts    equip / unequip / socket / unsocket rules
+    items/inventory.ts    equip / unequip gear and gems, socket / unsocket rules
+    items/gear.ts         roll gear (base/rarity/affix tiers), gear -> modifiers & grants, tooltip text
     world.test.ts         headless sim tests
     zone/generate.ts      linear zone generator (path, branches, arenas, packs)
     zone/zone.ts          Zone data, tile queries, circle-vs-wall collision
@@ -322,7 +324,11 @@ src/
     biomes.json           tileset looks per biome (PixelGen floor/wall specs)
     drop-tables.json      weighted drop tables (gems for now)
     gems.json             gem levels, sockets by level, bag size, pickup range
-    *.json                items/affixes/currencies (empty until gear)
+    item-bases.json       gear bases (slot, tags, drop level, requirements, implicits, weapon link)
+    affixes.json          prefixes/suffixes with tiers by item level
+    uniques.json          unique items (fixed mods, support grants, flavour)
+    gear.json             rarity weights, affix counts, rare name words
+    currencies.json       crafting currency (empty until crafting)
     index.ts              typed content loader
 docs/
   combat.md               stats, damage and defence formulas
@@ -400,6 +406,20 @@ mana **leech** (`life_leech` / `mana_leech` stats, % of damage dealt, paid out
 at up to `combat.leech.maxRate`% of max per second); supports Life Leech and
 Mana Leech; gear will grant the same stats.
 
+**Gear (done):** 26 item bases (`item-bases.json`; weapons are items and
+point at `weapons.json`, Fists when unarmed), 29 prefix/suffix affixes with
+tiers gated by item level and a magic-name word each (`affixes.json`),
+rarities normal/magic (1+1)/rare (3+3, 4–6 mods, random name)/unique, 5
+uniques (`uniques.json`, some `grants` a support to every fitting skill),
+rarity weights and rare names in `gear.json`. Monsters drop gear at their
+level (`drop-tables.json` kinds `item` / `unique`). 10 equipment slots;
+equipped gear feeds `computeStats()` (incl. attributes, leech, movement
+speed); level/attribute requirements. `src/sim/items/gear.ts` rolls items,
+turns gear into modifiers/grants, and makes tooltip text. Save v2 adds
+`equipment` (`migrateSave` upgrades v1). Menu tabs: Character, Gear (rarity
+coloured list, tooltips with tiers, comparison with what's worn), Gems,
+Debug (spawn gems, random gear by rarity, uniques, rare weapons).
+
 ### Balance & feel backlog (revisit after gear)
 
 - Cast on Kill chains: cooldown (0.3 s) and damage penalty feel; whether
@@ -409,13 +429,18 @@ Mana Leech; gear will grant the same stats.
 - Mana costs vs regen (5/s) once gear adds mana and leech.
 - Ground label stacking when several items drop together (loot filter era).
 - Leech rate cap (20%/s) and whether leech should apply to DoT.
+- **Resistances do nothing yet**: every monster deals physical damage. Add
+  elemental monsters (and monster mods) so fire/cold/lightning res matter.
+- Weapon affixes are global, not PoE "local" (e.g. "% increased physical
+  damage" on a weapon boosts all attacks). Fine while one weapon slot exists.
+- Gear drop rate (9% of trash) and rarity weights (55/33/11/1).
+- Item requirements come from the base only (PoE also uses affix levels).
 
 ### Roadmap
 
-1. **Gear** (next): item bases, prefix/suffix affixes with tiers and item
-   level, rarities, weapons as drops (replacing the debug weapon switcher),
-   equipment slots, tooltips, gear modifiers feeding `computeStats()`.
-2. **Crafting currency** (the orb table above) acting on gear.
+1. ~~Gear~~ (done).
+2. **Crafting currency** (next): the orb table above acting on gear, dropping
+   from monsters, plus a crafting screen.
 3. **Art pass** (after gear exists, so slots and item types are known):
    extend `tools/pixel-forge.html` with more weapon types, animation frames
    (walk / attack / hit), and paper-doll gear appearance on the character;

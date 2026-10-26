@@ -158,13 +158,18 @@ export function equipmentGrants(content: GearContent, equipment: CharacterSave["
 const fill = (template: string, values: number[]) => template.replace(/\{(\d+)\}/g, (_, i: string) => String(values[Number(i)] ?? "?"));
 
 const STAT_LABEL: Record<string, string> = {
-  added_physical_min: "minimum physical damage to attacks",
-  added_physical_max: "maximum physical damage to attacks",
+  life: "maximum Life",
+  mana: "maximum Mana",
+  added_physical_min: "minimum Physical Damage to Attacks",
+  added_physical_max: "maximum Physical Damage to Attacks",
 };
 
+/** "fire_resistance" → "Fire Resistance" unless there's a better label above. */
+const statLabel = (stat: string) => STAT_LABEL[stat] ?? stat.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
 function rangedText(m: RangedModDef, value: number): string {
-  const label = STAT_LABEL[m.stat] ?? m.stat.replace(/_/g, " ");
-  if (m.kind === "flat") return `${label.endsWith("resistance") ? `+${value}%` : `+${value}`} to ${label}`;
+  const label = statLabel(m.stat);
+  if (m.kind === "flat") return `${m.stat.endsWith("resistance") ? `+${value}%` : `+${value}`} to ${label}`;
   return `${value}% ${m.kind === "increased" ? "increased" : "more"} ${label}`;
 }
 
@@ -189,7 +194,7 @@ export function itemText(content: GearContent, item: GearItem): ItemText {
   let implicits = imps.map((m, i) => rangedText(m, item.implicits[i] ?? m.value[0]));
   if (imps.length === 2 && imps[0]!.stat.endsWith("_min") && imps[1]!.stat.endsWith("_max")) {
     const type = imps[0]!.stat.replace(/^added_/, "").replace(/_min$/, "");
-    implicits = [`Adds ${item.implicits[0]} to ${item.implicits[1]} ${type} damage to attacks`];
+    implicits = [`Adds ${item.implicits[0]} to ${item.implicits[1]} ${statLabel(type)} Damage to Attacks`];
   }
   const mods = item.mods.map((m) => {
     const affix = content.affixes.find((a) => a.id === m.affix);
@@ -209,11 +214,8 @@ export function itemText(content: GearContent, item: GearItem): ItemText {
   };
 }
 
-/** Magic items are named after their mods, PoE-style: "Hale Iron Cap of the Ember". */
+/** Magic items are named after their mods, PoE-style: "Healthy Iron Cap of the Fox". */
 function magicName(content: GearContent, item: GearItem, baseName: string): string {
   const affix = (kind: "prefix" | "suffix") => item.mods.map((m) => content.affixes.find((a) => a.id === m.affix)).find((a) => a?.kind === kind);
-  const pre = affix("prefix");
-  const suf = affix("suffix");
-  const word = (a: Affix | undefined) => (a ? a.group.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "");
-  return [pre ? `${word(pre)}` : "", baseName, suf ? `of ${word(suf)}` : ""].filter(Boolean).join(" ");
+  return [affix("prefix")?.name, baseName, affix("suffix")?.name].filter(Boolean).join(" ");
 }

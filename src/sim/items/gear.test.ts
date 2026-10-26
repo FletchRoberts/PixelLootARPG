@@ -169,8 +169,11 @@ describe("gear drops and saves", () => {
   it("tooltips name items and show tiers", () => {
     const t = itemText(content, item("iron_cap", [{ affix: "life", tier: 2, values: [55] }]));
     expect(t.mods[0]).toBe("+55 to maximum Life  (T2 prefix)");
-    expect(t.implicits[0]).toBe("+16 to armour");
-    expect(t.name).toMatch(/Iron Cap/);
-    expect(itemText(content, item("iron_ring")).implicits[0]).toBe("Adds 1 to 4 physical damage to attacks");
+    expect(t.implicits[0]).toBe("+16 to Armour");
+    expect(t.name).toBe("Healthy Iron Cap");
+    expect(itemText(content, item("coral_ring")).implicits[0]).toBe("+25 to maximum Life");
+    expect(itemText(content, item("ruby_ring")).implicits[0]).toBe("+25% to Fire Resistance");
+    expect(itemText(content, item("iron_ring")).implicits[0]).toBe("Adds 1 to 4 Physical Damage to Attacks");
+    expect(itemText(content, item("leather_boots", [{ affix: "dexterity", tier: 1, values: [5] }])).name).toBe("Leather Boots of the Fox");
   });
 });

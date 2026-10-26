@@ -39,6 +39,7 @@ export interface AffixModDef {
 
 export interface Affix {
   id: string;
+  name: string; // magic item naming: prefixes "Healthy …", suffixes "… of the Fox"
   kind: AffixKind;
   group: string; // only one affix per group on an item
   mods: AffixModDef[]; // parallel to AffixTier.values
