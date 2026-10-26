@@ -192,3 +192,53 @@ describe("supports that change how skills fire", () => {
     expect(describeSkill(w.player.compiled[2]!).join("\n")).toMatch(/on hit → 3 × lobbed projectile, \d+–\d+ fire/);
   });
 });
+
+describe("Cast on Kill targeting", () => {
+  it("the triggered skill's main projectile aims at the next enemy; its Shatter shards still burst in a ring", () => {
+    const w = arena(quiet, { slots: [slot("ice_nova"), slot("frost_bolt", ["cast_on_kill", "shatter"])] });
+    const victim = addMonster(w, 40, 0, 1);
+    const next = addMonster(w, 40, 260); // off to the side: the old "away from player" aim would miss it
+    step(w, quiet, { ...idle(victim.pos), attack: true }); // sword kills the victim
+    step(w, quiet, idle()); // reaped → Frost Bolt casts itself at the corpse
+    const bolt = w.projectiles.find((pr) => pr.node === 0);
+    expect(bolt).toBeDefined();
+    const toNext = { x: next.pos.x - bolt!.pos.x, y: next.pos.y - bolt!.pos.y };
+    const l = Math.hypot(toNext.x, toNext.y);
+    expect((bolt!.dir.x * toNext.x + bolt!.dir.y * toNext.y) / l).toBeGreaterThan(0.95);
+    // Let it hit and shatter: shards spread in every direction, not all toward an enemy.
+    let shards: typeof w.projectiles = [];
+    for (let i = 0; i < 60 && shards.length === 0; i++) {
+      step(w, quiet, idle());
+      shards = w.projectiles.filter((pr) => pr.node !== 0);
+    }
+    expect(shards.length).toBe(5);
+    expect(Math.min(...shards.map((s) => s.dir.y))).toBeLessThan(-0.5);
+    expect(Math.max(...shards.map((s) => s.dir.y))).toBeGreaterThan(0.5);
+  });
+});
+
+describe("leech", () => {
+  it("life leech heals from damage dealt, no faster than 20% of max life per second", () => {
+    const w = arena(quiet, { attackSupports: ["life_leech"] });
+    const target = addMonster(w, 40, 0);
+    w.player.life = 10;
+    const max = w.player.maxLife;
+    run(w, quiet, 1, () => ({ ...idle(target.pos), attack: true }));
+    const healed = w.player.life - 10;
+    expect(healed).toBeGreaterThan(0);
+    expect(healed).toBeLessThanOrEqual(max * 0.2 + 0.01);
+  });
+
+  it("mana leech refills mana from hits; no leech without the support", () => {
+    const leech = arena(quiet, { attackSupports: ["mana_leech"] });
+    const plain = arena(quiet, { attackSupports: [] });
+    for (const w of [leech, plain]) {
+      const t = addMonster(w, 40, 0);
+      w.player.mana = 0;
+      w.player.stats.mana_regen = 0;
+      run(w, quiet, 1, () => ({ ...idle(t.pos), attack: true }));
+    }
+    expect(leech.player.mana).toBeGreaterThan(0);
+    expect(plain.player.mana).toBe(0);
+  });
+});

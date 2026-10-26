@@ -11,6 +11,7 @@ import { supportFitsTarget } from "../../sim/items/inventory";
 import type { GemItem, SocketTarget } from "../../sim/items/types";
 import { describeSkill } from "../../sim/skills/describe";
 import { xpToNext } from "../../sim/stats/character";
+import { computeStat } from "../../sim/stats/stats";
 import { skillSummary, SKILL_SLOTS, type InventoryCommand, type WorldState } from "../../sim/world";
 import type { InputManager } from "../input/InputManager";
 
@@ -345,7 +346,11 @@ export class GameMenu {
       const gem = i > 0 ? p.save.skillBar[i - 1] : null;
       const slot = i === 0 ? "Weapon attack" : `Skill ${i} [${this.inputs.skillPrompt(i - 1)}]`;
       lines.push(`${slot}: ${sum.name}${gem ? ` (Lv${gem.level})` : ""}`);
-      lines.push(`   ${range}  ·  ${sum.usesPerSecond.toFixed(2)}/s  ·  crit ${sum.critChance.toFixed(1)}%  ·  DPS ${sum.dps.toFixed(1)}${sum.cost ? `  ·  ${sum.cost.toFixed(1)} mana` : ""}`);
+      const root = p.compiled[i]?.nodes[0];
+      const lifeLeech = root ? computeStat("life_leech", 0, root.mods, root.tags) : 0;
+      const manaLeech = root ? computeStat("mana_leech", 0, root.mods, root.tags) : 0;
+      const leech = [lifeLeech && `${lifeLeech}% life leech`, manaLeech && `${manaLeech}% mana leech`].filter(Boolean).join(", ");
+      lines.push(`   ${range}  ·  ${sum.usesPerSecond.toFixed(2)}/s  ·  crit ${sum.critChance.toFixed(1)}%  ·  DPS ${sum.dps.toFixed(1)}${sum.cost ? `  ·  ${sum.cost.toFixed(1)} mana` : ""}${leech ? `  ·  ${leech}` : ""}`);
     }
     return lines;
   }

@@ -243,5 +243,41 @@
         "value": 100
       }
     ]
+  },
+  {
+    "id": "life_leech",
+    "name": "Life Leech",
+    "attribute": "strength",
+    "description": "5% of damage dealt is leeched as life (up to 20% of max life per second)",
+    "requires": [
+      "spell",
+      "attack"
+    ],
+    "costMultiplier": 1.15,
+    "mods": [
+      {
+        "stat": "life_leech",
+        "kind": "flat",
+        "value": 5
+      }
+    ]
+  },
+  {
+    "id": "mana_leech",
+    "name": "Mana Leech",
+    "attribute": "intelligence",
+    "description": "4% of damage dealt is leeched as mana (up to 20% of max mana per second)",
+    "requires": [
+      "spell",
+      "attack"
+    ],
+    "costMultiplier": 1.0,
+    "mods": [
+      {
+        "stat": "mana_leech",
+        "kind": "flat",
+        "value": 4
+      }
+    ]
   }
 ]

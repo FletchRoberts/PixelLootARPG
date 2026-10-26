@@ -25,6 +25,7 @@ export interface CombatRules {
     freeze: { threshold: number; secondsPerPercent: number; min: number; max: number }; // cold hit ≥ threshold % of max life
     ignite: { dpsPercentOfHit: number; duration: number }; // fire hit, chance from ignite_chance
   };
+  leech: { maxRate: number }; // % of max life/mana recoverable per second from leech
 }
 
 export interface Hit {

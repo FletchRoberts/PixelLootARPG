@@ -29,10 +29,10 @@ import { addToBag, equipSkill, socketSupport, unequipSkill, unsocket } from "./i
 import { applyDeathPenalty, equippedSkillGems, loadoutOf, newCharacter } from "./items/save";
 import type { CharacterSave, GemItem, GroundItem, SocketTarget } from "./items/types";
 import { gainXp, monsterScale, playerModifiers, playerStats, xpForKill } from "./stats/character";
-import type { StatBlock } from "./stats/stats";
+import { computeStat, type StatBlock } from "./stats/stats";
 import { buildFlowField, distAt, nextStep, UNREACHED, type FlowField } from "./zone/flowfield";
 import { generateZone } from "./zone/generate";
-import { isFloorAt, resolveWalls, tileCenter, tileOf, type Zone } from "./zone/zone";
+import { hasLineOfSight, isFloorAt, resolveWalls, tileCenter, tileOf, type Zone } from "./zone/zone";
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
@@ -42,6 +42,7 @@ const KNOCKBACK_DECAY = 10; // per second, exponential
 const SEPARATION_STRENGTH = 0.5;
 const FLOW_MAX_DIST = 40; // tiles; monsters further than this can't path to the player
 const EXIT_RADIUS = 0.8; // tiles
+const TRIGGER_TARGET_RANGE = 600; // px: Cast on Kill aims at enemies this close to the corpse
 
 export interface SimContent {
   characters: Character[];
@@ -86,6 +87,7 @@ export interface PlayerState extends Actor {
   rollCooldown: number;
   pending: { t: number; skill: number; angle: number; left: number }[]; // Echo repeats waiting to fire
   triggerCooldowns: number[]; // per compiled skill, for Cast on Kill
+  leech: { life: number; mana: number }; // queued recovery from leech, paid out at a capped rate
 }
 
 export interface Ailments {
@@ -201,6 +203,7 @@ export function createWorld(content: SimContent, seed: number, save: CharacterSa
       rollCooldown: 0,
       pending: [],
       triggerCooldowns: [],
+      leech: { life: 0, mana: 0 },
     },
     monsters: [],
     projectiles: [],
@@ -400,6 +403,10 @@ function combatContext(world: WorldState, content: SimContent, rng: Rng): SkillC
         return false;
       }
       m.life -= result.total;
+      // Leech: a share of the damage dealt queues up as life/mana recovery (paid out over time).
+      const p = world.player;
+      p.leech.life += (result.total * computeStat("life_leech", 0, node.mods, node.tags)) / 100;
+      p.leech.mana += (result.total * computeStat("mana_leech", 0, node.mods, node.tags)) / 100;
       m.knock = add(m.knock, scale(dir, node.knockback));
       events.push({ type: "damage", targetId: m.id, amount: result.total, crit: hit.crit, pos: { ...m.pos } });
       applyAilments(m, result.byType, node, rules, rng);
@@ -457,6 +464,7 @@ function updatePlayer(world: WorldState, content: SimContent, input: PlayerInput
   const p = world.player;
   const hero = lookup(content.characters, p.defId, "character");
   p.mana = Math.min(p.maxMana, p.mana + (p.stats.mana_regen ?? 0) * dt);
+  payOutLeech(p, content.combat as CombatRules, dt);
   p.castLock = Math.max(0, p.castLock - dt);
   p.rollCooldown = Math.max(0, p.rollCooldown - dt);
   p.triggerCooldowns = p.triggerCooldowns.map((t) => Math.max(0, t - dt));
@@ -530,6 +538,37 @@ function castWithRepeats(world: WorldState, index: number, angle: number, ctx: S
   if (repeat) p.pending.push({ t: repeat.delay, skill: index, angle, left: repeat.count });
 }
 
+/**
+ * Leech recovers at most `leech.maxRate`% of max life/mana per second (PoE-style), so big hits
+ * fill a pool that drains over time instead of healing instantly. Excess beyond full is lost.
+ */
+function payOutLeech(p: PlayerState, rules: CombatRules, dt: number): void {
+  const rate = rules.leech.maxRate / 100;
+  const life = Math.min(p.leech.life, p.maxLife * rate * dt);
+  p.leech.life -= life;
+  p.life = Math.min(p.maxLife, p.life + life);
+  const mana = Math.min(p.leech.mana, p.maxMana * rate * dt);
+  p.leech.mana -= mana;
+  p.mana = Math.min(p.maxMana, p.mana + mana);
+  if (p.life >= p.maxLife) p.leech.life = 0;
+  if (p.mana >= p.maxMana) p.leech.mana = 0;
+}
+
+/** Nearest living monster within range of a point, with line of sight. */
+function nearestVisibleMonster(world: WorldState, from: Vec, range: number): MonsterState | null {
+  let best: MonsterState | null = null;
+  let bestD = range;
+  for (const m of world.monsters) {
+    if (m.life <= 0) continue;
+    const d = dist(m.pos, from);
+    if (d < bestD && hasLineOfSight(world.zone, from, m.pos)) {
+      best = m;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
 /** The ground item the player would pick up right now, if any. */
 export function nearestPickup(world: WorldState, content: SimContent): GroundItem | null {
   let best: GroundItem | null = null;
@@ -597,7 +636,10 @@ function reapDead(world: WorldState, content: SimContent, ctx: SkillContext, rng
     const at = dead[0]!.pos;
     p.triggerCooldowns[index] = skill.trigger.cooldown;
     events.push({ type: "cast", slot: index - 1, skill: skill.id });
-    useSkill(world, index, { ...at }, angleOf(sub(at, p.pos)), ctx, events);
+    // Smart-target the root delivery at the next enemy; its children keep their own patterns.
+    const next = nearestVisibleMonster(world, at, TRIGGER_TARGET_RANGE);
+    const angle = next ? angleOf(sub(next.pos, at)) : angleOf(sub(at, p.pos));
+    useSkill(world, index, { ...at }, angle, ctx, events);
   });
 }
 

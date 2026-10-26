@@ -28,5 +28,8 @@
       "dpsPercentOfHit": 30,
       "duration": 4
     }
+  },
+  "leech": {
+    "maxRate": 20
   }
 }

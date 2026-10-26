@@ -393,6 +393,23 @@ support. Duplicate supports allowed. Death keeps everything and costs
 `progression.deathXpPenalty`% of the level's XP (never a level). Menu tabs:
 Character, Inventory (controller-first grid + picker), Debug.
 
+**Polish after step 3 (done):** Cast on Kill now smart-targets: the
+triggered skill's root delivery aims at the nearest visible enemy near the
+corpse (children such as Shatter shards keep their own patterns). Life and
+mana **leech** (`life_leech` / `mana_leech` stats, % of damage dealt, paid out
+at up to `combat.leech.maxRate`% of max per second); supports Life Leech and
+Mana Leech; gear will grant the same stats.
+
+### Balance & feel backlog (revisit after gear)
+
+- Cast on Kill chains: cooldown (0.3 s) and damage penalty feel; whether
+  triggered skills should cost a little mana.
+- Freeze is very strong at low monster levels (Husks have 30 life).
+- Drop rates (`drop-tables.json`) and gem XP / socket pacing (`gems.json`).
+- Mana costs vs regen (5/s) once gear adds mana and leech.
+- Ground label stacking when several items drop together (loot filter era).
+- Leech rate cap (20%/s) and whether leech should apply to DoT.
+
 ### Roadmap
 
 1. **Gear** (next): item bases, prefix/suffix affixes with tiers and item

@@ -54,7 +54,7 @@ Controller: plug it in, open the page, press any button. A "Controller connected
    - Move right onto a **socket** and press ✕ to put in a support. Only supports that fit that skill are offered. Choose "Remove" to take one out.
    - The right side explains the selected gem and what the whole skill now does.
 5. **Skill gems level up** as you kill things while they're equipped: more damage, and more sockets (2 at first, then 3, 4 and 5). Supports socketed in a gem stay with it if you unequip it.
-6. Skills: Frost Bolt, Fireball, Ice Nova, Earthsplitter, Fanning Shot, Magma Strike. Supports: Volley, Pierce, Chain, Fork, Shatter, Echo, Cast on Kill, Added Cold, Concentrated, Knockback. (See the right side of the Inventory tab for what each does.)
+6. Skills: Frost Bolt, Fireball, Ice Nova, Earthsplitter, Fanning Shot, Magma Strike. Supports: Volley, Pierce, Chain, Fork, Shatter, Echo, Cast on Kill, Added Cold, Concentrated, Knockback, **Life Leech**, **Mana Leech**. (See the right side of the Inventory tab for what each does.)
 7. **Dying** keeps everything you picked up and costs 10% of your current level's XP (you never lose a level). You retry the same zone.
 8. Reach the glowing EXIT to clear the zone. Each cleared zone raises the monster level by 1.
 9. **Menu → Debug** can give you any gem, switch weapon (Sword / Bow / Wand) or reset the character. Handy for trying combos without farming.
@@ -70,12 +70,9 @@ Controller: plug it in, open the page, press any button. A "Controller connected
 
 ## New in this version
 
-- **Gems drop as loot.** Pick up with ✕ / F.
-- **Inventory**: equip skill gems on your buttons and socket supports into them (and into your weapon attack).
-- **Gem levels and sockets** grow as you play.
-- **Your character is saved** in the browser between sessions.
-- **Death** now costs 10% of a level's XP but keeps all items.
-- The old Skills editor moved to **Debug** (give gems, switch weapon, reset).
+- **Cast on Kill aims for you:** the triggered skill's main shot now flies at the next nearest enemy instead of straight past it. Its follow-ups (Shatter shards, Fireball explosions) still spread normally.
+- **New supports: Life Leech and Mana Leech.** A share of the damage you deal flows back as life or mana over time (up to 20% of your max per second). Gear will add leech too. The Character tab shows each skill's leech.
+- New support gems drop like the others, or grab them from Menu → Debug.
 
 ## Extras
 
