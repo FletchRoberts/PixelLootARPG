@@ -1,0 +1,10 @@
+{
+  // Enforces the sim/render split: src/sim and src/data compile with no DOM
+  // and no Phaser types, so any browser or renderer import fails typecheck.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": []
+  },
+  "include": ["src/sim", "src/data"]
+}
