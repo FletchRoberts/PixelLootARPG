@@ -109,6 +109,15 @@ The loot system is the heart of the game and should be big:
   per-mechanic tables, global rarity/quantity modifiers applied by the sim.
 - A **loot filter** later, operating on sim item data, client-side only.
 
+### Combat math
+
+PoE 2-style, documented in **`docs/combat.md`** (the reference for all
+stat/damage work): stat ids + flat/increased/more modifiers aggregated by one
+`computeStats()`, hit pipeline base → added → increased → more → roll → crit,
+then defender evasion (entropy) → armour `A / (A + 10 × hit)` → resistances
+(75% cap) → other reductions → life. Monsters use the same pipeline. All
+constants live in data.
+
 ### Crafting currency
 
 Orb-style consumables that modify items. Our names (working, tweak freely):
@@ -263,6 +272,8 @@ src/
     biomes.json           tileset looks per biome (PixelGen floor/wall specs)
     *.json                items/affixes/currencies/drop tables (empty)
     index.ts              typed content loader
+docs/
+  combat.md               stats, damage and defence formulas (Phase 3 reference)
 tools/
   pixel-forge.html        PixelGen placeholder sprite generator
 ```
