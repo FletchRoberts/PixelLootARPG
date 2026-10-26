@@ -18,6 +18,12 @@ npm test           # headless sim tests (vitest)
 
 Commit after each working step. Run `npm run typecheck` before committing.
 
+**After every update:** keep `PLAYING.md` (how to run and play the current
+build: setup, controls for keyboard and PS5 controller, what to do, what's
+new) accurate, and end your reply to the user with a short "How to play this
+version" section based on it. The user plays on Windows (Command Prompt) with
+Chrome/Edge and a PS5 controller over USB.
+
 ---
 
 ## Core design
@@ -256,6 +262,7 @@ they show `E` or `✕` depending on the last-used device.
 ## Repo layout
 
 ```
+PLAYING.md                how to run and play the current build (keep updated)
 index.html                Vite entry; mounts #game
 vite.config.ts
 tsconfig.json             app config (DOM + Phaser)
