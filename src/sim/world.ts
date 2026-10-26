@@ -28,10 +28,10 @@ import { weaponAttackSkill, compileSkill } from "./skills/compile";
 import { stepProjectiles, useSkill, type ProjectileState, type SkillContext } from "./skills/runtime";
 import type { CompiledNode, CompiledSkill, Loadout, SkillDef, SupportDef } from "./skills/types";
 import { rollDrops } from "./items/drops";
-import { gainGemXp, makeGem } from "./items/gems";
+import { makeGem } from "./items/gems";
 import { equipmentGrants, equipmentModifiers, rollGear, type RollOptions } from "./items/gear";
-import { addToBag, equipGear, equipSkill, socketSupport, unequipGear, unequipSkill, unsocket } from "./items/inventory";
-import { applyDeathPenalty, equippedSkillGems, loadoutOf, newCharacter } from "./items/save";
+import { addToBag, equipGear, equipSkill, levelSkillGem, socketSupport, unequipGear, unequipSkill, unsocket } from "./items/inventory";
+import { applyDeathPenalty, loadoutOf, newCharacter } from "./items/save";
 import type { CharacterSave, EquipSlot, GemItem, GroundItem, Item, SocketTarget } from "./items/types";
 import { gainXp, monsterScale, playerModifiers, playerStats, xpForKill } from "./stats/character";
 import { computeStat, type StatBlock } from "./stats/stats";
@@ -163,7 +163,6 @@ export type SimEvent =
   | { type: "drop"; itemId: number }
   | { type: "pickup"; item: Item }
   | { type: "bag_full" }
-  | { type: "gem_level"; gem: GemItem }
   | { type: "wake"; packId: number }
   | { type: "player_died" }
   | { type: "zone_complete" };
@@ -263,6 +262,7 @@ export function setLoadout(world: WorldState, content: SimContent, loadout: Load
 export type InventoryCommand =
   | { type: "equip"; bagIndex: number; slot: number }
   | { type: "unequip"; slot: number }
+  | { type: "level_gem"; slot: number; copyBagIndex: number }
   | { type: "socket"; bagIndex: number; target: SocketTarget; socket: number }
   | { type: "unsocket"; target: SocketTarget; socket: number }
   | { type: "equip_gear"; bagIndex: number; slot?: EquipSlot }
@@ -276,10 +276,13 @@ export function inventoryCommand(world: WorldState, content: SimContent, cmd: In
   let result: string | null;
   switch (cmd.type) {
     case "equip":
-      result = equipSkill(save, cmd.bagIndex, cmd.slot);
+      result = equipSkill(save, cmd.bagIndex, cmd.slot, content);
       break;
     case "unequip":
       result = unequipSkill(save, cmd.slot, content);
+      break;
+    case "level_gem":
+      result = levelSkillGem(save, cmd.slot, cmd.copyBagIndex, content);
       break;
     case "socket":
       result = socketSupport(save, cmd.bagIndex, cmd.target, cmd.socket, content);
@@ -307,6 +310,12 @@ export function inventoryCommand(world: WorldState, content: SimContent, cmd: In
   }
   if (result === null) refreshSkills(world, content);
   return result;
+}
+
+/** The world as it would be after a command, without touching the real one (for UI previews). */
+export function previewInventoryCommand(world: WorldState, content: SimContent, cmd: InventoryCommand): WorldState | string {
+  const copy = clone(world);
+  return inventoryCommand(copy, content, cmd) ?? copy;
 }
 
 /** Recompile after the equipped gems change; drops in-flight projectiles (compiled indices shift). */
@@ -651,19 +660,10 @@ function reapDead(world: WorldState, content: SimContent, ctx: SkillContext, rng
     }
   }
   events.push({ type: "xp", amount: xp });
-  let recompute = false;
   if (gainXp(p, xp, content.progression) > 0) {
-    recompute = true;
+    recomputePlayer(world, content);
     events.push({ type: "level_up", level: p.level });
   }
-  // Equipped skill gems learn alongside the character (their sockets grow as they level).
-  for (const gem of equippedSkillGems(p.save)) {
-    if (gainGemXp(gem, xp, content.gems) > 0) {
-      recompute = true;
-      events.push({ type: "gem_level", gem: clone(gem) });
-    }
-  }
-  if (recompute) recomputePlayer(world, content);
 
   // Cast on Kill: after removal, so anything the triggered skill kills is reaped (with XP) next tick.
   p.compiled.forEach((skill, index) => {

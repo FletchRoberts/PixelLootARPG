@@ -3,16 +3,17 @@
 
 import { supportFits, weaponAttackSkill } from "../skills/compile";
 import type { SkillDef, SupportDef } from "../skills/types";
-import type { ItemBase, WeaponDef } from "../data/types";
+import type { GemRules, ItemBase, WeaponDef } from "../data/types";
 import { requirementProblem, slotAccepts, slotFor } from "./gear";
+import { raiseGemLevel } from "./gems";
 import type { CharacterSave, EquipSlot, GemItem, Item, SocketTarget } from "./types";
 
 export interface InventoryContent {
   itemBases: ItemBase[];
+  gems: GemRules;
   skills: SkillDef[];
   supports: SupportDef[];
   weapons: WeaponDef[];
-  gems: { bagSize: number };
 }
 
 export function addToBag(save: CharacterSave, item: Item, content: InventoryContent): boolean {
@@ -60,24 +61,56 @@ export function unequipGear(save: CharacterSave, slot: EquipSlot, content: Inven
   return null;
 }
 
-/** Put a skill gem from the bag on a skill button; whatever was there goes back to the bag. */
-export function equipSkill(save: CharacterSave, bagIndex: number, slot: number): string | null {
+/** Pull the supports out of a skill gem (they go to the bag separately). */
+function emptySockets(gem: GemItem): GemItem[] {
+  const out = (gem.sockets ?? []).filter((s): s is GemItem => !!s);
+  gem.sockets = (gem.sockets ?? []).map(() => null);
+  return out;
+}
+
+/**
+ * Put a skill gem from the bag on a skill button. Whatever was there goes back to the bag,
+ * and its socketed supports come out into the bag too.
+ */
+export function equipSkill(save: CharacterSave, bagIndex: number, slot: number, content: InventoryContent): string | null {
   const gem = save.bag[bagIndex];
   if (!gem || gem.kind !== "skill_gem") return "not a skill gem";
   if (slot < 0 || slot >= save.skillBar.length) return "no such slot";
   const old = save.skillBar[slot];
+  const freed = old?.sockets?.filter(Boolean).length ?? 0;
+  if (save.bag.length + freed > content.gems.bagSize) return "bag is full";
   save.skillBar[slot] = gem;
-  if (old) save.bag[bagIndex] = old;
-  else save.bag.splice(bagIndex, 1);
+  if (old) {
+    save.bag[bagIndex] = old;
+    save.bag.push(...emptySockets(old));
+  } else save.bag.splice(bagIndex, 1);
   return null;
 }
 
-/** Take a skill gem (with its supports still socketed) off the bar into the bag. */
+/** Take a skill gem off the bar; it and its socketed supports go back into the bag. */
 export function unequipSkill(save: CharacterSave, slot: number, content: InventoryContent): string | null {
   const gem = save.skillBar[slot];
   if (!gem) return "slot is empty";
-  if (!addToBag(save, gem, content)) return "bag is full";
+  const freed = gem.sockets?.filter(Boolean).length ?? 0;
+  if (save.bag.length + 1 + freed > content.gems.bagSize) return "bag is full";
+  save.bag.push(gem, ...emptySockets(gem));
   save.skillBar[slot] = null;
+  return null;
+}
+
+/**
+ * Level an equipped skill gem by consuming a duplicate copy from the bag. The copy adds its
+ * own level (so levelled copies aren't wasted), up to the max level.
+ */
+export function levelSkillGem(save: CharacterSave, slot: number, copyBagIndex: number, content: InventoryContent): string | null {
+  const gem = save.skillBar[slot];
+  const copy = save.bag[copyBagIndex];
+  if (!gem) return "no skill gem there";
+  if (!copy || copy.kind !== "skill_gem" || copy.defId !== gem.defId) return "needs a copy of the same skill gem";
+  if (gem.level >= content.gems.maxLevel) return "already max level";
+  save.bag.splice(copyBagIndex, 1);
+  save.bag.push(...emptySockets(copy)); // supports left in the copy aren't destroyed
+  raiseGemLevel(gem, copy.level, content.gems);
   return null;
 }
 

@@ -54,12 +54,18 @@ Controller: plug it in, open the page, press any button. A "Controller connected
    The closest item shows the pick-up button: **✕ / F**. The end-of-zone pack drops the most.
 4. **Menu → Gear** (touchpad / I goes straight there):
    - The top 9 rows are your equipment slots; below them is the gear in your bag.
-   - Select an item to see its tooltip: item level, requirements, its mods with their **tier** (T1 is best), and for bag items **what you're currently wearing** in that slot for comparison.
+   - Select an item to see its tooltip: item level, requirements, its mods with their **tier** (T1 is best).
+   - Under the tooltip, **green and red lines show exactly what would change** if you equip it (life, defences, resistances, attributes, move speed, and the DPS of your attack and each skill), followed by what you're currently wearing in that slot. On an equipped item it shows what you'd lose by taking it off.
+   - **Rings:** if a ring slot is free it goes there; if you wear two, press **←/→** to choose which one to replace (the tooltip says "left ring" / "right ring").
    - ✕ / Enter on a bag item **equips** it (whatever was there goes back to the bag). ✕ on a slot **takes it off**.
    - Better items need a **level** and sometimes **Strength / Dexterity / Intelligence**. Attribute mods on other gear can get you there.
    - The **weapon decides your R2 attack**: swords swing, bows shoot arrows, wands fire lightning bolts. Take your weapon off and you punch.
 5. **Uniques change your skills.** Examples: *Duplicator's Coil* gives every projectile skill Volley, *Glacier Heart* adds cold damage to everything, *The Patient Blade* makes your attacks Echo.
-6. **Menu → Gems:** equip skill gems on your 4 buttons and socket support gems, same as before. Skill gems level up as you kill things and gain sockets.
+6. **Menu → Gems:** equip skill gems on your 4 buttons and socket support gems.
+   - **Level a skill gem by feeding it a duplicate**: press ✕ on the equipped gem and choose "Level up: feed a copy". The copy adds its own level, up to level 10. Sockets grow at levels 3, 6 and 9 (2 → 5).
+   - At max level, extra copies just become a fresh gem to level.
+   - Support gems don't level; extra copies let you socket the same support into several skills.
+   - Taking a skill gem off (or swapping it) puts its supports back in your bag.
 7. Higher zones (monster level) drop **higher item level** gear: better bases and stronger mod tiers.
 8. **Dying** keeps everything and costs 10% of your current level's XP (never a level). You retry the same zone.
 9. **Menu → Debug** can spawn random gear of any rarity, any unique, rare weapons, any gem, or reset the character.
@@ -75,11 +81,10 @@ Controller: plug it in, open the page, press any button. A "Controller connected
 
 ## New in this version
 
-- **Gear!** 26 item types across 10 slots (weapon, helmet, body, gloves, boots, belt, amulet, 2 rings), with random magic and rare mods, and 5 uniques.
-- **Weapons are items now**: find better swords, bows and wands (the debug weapon switcher is gone).
-- **Gear tab** with tooltips, mod tiers and comparison against what you're wearing.
-- **Requirements**: better items need levels and attributes.
-- Your previous save carries over, with your old weapon equipped.
+- **Ring choice:** with two rings on, ←/→ picks which one a new ring replaces.
+- **Green/red stat changes** when you look at gear: see exactly what you gain and lose before equipping.
+- **Gem levelling changed:** gems no longer level from kills. Feed duplicate copies to level them (max 10).
+- **Supports come back to your bag** when you take a skill gem off or swap it.
 
 ## Extras
 

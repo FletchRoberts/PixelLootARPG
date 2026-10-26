@@ -247,8 +247,7 @@ export interface DropTable {
 
 /** Gem progression and inventory rules (src/data/gems.json). */
 export interface GemRules {
-  maxLevel: number;
-  xpToNext: { base: number; growth: number }; // gem XP for level L→L+1 = base × growth^(L-1)
+  maxLevel: number; // skill gems level by consuming copies (each copy adds its own level)
   damagePerLevel: number; // increased damage % per skill gem level above 1
   sockets: { level: number; count: number }[]; // skill gem support sockets by level
   attackSockets: number; // support sockets for the weapon attack

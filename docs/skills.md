@@ -99,7 +99,9 @@ a support could add projectiles to the main bolt only (`root`).
 
 ## Gems, sockets and attributes
 
-- **Skill gems** grant skills. **Support gems** go into a skill gem's
+- **Skill gems** grant skills. They level by **consuming duplicate copies**
+  of themselves (a crafting currency will also do it), up to level 10; at
+  max, further copies start a new gem. Support gems don't level. **Support gems** go into a skill gem's
   sockets, PoE 2-style: the socket lives on the gem, not on the armour, so
   gear choice and skill choice don't fight. A gem starts with 2 support
   sockets and gains up to 5 through gem level or a currency.

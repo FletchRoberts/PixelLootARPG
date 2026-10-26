@@ -6,8 +6,7 @@ export interface GemItem {
   uid: number;
   kind: "skill_gem" | "support_gem";
   defId: string; // skills.json / supports.json id
-  level: number;
-  xp: number;
+  level: number; // skill gems level by consuming duplicates; supports stay at 1
   sockets?: (GemItem | null)[]; // skill gems only; length = current socket count
 }
 

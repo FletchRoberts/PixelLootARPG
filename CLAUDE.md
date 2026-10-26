@@ -302,10 +302,11 @@ src/
     skills/describe.ts    human-readable skill breakdown for UI
     items/types.ts        GemItem, GroundItem, CharacterSave, SocketTarget
     items/save.ts         newCharacter, loadoutOf (save -> compiler loadout), death penalty
-    items/gems.ts         gem levels, XP, socket counts
+    items/gems.ts         gem levels (by feeding copies), socket counts
     items/drops.ts        weighted nestable drop tables
     items/inventory.ts    equip / unequip gear and gems, socket / unsocket rules
     items/gear.ts         roll gear (base/rarity/affix tiers), gear -> modifiers & grants, tooltip text
+    items/compare.ts      before/after stat diff for equip previews
     world.test.ts         headless sim tests
     zone/generate.ts      linear zone generator (path, branches, arenas, packs)
     zone/zone.ts          Zone data, tile queries, circle-vs-wall collision
@@ -420,6 +421,17 @@ turns gear into modifiers/grants, and makes tooltip text. Save v2 adds
 coloured list, tooltips with tiers, comparison with what's worn), Gems,
 Debug (spawn gems, random gear by rarity, uniques, rare weapons).
 
+**Gear QoL + gem rework (done):** when both rings are worn, ←/→ picks which
+one a new ring replaces. Selecting gear shows **green/red stat changes**
+(`previewInventoryCommand` runs the command on a cloned world;
+`src/sim/items/compare.ts` diffs life, mana, defences, resistances,
+attributes, move speed and every skill's DPS). **Gems no longer level from
+XP**: feed a duplicate skill gem into an equipped one (`level_gem`; the copy
+adds its own level) up to `gems.maxLevel` (10); sockets 2/3/4/5 at levels
+1/3/6/9. Support gems don't level; duplicates are just more copies. A
+crafting currency that levels gems comes with crafting. Unequipping or
+swapping a skill gem returns its socketed supports to the bag.
+
 ### Balance & feel backlog (revisit after gear)
 
 - Cast on Kill chains: cooldown (0.3 s) and damage penalty feel; whether
@@ -435,6 +447,12 @@ Debug (spawn gems, random gear by rarity, uniques, rare weapons).
   damage" on a weapon boosts all attacks). Fine while one weapon slot exists.
 - Gear drop rate (9% of trash) and rarity weights (55/33/11/1).
 - Item requirements come from the base only (PoE also uses affix levels).
+- **Accuracy barely matters yet**: Husk evasion (20 × 1.07^level) stays far
+  below the 0.83 × accuracy needed before attacks can miss, so player
+  attacks always hit. Give monsters real evasion (evasive monster types,
+  monster mods) so accuracy and the accuracy affix earn their place. Player
+  evasion already works against monster accuracy.
+- Gem drop rates now need duplicates for levelling: tune skill gem weights.
 
 ### Roadmap
 

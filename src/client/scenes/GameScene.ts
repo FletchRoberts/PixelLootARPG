@@ -6,6 +6,7 @@ import {
   DT,
   inventoryCommand,
   nearestPickup,
+  previewInventoryCommand,
   saveAfterClear,
   saveAfterDeath,
   SKILL_SLOTS,
@@ -122,6 +123,7 @@ export class GameScene extends Phaser.Scene {
         if (!refused) this.persist();
         return refused;
       },
+      preview: (cmd) => previewInventoryCommand(this.world, content, cmd),
       resetCharacter: () => {
         clearSave();
         const seed = randomSeed();
@@ -264,10 +266,6 @@ export class GameScene extends Phaser.Scene {
         break;
       case "bag_full":
         this.toast("Bag is full");
-        break;
-      case "gem_level":
-        this.toast(`${itemName({ ...e.gem, level: 1 })} reached level ${e.gem.level} (${e.gem.sockets?.length ?? 0} sockets)`);
-        this.persist();
         break;
       case "drop":
       case "xp":

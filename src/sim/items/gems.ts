@@ -1,4 +1,6 @@
-// Gem levels, XP and socket counts (rules in src/data/gems.json).
+// Gem levels and socket counts (rules in src/data/gems.json).
+// Skill gems level by consuming duplicate copies of themselves (later also a crafting
+// currency); support gems don't level, duplicates are just extra copies to socket.
 
 import type { GemRules } from "../data/types";
 import type { CharacterSave, GemItem } from "./types";
@@ -9,31 +11,18 @@ export function socketCount(level: number, rules: GemRules): number {
   return count;
 }
 
-export function gemXpToNext(level: number, rules: GemRules): number {
-  if (level >= rules.maxLevel) return Infinity;
-  return Math.round(rules.xpToNext.base * Math.pow(rules.xpToNext.growth, level - 1));
-}
-
-/** Add XP to a gem; grows its sockets on level up. Returns levels gained. */
-export function gainGemXp(gem: GemItem, amount: number, rules: GemRules): number {
-  gem.xp += amount;
-  let gained = 0;
-  while (gem.level < rules.maxLevel && gem.xp >= gemXpToNext(gem.level, rules)) {
-    gem.xp -= gemXpToNext(gem.level, rules);
-    gem.level++;
-    gained++;
-  }
-  if (gem.level >= rules.maxLevel) gem.xp = 0;
-  if (gem.kind === "skill_gem") {
-    const sockets = gem.sockets ?? [];
-    while (sockets.length < socketCount(gem.level, rules)) sockets.push(null);
-    gem.sockets = sockets;
-  }
-  return gained;
+/** Set a skill gem's level (capped) and grow its sockets to match. Returns levels gained. */
+export function raiseGemLevel(gem: GemItem, levels: number, rules: GemRules): number {
+  const before = gem.level;
+  gem.level = Math.min(rules.maxLevel, gem.level + levels);
+  const sockets = gem.sockets ?? [];
+  while (sockets.length < socketCount(gem.level, rules)) sockets.push(null);
+  gem.sockets = sockets;
+  return gem.level - before;
 }
 
 export function makeGem(save: Pick<CharacterSave, "nextUid">, kind: GemItem["kind"], defId: string, rules: GemRules, level = 1): GemItem {
-  const gem: GemItem = { uid: save.nextUid++, kind, defId, level, xp: 0 };
+  const gem: GemItem = { uid: save.nextUid++, kind, defId, level };
   if (kind === "skill_gem") gem.sockets = Array.from({ length: socketCount(level, rules) }, () => null);
   return gem;
 }

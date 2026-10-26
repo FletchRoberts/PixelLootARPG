@@ -177,3 +177,35 @@ describe("gear drops and saves", () => {
     expect(itemText(content, item("leather_boots", [{ affix: "dexterity", tier: 1, values: [5] }])).name).toBe("Leather Boots of the Fox");
   });
 });
+
+describe("equip comparison", () => {
+  it("shows exactly what changes, better in one direction and worse in the other", async () => {
+    const { compareWorlds } = await import("./compare");
+    const { previewInventoryCommand } = await import("../world");
+    const w = createWorld(quiet, 1);
+    equip(w, item("iron_cap", [{ affix: "life", tier: 1, values: [40] }]));
+    w.player.save.bag.push(item("leather_hood", [{ affix: "dexterity", tier: 1, values: [10] }]));
+    const preview = previewInventoryCommand(w, quiet, { type: "equip_gear", bagIndex: w.player.save.bag.length - 1 });
+    expect(typeof preview).not.toBe("string");
+    const changes = compareWorlds(w, preview as WorldState, quiet);
+    const byLabel = Object.fromEntries(changes.map((c) => [c.label, c]));
+    expect(byLabel["Life"]!.delta).toBe(-40);
+    expect(byLabel["Life"]!.better).toBe(false);
+    expect(byLabel["Armour"]!.delta).toBe(-16);
+    expect(byLabel["Evasion"]!.delta).toBeGreaterThan(0);
+    expect(byLabel["Dexterity"]!.delta).toBe(10);
+    expect(byLabel["Dexterity"]!.better).toBe(true);
+    // The real world is untouched.
+    expect(w.player.save.equipment.helmet?.base).toBe("iron_cap");
+  });
+
+  it("weapon swaps show the DPS change", async () => {
+    const { compareWorlds } = await import("./compare");
+    const { previewInventoryCommand } = await import("../world");
+    const w = createWorld(quiet, 1);
+    w.player.save.bag.push(item("rusty_sword", [{ affix: "physical_attack", tier: 1, values: [9, 22] }]));
+    const preview = previewInventoryCommand(w, quiet, { type: "equip_gear", bagIndex: w.player.save.bag.length - 1 }) as WorldState;
+    const dps = compareWorlds(w, preview, quiet).find((c) => c.label.startsWith("Attack DPS"));
+    expect(dps?.better).toBe(true);
+  });
+});

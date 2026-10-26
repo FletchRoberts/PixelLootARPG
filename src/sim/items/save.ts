@@ -66,10 +66,6 @@ export function applyDeathPenalty(save: CharacterSave, progression: Progression)
   save.xp = Math.max(0, save.xp - (need * progression.deathXpPenalty) / 100);
 }
 
-/** Every gem the character has equipped (skill gems and their socketed supports). */
-export function equippedSkillGems(save: CharacterSave): GemItem[] {
-  return save.skillBar.filter((g): g is GemItem => !!g);
-}
 
 /**
  * Bring an older save up to date. v1 had no equipment: its weapon becomes an equipped

@@ -7,7 +7,7 @@
 
 import Phaser from "phaser";
 import { content } from "../../data";
-import { gemXpToNext } from "../../sim/items/gems";
+import { compareWorlds, type StatChange } from "../../sim/items/compare";
 import { supportFitsTarget } from "../../sim/items/inventory";
 import { EQUIP_SLOTS, type EquipSlot, type GearItem, type GemItem, type SocketTarget } from "../../sim/items/types";
 import { gearTooltip, itemColor, itemName, RARITY_COLOR } from "./items";
@@ -20,6 +20,7 @@ import type { InputManager } from "../input/InputManager";
 export type MenuTab = "character" | "gear" | "gems" | "debug";
 const TABS: MenuTab[] = ["character", "gear", "gems", "debug"];
 const GEAR_ROWS = 24; // visible rows in the gear list
+const DIFF_ROWS = 14; // stat change lines in the gear tooltip
 
 type GearEntry = { kind: "slot"; slot: EquipSlot } | { kind: "bag"; bagIndex: number };
 const SLOT_LABEL: Record<EquipSlot, string> = {
@@ -44,6 +45,7 @@ interface Choice {
 
 export interface MenuActions {
   command(cmd: InventoryCommand): string | null;
+  preview(cmd: InventoryCommand): WorldState | string; // the world after cmd, without applying it
   resetCharacter(): void;
 }
 
@@ -67,6 +69,9 @@ export class GameMenu {
   private footer: Phaser.GameObjects.Text;
   private gearRows: Phaser.GameObjects.Text[] = [];
   private tip: { title: Phaser.GameObjects.Text; body: Phaser.GameObjects.Text; cmpTitle: Phaser.GameObjects.Text; cmpBody: Phaser.GameObjects.Text };
+  private diffRows: Phaser.GameObjects.Text[] = [];
+  private ringTarget: "ring1" | "ring2" = "ring1"; // which ring a new ring replaces when both are worn
+  private diffCache: { key: string; title: string; changes: StatChange[] } | null = null;
 
   constructor(
     private scene: Phaser.Scene,
@@ -80,6 +85,7 @@ export class GameMenu {
     this.right = scene.add.text(0, 0, "", { ...FONT, fontSize: "13px", color: "#a8c8e8", lineSpacing: 4 });
     this.footer = scene.add.text(0, 0, "", { ...FONT, fontSize: "12px", color: "#8a8a96" });
     for (let i = 0; i < GEAR_ROWS; i++) this.gearRows.push(scene.add.text(0, 0, "", { ...FONT, fontSize: "13px" }));
+    for (let i = 0; i < DIFF_ROWS; i++) this.diffRows.push(scene.add.text(0, 0, "", { ...FONT, fontSize: "13px" }));
     this.tip = {
       title: scene.add.text(0, 0, "", { ...FONT, fontSize: "15px" }),
       body: scene.add.text(0, 0, "", { ...FONT, fontSize: "13px", color: "#c8c8d0", lineSpacing: 3 }),
@@ -87,7 +93,7 @@ export class GameMenu {
       cmpBody: scene.add.text(0, 0, "", { ...FONT, fontSize: "12px", color: "#9a9aa6", lineSpacing: 2 }),
     };
     this.root = scene.add
-      .container(0, 0, [this.bg, this.header, this.left, this.right, this.footer, ...this.gearRows, this.tip.title, this.tip.body, this.tip.cmpTitle, this.tip.cmpBody])
+      .container(0, 0, [this.bg, this.header, this.left, this.right, this.footer, ...this.gearRows, ...this.diffRows, this.tip.title, this.tip.body, this.tip.cmpTitle, this.tip.cmpBody])
       .setScrollFactor(0)
       .setDepth(35_000)
       .setVisible(false);
@@ -166,7 +172,18 @@ export class GameMenu {
       save.bag.forEach((g, bagIndex) => {
         if (g.kind === "skill_gem") choices.push({ label: `Equip ${gemName(g)}`, run: () => this.actions.command({ type: "equip", bagIndex, slot: cell.slot }) });
       });
-      if (save.skillBar[cell.slot]) choices.push({ label: "Remove (back to bag, supports stay in it)", run: () => this.actions.command({ type: "unequip", slot: cell.slot }) });
+      const equipped = save.skillBar[cell.slot];
+      if (equipped) {
+        const copies = save.bag.map((g, i) => ({ g, i })).filter(({ g }) => g.kind === "skill_gem" && g.defId === equipped.defId);
+        if (copies.length > 0 && equipped.level < content.gems.maxLevel) {
+          const best = copies.sort((a, b) => (b.g as GemItem).level - (a.g as GemItem).level)[0]!;
+          choices.unshift({
+            label: `Level up: feed a copy (Lv${(best.g as GemItem).level}) → Lv${Math.min(content.gems.maxLevel, equipped.level + (best.g as GemItem).level)}   [${copies.length} in bag]`,
+            run: () => this.actions.command({ type: "level_gem", slot: cell.slot, copyBagIndex: best.i }),
+          });
+        }
+        choices.push({ label: "Remove (gem and its supports go back to the bag)", run: () => this.actions.command({ type: "unequip", slot: cell.slot }) });
+      }
       this.picker = { title: `Skill gem for button ${this.inputs.skillPrompt(cell.slot)}`, choices, index: 0 };
     } else {
       const seen = new Set<string>();
@@ -265,8 +282,13 @@ export class GameMenu {
     } else {
       const g = save.skillBar[cell.slot];
       if (g) {
-        const need = gemXpToNext(g.level, content.gems);
-        lines.push(`${skillName(g.defId)}: level ${g.level}, ${g.sockets?.length ?? 0} sockets`, `XP ${Math.floor(g.xp)} / ${Number.isFinite(need) ? need : "max"}`, "");
+        const copies = save.bag.filter((b) => b.kind === "skill_gem" && b.defId === g.defId).length;
+        const max = g.level >= content.gems.maxLevel;
+        lines.push(
+          `${skillName(g.defId)}: level ${g.level} / ${content.gems.maxLevel}, ${g.sockets?.length ?? 0} sockets`,
+          max ? "Max level: further copies start a new gem." : `Feed a copy of this gem to level it (${copies} in bag). Press ✕ / Enter.`,
+          "",
+        );
       } else lines.push("Empty button: press ✕ / Enter to equip a skill gem.", "");
     }
     if (compiled) lines.push(...describeSkill(compiled));
@@ -291,6 +313,20 @@ export class GameMenu {
     return it?.kind === "gear" ? it : undefined;
   }
 
+  /** Where a bag item would go: its slot, or for rings the free ring slot / the chosen one. */
+  private targetSlot(item: GearItem): EquipSlot | undefined {
+    const base = content.itemBases.find((b) => b.id === item.base);
+    if (!base) return undefined;
+    if (base.slot !== "ring") return base.slot;
+    const eq = this.world().player.save.equipment;
+    return !eq.ring1 ? "ring1" : !eq.ring2 ? "ring2" : this.ringTarget;
+  }
+
+  private bothRingsWorn(item: GearItem | undefined): boolean {
+    const eq = this.world().player.save.equipment;
+    return !!item && content.itemBases.find((b) => b.id === item.base)?.slot === "ring" && !!eq.ring1 && !!eq.ring2;
+  }
+
   private updateGear(): void {
     const i = this.inputs;
     const entries = this.gearEntries();
@@ -298,14 +334,34 @@ export class GameMenu {
     if (i.pressed("up")) this.row = (this.row - 1 + entries.length) % entries.length;
     this.row = Math.min(this.row, entries.length - 1);
     const e = entries[this.row];
+    const item = this.entryItem(e);
+    if (e?.kind === "bag" && this.bothRingsWorn(item) && (i.pressed("left") || i.pressed("right"))) {
+      this.ringTarget = this.ringTarget === "ring1" ? "ring2" : "ring1";
+    }
     if (!e || !i.pressed("confirm")) return;
     const refused =
       e.kind === "slot"
-        ? this.entryItem(e)
+        ? item
           ? this.actions.command({ type: "unequip_gear", slot: e.slot })
           : "nothing equipped there"
-        : this.actions.command({ type: "equip_gear", bagIndex: e.bagIndex });
+        : this.actions.command({ type: "equip_gear", bagIndex: e.bagIndex, slot: item ? this.targetSlot(item) : undefined });
     this.message = refused ? `Can't: ${refused}` : "";
+    this.diffCache = null;
+  }
+
+  /** Stat changes for equipping the selected bag item / removing the selected equipped item. Cached per selection. */
+  private changesFor(e: GearEntry | undefined, item: GearItem | undefined): { title: string; changes: StatChange[] } | null {
+    if (!e || !item) return null;
+    const w = this.world();
+    const slot = e.kind === "bag" ? this.targetSlot(item) : e.slot;
+    const key = `${e.kind}:${e.kind === "bag" ? e.bagIndex : e.slot}:${item.uid}:${slot}:${Object.values(w.player.save.equipment).map((x) => x?.uid).join(",")}:${w.player.level}`;
+    if (this.diffCache?.key === key) return this.diffCache;
+    const cmd: InventoryCommand = e.kind === "bag" ? { type: "equip_gear", bagIndex: e.bagIndex, slot } : { type: "unequip_gear", slot: e.slot };
+    const after = this.actions.preview(cmd);
+    const where = slot === "ring1" ? " (left ring)" : slot === "ring2" ? " (right ring)" : "";
+    const title = typeof after === "string" ? `Can't equip: ${after}` : e.kind === "bag" ? `If equipped${where}:` : "If removed:";
+    this.diffCache = { key, title, changes: typeof after === "string" ? [] : compareWorlds(w, after, content) };
+    return this.diffCache;
   }
 
   private renderGear(x: number, y: number, w: number): void {
@@ -326,29 +382,49 @@ export class GameMenu {
     });
 
     const tx = x + 16 + Math.min(470, w * 0.47);
+    const wrap = w - (tx - x) - 24;
     const sel = entries[this.row];
     const item = this.entryItem(sel);
     if (item) {
       const tip = gearTooltip(item);
       this.tip.title.setPosition(tx, y + 48).setText(tip.title).setColor(RARITY_COLOR[item.rarity]);
-      this.tip.body.setPosition(tx, y + 72).setWordWrapWidth(w - (tx - x) - 24).setText([...tip.lines, ...(this.message ? ["", this.message] : [])]);
+      this.tip.body.setPosition(tx, y + 72).setWordWrapWidth(wrap).setText([...tip.lines, ...(this.message ? ["", this.message] : [])]);
     } else {
       this.tip.title.setPosition(tx, y + 48).setText(sel?.kind === "slot" ? `${SLOT_LABEL[sel.slot]}: empty` : "").setColor("#8a8a96");
       this.tip.body.setPosition(tx, y + 72).setText(this.message ? [this.message] : ["Gear drops from monsters. Pick it up, then equip it here."]);
     }
 
-    // Comparison with what's worn in the slot this bag item would go to.
+    // Green/red stat changes if this item were equipped (or removed).
+    let cy = y + 80 + this.tip.body.height;
+    const diff = this.changesFor(sel, item);
+    const lines: { text: string; color: string }[] = [];
+    if (diff) {
+      const ringHint = sel?.kind === "bag" && this.bothRingsWorn(item) ? `   [${this.inputs.device === "pad" ? "←/→" : "A/D"}] other ring` : "";
+      lines.push({ text: diff.title + ringHint, color: "#d8d8e0" });
+      if (diff.changes.length === 0 && !diff.title.startsWith("Can't")) lines.push({ text: "  no change to your stats", color: "#8a8a96" });
+      for (const c of diff.changes.slice(0, DIFF_ROWS - 1)) {
+        const n = (v: number) => (Math.abs(v) < 10 && !Number.isInteger(v) ? v.toFixed(1) : String(Math.round(v)));
+        const sign = c.delta > 0 ? "+" : "−";
+        const pct = c.percent ? "%" : "";
+        lines.push({ text: `  ${sign}${n(Math.abs(c.delta))}${pct} ${c.label}   (${n(c.before)}${pct} → ${n(c.after)}${pct})`, color: c.better ? "#6ee07a" : "#ff6a6a" });
+      }
+    }
+    this.diffRows.forEach((t, k) => {
+      const l = lines[k];
+      t.setPosition(tx, cy + k * 17).setText(l?.text ?? "").setColor(l?.color ?? "#d8d8e0");
+    });
+    cy += lines.length * 17 + 10;
+
+    // What's worn in the slot this bag item would replace.
     let worn: GearItem | undefined;
     if (sel?.kind === "bag" && item) {
-      const base = content.itemBases.find((b) => b.id === item.base);
-      const eq = this.world().player.save.equipment;
-      if (base) worn = base.slot === "ring" ? (eq.ring1 ?? eq.ring2) : eq[base.slot as EquipSlot];
+      const slot = this.targetSlot(item);
+      if (slot) worn = this.world().player.save.equipment[slot];
     }
-    const by = y + 80 + this.tip.body.height;
     if (worn) {
       const tip = gearTooltip(worn);
-      this.tip.cmpTitle.setPosition(tx, by).setText(`Currently equipped: ${tip.title}`).setColor(RARITY_COLOR[worn.rarity]);
-      this.tip.cmpBody.setPosition(tx, by + 20).setWordWrapWidth(w - (tx - x) - 24).setText(tip.lines);
+      this.tip.cmpTitle.setPosition(tx, cy).setText(`Currently equipped: ${tip.title}`).setColor(RARITY_COLOR[worn.rarity]);
+      this.tip.cmpBody.setPosition(tx, cy + 20).setWordWrapWidth(wrap).setText(tip.lines);
     } else {
       this.tip.cmpTitle.setText("");
       this.tip.cmpBody.setText("");
@@ -414,7 +490,7 @@ export class GameMenu {
     const gearTab = this.tab === "gear";
     this.left.setVisible(!gearTab);
     this.right.setVisible(!gearTab);
-    for (const t of [...this.gearRows, this.tip.title, this.tip.body, this.tip.cmpTitle, this.tip.cmpBody]) t.setVisible(gearTab);
+    for (const t of [...this.gearRows, ...this.diffRows, this.tip.title, this.tip.body, this.tip.cmpTitle, this.tip.cmpBody]) t.setVisible(gearTab);
     if (gearTab) {
       this.renderGear(x, y, w);
       this.footer.setText(`${pad ? "D-pad select   ✕ equip / take off" : "W/S select   Enter equip / take off"}   ${close}      Bag ${this.world().player.save.bag.length}/${content.gems.bagSize}`);
@@ -430,7 +506,7 @@ export class GameMenu {
       this.left.setText(left);
       this.right.setText(right);
       const nav = pad ? "D-pad move   ✕ choose" : "WASD move   Enter choose";
-      this.footer.setText(`${nav}   ${close}      Gems in sockets level with their skill; sockets grow as the skill gem levels.`);
+      this.footer.setText(`${nav}   ${close}      Feed duplicate skill gems to level them; sockets grow with level.`);
     } else {
       const rows = this.debugRows();
       const first = Math.max(0, Math.min(this.row - 8, rows.length - 18));

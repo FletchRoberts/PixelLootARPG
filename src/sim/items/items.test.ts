@@ -4,7 +4,7 @@ import { Rng } from "../core/rng";
 import { xpToNext } from "../stats/character";
 import { createWorld, currentSave, inventoryCommand, saveAfterDeath, step, type PlayerInput, type SimContent, type WorldState } from "../world";
 import { rollDrops } from "./drops";
-import { gainGemXp, makeGem, socketCount } from "./gems";
+import { makeGem, raiseGemLevel, socketCount } from "./gems";
 import { newCharacter } from "./save";
 
 const quiet: SimContent = { ...content, zoneGen: { ...content.zoneGen, monsterPool: [] } };
@@ -123,7 +123,7 @@ describe("equipping and socketing", () => {
     expect(inventoryCommand(w, quiet, { type: "socket", bagIndex: at("fireball"), target: { kind: "skill", slot: 0 }, socket: 0 })).toMatch(/support/);
   });
 
-  it("equipping a skill gem swaps the old one (with its supports) back into the bag", () => {
+  it("equipping a skill gem swaps the old one back into the bag, with its supports taken out", () => {
     const w = createWorld(quiet, 1);
     give(w, "support_gem", "volley");
     inventoryCommand(w, quiet, { type: "socket", bagIndex: bagIndexOf(w, "volley"), target: { kind: "skill", slot: 0 }, socket: 0 });
@@ -131,7 +131,8 @@ describe("equipping and socketing", () => {
     expect(inventoryCommand(w, quiet, { type: "equip", bagIndex: bagIndexOf(w, "ice_nova"), slot: 0 })).toBeNull();
     expect(w.player.compiled[1]!.id).toBe("ice_nova");
     const old = w.player.save.bag[bagIndexOf(w, "frost_bolt")]!;
-    expect(old.kind !== "gear" && old.sockets![0]?.defId).toBe("volley");
+    expect(old.kind !== "gear" && old.sockets!.every((x) => x === null)).toBe(true); // supports came out…
+    expect(bagIndexOf(w, "volley")).toBeGreaterThanOrEqual(0); // …into the bag
   });
 
   it("the weapon attack has its own support sockets", () => {
@@ -143,32 +144,71 @@ describe("equipping and socketing", () => {
   });
 });
 
-describe("gem levels", () => {
-  it("gems gain sockets as they level", () => {
-    const rules = content.gems;
+describe("gem levels (by feeding duplicate copies)", () => {
+  const level = (w: WorldState) => w.player.save.skillBar[0]!.level;
+
+  it("sockets grow with level: 2, then 3 at 3, 4 at 6, 5 at 9; max level 10", () => {
     const save = newCharacter(content, 1);
     const gem = save.skillBar[0]!;
-    let total = 0;
-    for (let l = 1; l < 8; l++) total += 120 * Math.pow(1.3, l - 1) + 1;
-    gainGemXp(gem, total, rules);
-    expect(gem.level).toBeGreaterThanOrEqual(8);
-    expect(gem.sockets).toHaveLength(socketCount(gem.level, rules));
-    expect(socketCount(1, rules)).toBe(2);
-    expect(socketCount(gem.level, rules)).toBeGreaterThan(2);
+    expect(gem.sockets).toHaveLength(2);
+    raiseGemLevel(gem, 2, content.gems);
+    expect(gem.sockets).toHaveLength(socketCount(3, content.gems));
+    expect(gem.sockets).toHaveLength(3);
+    raiseGemLevel(gem, 50, content.gems);
+    expect(gem.level).toBe(content.gems.maxLevel);
+    expect(gem.sockets).toHaveLength(5);
   });
 
-  it("equipped skill gems earn XP from kills and hit harder per level", () => {
+  it("feeding a copy levels the equipped gem, consumes the copy, and adds damage", () => {
     const w = createWorld(quiet, 1);
-    const gem = w.player.save.skillBar[0]!;
-    gem.xp = 1e6; // enough to level a lot on the next kill
-    const before = w.player.compiled[1]!;
-    w.monsters.push({ ...createWorld(content, 1).monsters[0]!, pos: { ...w.player.pos }, life: 0, dropTable: "none" });
-    const ev = step(w, quiet, idle());
-    expect(ev.some((e) => e.type === "gem_level")).toBe(true);
-    expect(gem.level).toBeGreaterThan(1);
+    give(w, "skill_gem", "frost_bolt");
+    expect(inventoryCommand(w, quiet, { type: "level_gem", slot: 0, copyBagIndex: bagIndexOf(w, "frost_bolt") })).toBeNull();
+    expect(level(w)).toBe(2);
+    expect(bagIndexOf(w, "frost_bolt")).toBe(-1);
     const levelMod = w.player.compiled[1]!.nodes[0]!.mods.find((m) => m.source === "gem level");
-    expect(levelMod?.value).toBe((gem.level - 1) * content.gems.damagePerLevel);
-    expect(before.nodes[0]!.mods.some((m) => m.source === "gem level")).toBe(false);
+    expect(levelMod?.value).toBe(content.gems.damagePerLevel);
+  });
+
+  it("a levelled copy adds its whole level; can't pass max; wrong gems are refused", () => {
+    const w = createWorld(quiet, 1);
+    w.player.save.bag.push(makeGem(w.player.save, "skill_gem", "frost_bolt", content.gems, 4));
+    inventoryCommand(w, quiet, { type: "level_gem", slot: 0, copyBagIndex: bagIndexOf(w, "frost_bolt") });
+    expect(level(w)).toBe(5);
+    give(w, "skill_gem", "fireball");
+    expect(inventoryCommand(w, quiet, { type: "level_gem", slot: 0, copyBagIndex: bagIndexOf(w, "fireball") })).toMatch(/same skill gem/);
+    w.player.save.bag.push(makeGem(w.player.save, "skill_gem", "frost_bolt", content.gems, 9));
+    inventoryCommand(w, quiet, { type: "level_gem", slot: 0, copyBagIndex: bagIndexOf(w, "frost_bolt") });
+    expect(level(w)).toBe(content.gems.maxLevel);
+    give(w, "skill_gem", "frost_bolt");
+    expect(inventoryCommand(w, quiet, { type: "level_gem", slot: 0, copyBagIndex: bagIndexOf(w, "frost_bolt") })).toMatch(/max level/);
+  });
+
+  it("killing things no longer levels gems", () => {
+    const w = createWorld(quiet, 1);
+    w.monsters.push({ ...createWorld(content, 1).monsters[0]!, pos: { ...w.player.pos }, life: 0, dropTable: "none" });
+    step(w, quiet, idle());
+    expect(level(w)).toBe(1);
+  });
+});
+
+describe("unequipping skill gems returns their supports", () => {
+  it("taking a skill gem off puts it and its supports in the bag", () => {
+    const w = createWorld(quiet, 1);
+    give(w, "support_gem", "pierce");
+    inventoryCommand(w, quiet, { type: "socket", bagIndex: bagIndexOf(w, "pierce"), target: { kind: "skill", slot: 0 }, socket: 0 });
+    expect(inventoryCommand(w, quiet, { type: "unequip", slot: 0 })).toBeNull();
+    const fb = w.player.save.bag[bagIndexOf(w, "frost_bolt")]!;
+    expect(fb.kind !== "gear" && fb.sockets!.every((x) => x === null)).toBe(true);
+    expect(bagIndexOf(w, "pierce")).toBeGreaterThanOrEqual(0);
+  });
+
+  it("refuses when the bag can't hold the gem and its supports", () => {
+    const w = createWorld(quiet, 1);
+    give(w, "support_gem", "pierce");
+    inventoryCommand(w, quiet, { type: "socket", bagIndex: bagIndexOf(w, "pierce"), target: { kind: "skill", slot: 0 }, socket: 0 });
+    while (w.player.save.bag.length < content.gems.bagSize - 1) give(w, "support_gem", "fork");
+    expect(inventoryCommand(w, quiet, { type: "unequip", slot: 0 })).toMatch(/bag is full/);
+    expect(w.player.save.skillBar[0]?.defId).toBe("frost_bolt");
   });
 });
 
