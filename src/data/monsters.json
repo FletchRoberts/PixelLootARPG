@@ -8,6 +8,6 @@
     "radius": 13,
     "contactCooldown": 0.6,
     "dropTable": "",
-    "sprite": { "kind": "monster", "seed": 7 }
+    "sprite": { "type": "monster", "seed": "husk-1", "theme": "earth" }
   }
 ]

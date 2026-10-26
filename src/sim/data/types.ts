@@ -38,10 +38,12 @@ export interface Currency {
   stackSize: number;
 }
 
-/** PixelGen placeholder sprite params. Client-only; the sim just carries them. */
+/** PixelGen placeholder sprite params (see tools/pixel-forge.html). Client-only; the sim just carries them. */
 export interface SpriteSpec {
-  kind: string;
-  seed: number;
+  type: string; // PixelGen.types: monster, hero, weapon, potion, currency, ring, floor, wall
+  seed: string;
+  theme?: string; // PixelGen.themes, default "random"
+  size?: number; // source pixels, default 32
 }
 
 export interface Monster {

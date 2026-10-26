@@ -177,8 +177,16 @@ tree, Reach nodes, mechanics, map mods, biomes) live in `src/data/*.json`.
 `tools/pixel-forge.html` is a seeded procedural sprite generator exposing
 `window.PixelGen`. Use it for placeholder sprites until real assets exist.
 
-- Content can carry sprite params (e.g. `Monster.sprite = { seed, kind }`)
-  so the same monster always looks the same.
+- API: `PixelGen.generate({ type, seed, size, theme })` → pixel grid;
+  `PixelGen.toCanvas(grid, scale)`. Types: monster, hero, weapon, potion,
+  currency, ring, floor, wall. Themes: random, fire, ice, poison, shadow,
+  gold, earth, blood, arcane. Same params → same sprite.
+- The game uses it directly: `src/client/art/sprites.ts` imports the HTML via
+  Vite `?raw` and runs its `<script id="core">` block. Keep that block
+  dependency-free and keep the `id="core"` tag, or sprite loading breaks.
+- Content carries sprite params as `SpriteSpec` (`{ type, seed, theme?, size? }`),
+  e.g. `"sprite": { "type": "monster", "seed": "husk-1", "theme": "earth" }`.
+- To pick seeds, open `tools/pixel-forge.html` in a browser and browse.
 - Generated sprites are a client concern only; the sim never knows about
   textures.
 - When real art arrives, swap it in by id without touching the sim.
@@ -197,7 +205,7 @@ scripts/
 src/
   client/
     main.ts               Phaser.Game config
-    art/sprites.ts        PixelGen adapter + built-in fallback generator
+    art/sprites.ts        loads PixelGen from tools/pixel-forge.html, makes textures
     scenes/BootScene.ts   builds placeholder textures for all content
     scenes/GameScene.ts   fixed-step loop, input -> sim, sim state -> sprites/HUD
   sim/
@@ -230,7 +238,3 @@ tools/
 toward the mouse, one chasing monster type (`husk`) with contact damage,
 health bars, death screen, restart (R / click).
 
-PixelGen note: `tools/pixel-forge.html` is not in the repo yet, so sprites come
-from the fallback in `src/client/art/sprites.ts` (the console says which
-source is used). `fromPixelGen()` there guesses at the API; pin it to the real
-call once the file is added.

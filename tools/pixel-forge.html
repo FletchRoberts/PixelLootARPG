@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pixel Forge</title>
+<style>
+  :root{--bg:#14151a;--panel:#1d1f26;--line:#2c2f39;--text:#e7e7ea;--muted:#9a9cab;--accent:#e0a84a}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+  header{padding:16px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+  h1{font-size:18px;margin:0;letter-spacing:.5px}
+  header p{margin:0;color:var(--muted)}
+  .controls{display:flex;flex-wrap:wrap;gap:12px;padding:16px;background:var(--panel);border-bottom:1px solid var(--line);align-items:flex-end}
+  label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+  select,input{background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;min-width:0}
+  input[type=number]{width:80px}
+  #seed{width:120px}
+  button{background:var(--accent);color:#1a1205;border:0;border-radius:6px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
+  button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+  #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;padding:16px}
+  .cell{background:repeating-conic-gradient(#23252d 0 25%,#1a1c22 0 50%) 0 0/16px 16px;border:1px solid var(--line);border-radius:8px;padding:10px 6px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+  .cell:hover{border-color:var(--accent)}
+  .cell canvas{width:96px;height:96px;image-rendering:pixelated}
+  .cell span{font-size:11px;color:var(--muted);font-family:ui-monospace,Menlo,monospace;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  footer{padding:4px 16px 28px;color:var(--muted);font-size:12.5px;max-width:900px}
+  footer h2{font-size:13px;color:var(--text);margin:18px 0 6px}
+  code,pre{font-family:ui-monospace,Menlo,monospace;color:var(--text)}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px;overflow-x:auto;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Pixel Forge</h1>
+  <p>Seeded procedural pixel art: monsters, heroes, loot, currency and tiles. Same seed, same sprite, every time.</p>
+</header>
+
+<div class="controls">
+  <label>Type <select id="type"></select></label>
+  <label>Theme <select id="theme"></select></label>
+  <label>Size <select id="size"><option>16</option><option>24</option><option selected>32</option><option>48</option></select></label>
+  <label>Seed <input id="seed" value="forge"></label>
+  <button class="ghost" id="reroll" title="New random seed">New seed</button>
+  <label>Count <input id="count" type="number" min="1" max="100" value="24"></label>
+  <label>Export scale <select id="scale"><option>1</option><option>2</option><option selected>4</option><option>8</option></select></label>
+  <button id="sheet">Download sheet + atlas</button>
+</div>
+
+<div id="grid"></div>
+
+<footer>
+  <p>Click any sprite to download it as a PNG at the export scale. "Download sheet" saves a spritesheet PNG plus a JSON atlas in Phaser's JSON-hash format (load with <code>this.load.atlas(key, png, json)</code>).</p>
+  <h2>URL parameters</h2>
+  <pre>pixel-forge.html?type=monster&amp;theme=poison&amp;size=32&amp;seed=act1&amp;count=16&amp;scale=1</pre>
+  <h2>Scripting API (for Claude Code / headless browser)</h2>
+  <pre>PixelGen.types   // ['monster','hero','weapon','potion','currency','ring','floor','wall']
+PixelGen.themes  // ['random','fire','ice','poison','shadow','gold','earth','blood','arcane']
+const g = PixelGen.generate({type:'potion', seed:'hp-1', size:32, theme:'blood'})
+PixelGen.toCanvas(g, 4).toDataURL()           // single sprite PNG
+const {canvas, atlas} = PixelGen.sheet({type:'monster', seed:'z1', size:32, theme:'fire', count:16, scale:1})
+canvas.toDataURL(); JSON.stringify(atlas)     // spritesheet + atlas</pre>
+  <p>The generator core is plain JavaScript with no dependencies (only <code>toCanvas</code>/<code>sheet</code> touch the DOM), so it can also be copied into the game to create sprites at runtime.</p>
+</footer>
+
+<script id="core">
+const PixelGen = (() => {
+  const THEMES = {
+    random: null,
+    fire: [0, 35, 85], ice: [185, 215, 60], poison: [85, 135, 65], shadow: [255, 290, 40],
+    gold: [38, 52, 85], earth: [18, 38, 40], blood: [345, 365, 75], arcane: [270, 320, 70]
+  };
+
+  // ---------- seeded RNG ----------
+  function hashStr(s) { let h = 1779033703 ^ s.length; for (let i = 0; i < s.length; i++) { h = Math.imul(h ^ s.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); } return h >>> 0; }
+  function makeRng(seed) { let a = hashStr(String(seed)); return function () { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const ri = (r, a, b) => a + Math.floor(r() * (b - a + 1));
+  const pick = (r, arr) => arr[Math.floor(r() * arr.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  // ---------- color ----------
+  function hsl(h, s, l) {
+    h = ((h % 360) + 360) % 360; s = clamp(s, 0, 100) / 100; l = clamp(l, 0, 100) / 100;
+    const a = s * Math.min(l, 1 - l);
+    const f = n => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+    const hx = v => Math.round(v * 255).toString(16).padStart(2, '0');
+    return '#' + hx(f(0)) + hx(f(8)) + hx(f(4));
+  }
+  // 5-shade ramp, dark -> light, with hue shifting for nicer pixel-art shading
+  function ramp(h, s, l = 48) { return [-30, -16, 0, 14, 28].map((d, i) => hsl(h - (i - 2) * 7, s - Math.abs(i - 2) * 6, clamp(l + d, 6, 94))); }
+  function themeHue(r, theme) { const t = THEMES[theme]; if (!t) return { h: r() * 360, s: 45 + r() * 40 }; return { h: t[0] + r() * (t[1] - t[0]), s: t[2] * (0.8 + r() * 0.3) }; }
+
+  // ---------- grid helpers ----------
+  function grid(w, h) {
+    const g = { w, h, p: new Array(w * h).fill(null) };
+    g.get = (x, y) => (x < 0 || y < 0 || x >= w || y >= h) ? null : g.p[y * w + x];
+    g.set = (x, y, c) => { if (x >= 0 && y >= 0 && x < w && y < h) g.p[y * w + x] = c; };
+    g.wset = (x, y, c) => { g.p[(((y % h) + h) % h) * w + (((x % w) + w) % w)] = c; };
+    return g;
+  }
+  function outline(g, col) {
+    const o = g.p.slice();
+    for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
+      if (g.get(x, y)) continue;
+      if (g.get(x - 1, y) || g.get(x + 1, y) || g.get(x, y - 1) || g.get(x, y + 1)) o[y * g.w + x] = col;
+    }
+    g.p = o; return g;
+  }
+  function upscale(g, f) {
+    if (f === 1) return g;
+    const n = grid(g.w * f, g.h * f);
+    for (let y = 0; y < n.h; y++) for (let x = 0; x < n.w; x++) n.p[y * n.w + x] = g.p[Math.floor(y / f) * g.w + Math.floor(x / f)];
+    return n;
+  }
+  function fit(g, N) {
+    if (g.w === N && g.h === N) return g;
+    const n = grid(N, N), ox = Math.floor((N - g.w) / 2), oy = Math.floor((N - g.h) / 2);
+    for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) n.set(x + ox, y + oy, g.p[y * g.w + x]);
+    return n;
+  }
+  function sphere(g, cx, cy, R, rp, spec = true) {
+    for (let y = Math.floor(cy - R - 1); y <= cy + R + 1; y++) for (let x = Math.floor(cx - R - 1); x <= cx + R + 1; x++) {
+      const dx = x + 0.5 - cx, dy = y + 0.5 - cy, d = Math.hypot(dx, dy);
+      if (d > R) continue;
+      let v = 2 + (-dx - dy) / R * 1.4; if (d > R - 1) v -= 1;
+      g.set(x, y, rp[clamp(Math.round(v), 0, 4)]);
+    }
+    if (spec) g.set(Math.floor(cx - R * 0.4), Math.floor(cy - R * 0.45), '#ffffff');
+  }
+
+  // ---------- MONSTER: symmetric cellular blob with shading + eyes ----------
+  function monster(r, N, theme) {
+    const { h: hue, s } = themeHue(r, theme);
+    const body = ramp(hue, s, ri(r, 38, 55));
+    const acc = ramp(hue + pick(r, [150, 180, 210, 40]), s * 0.8, ri(r, 45, 62));
+    const half = Math.ceil(N / 2);
+    let m = null;
+    for (let attempt = 0; attempt < 25; attempt++) {
+      m = new Array(N * N).fill(0);
+      const wide = 0.55 + r() * 0.5, tall = 0.6 + r() * 0.5;
+      for (let y = 1; y < N - 1; y++) for (let x = 1; x < half; x++) {
+        const dx = (half - 1 - x) / half, dy = Math.abs((y + 0.5) - N / 2) / (N / 2);
+        const p = 1.3 - dx * (1.05 / wide) - dy * (0.95 / tall) + (r() - 0.5) * 0.4;
+        m[y * N + x] = r() < p ? 1 : 0;
+      }
+      for (let y = 0; y < N; y++) for (let x = half; x < N; x++) m[y * N + x] = m[y * N + (N - 1 - x)];
+      const passes = N >= 32 ? 3 : 2;
+      for (let k = 0; k < passes; k++) {
+        const n = m.slice();
+        for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) {
+          let c = 0;
+          for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if ((i || j) && m[(y + j) * N + x + i]) c++;
+          const v = m[y * N + x];
+          if (v && c < 3) n[y * N + x] = 0; else if (!v && c >= 5) n[y * N + x] = 1;
+        }
+        m = n;
+      }
+      // keep largest 4-connected piece
+      const lab = new Int32Array(N * N); let best = 0, bestId = 0, id = 0;
+      for (let i = 0; i < N * N; i++) {
+        if (!m[i] || lab[i]) continue;
+        id++; let size = 0; const st = [i]; lab[i] = id;
+        while (st.length) {
+          const q = st.pop(); size++;
+          const qx = q % N, qy = (q / N) | 0;
+          for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const nx = qx + ax, ny = qy + ay;
+            if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+            const ni = ny * N + nx;
+            if (m[ni] && !lab[ni]) { lab[ni] = id; st.push(ni); }
+          }
+        }
+        if (size > best) { best = size; bestId = id; }
+      }
+      for (let i = 0; i < N * N; i++) if (lab[i] !== bestId) m[i] = 0;
+      let sym = true;
+      for (let y = 0; y < N && sym; y++) for (let x = 0; x < half; x++) if (m[y * N + x] !== m[y * N + N - 1 - x]) { sym = false; break; }
+      if (sym && best >= N * N * 0.28 && best <= N * N * 0.62) break;
+    }
+    const g = grid(N, N), cx = (N - 1) / 2;
+    const belly = r() < 0.6, spots = r() < 0.4;
+    for (let y = 1; y < N - 1; y++) for (let x = 1; x < half; x++) {
+      if (!m[y * N + x]) continue;
+      const up = !m[(y - 1) * N + x], dn = !m[(y + 1) * N + x], lf = !m[y * N + x - 1];
+      let idx = 2;
+      if (up) idx = lf ? 4 : 3; else if (lf) idx = 3;
+      if (dn) idx = 1;
+      if (r() < 0.1) idx = clamp(idx + (r() < 0.5 ? -1 : 1), 0, 4);
+      let pal = body;
+      if (belly && Math.abs(x - cx) < N * 0.18 && y > N * 0.45 && !dn) pal = acc;
+      if (spots && r() < 0.08) pal = acc;
+      g.set(x, y, pal[idx]);
+    }
+    // eyes
+    const cands = [];
+    for (let y = Math.floor(N * 0.18); y < N * 0.5; y++) for (let x = 1; x < half; x++)
+      if (m[y * N + x] && m[(y + 1) * N + x] && m[y * N + x - 1] && m[(y - 1) * N + x]) cands.push([x, y]);
+    if (cands.length) {
+      const [ex, ey] = pick(r, cands);
+      const white = r() < 0.3 ? hsl(hue + 180, 90, 72) : '#f4f1e6', pupil = '#14121a';
+      g.set(ex, ey, white); g.set(ex, ey + 1, pupil);
+      if (N >= 32 && m[ey * N + ex - 1]) { g.set(ex - 1, ey, white); g.set(ex - 1, ey + 1, pupil); }
+    }
+    for (let y = 0; y < N; y++) for (let x = half; x < N; x++) g.p[y * N + x] = g.p[y * N + N - 1 - x];
+    return outline(g, hsl(hue, s * 0.6, 9));
+  }
+
+  // ---------- HERO: templated humanoid (native 16px, scaled up) ----------
+  function hero(r, N, theme) {
+    const g = grid(16, 16), { h: hue, s } = themeHue(r, theme);
+    const armor = ramp(hue, s * 0.8, ri(r, 38, 52));
+    const skin = ramp(ri(r, 15, 32), ri(r, 30, 50), ri(r, 45, 70));
+    const helm = r() < 0.45;
+    const hairC = helm ? ramp(215, 8, 55) : ramp(ri(r, 0, 50), ri(r, 20, 55), ri(r, 15, 60));
+    const pants = ramp(r() < 0.5 ? hue + 30 : ri(r, 20, 40), 20, ri(r, 22, 35));
+    const belt = ramp(28, 40, 30), gold = ramp(44, 75, 55), steel = ramp(215, 10, 60), wood = ramp(25, 45, 32);
+    const S = (x, y, c) => g.set(x, y, c);
+    for (let x = 6; x <= 9; x++) S(x, 1, hairC[3]);
+    for (let x = 5; x <= 10; x++) S(x, 2, hairC[helm ? 3 : 2]);
+    for (let y = 3; y <= 4; y++) for (let x = 5; x <= 10; x++) S(x, y, skin[x <= 6 ? 3 : x >= 9 ? 1 : 2]);
+    for (let x = 6; x <= 9; x++) S(x, 5, skin[1]);
+    S(6, 4, '#1a1420'); S(9, 4, '#1a1420');
+    if (helm) { S(5, 3, hairC[2]); S(10, 3, hairC[1]); }
+    else if (r() < 0.5) { S(5, 3, hairC[2]); S(10, 3, hairC[1]); S(5, 4, hairC[1]); S(10, 4, hairC[0]); }
+    for (let x = 4; x <= 11; x++) S(x, 6, armor[3]);
+    for (let y = 7; y <= 9; y++) for (let x = 5; x <= 10; x++) S(x, y, armor[x <= 6 ? 3 : x >= 9 ? 1 : 2]);
+    for (let y = 7; y <= 9; y++) { S(4, y, armor[2]); S(11, y, armor[1]); }
+    S(4, 10, skin[2]); S(11, 10, skin[2]);
+    for (let x = 5; x <= 10; x++) S(x, 10, belt[2]);
+    S(7, 10, gold[3]); S(8, 10, gold[2]);
+    if (r() < 0.5) { S(7, 7, armor[4]); S(8, 7, armor[4]); }
+    for (let x = 5; x <= 10; x++) S(x, 11, pants[2]);
+    for (let y = 12; y <= 13; y++) { S(5, y, pants[3]); S(6, y, pants[2]); S(9, y, pants[2]); S(10, y, pants[1]); }
+    for (const x of [5, 6, 9, 10]) S(x, 14, wood[1]);
+    const w = pick(r, ['sword', 'sword', 'staff', 'none']);
+    if (w === 'sword') { for (let y = 2; y <= 8; y++) S(12, y, steel[y < 4 ? 4 : 3]); S(11, 9, gold[2]); S(12, 9, gold[3]); S(13, 9, gold[2]); S(12, 10, wood[2]); }
+    if (w === 'staff') { for (let y = 3; y <= 13; y++) S(12, y, wood[y < 6 ? 3 : 2]); const orb = ramp(hue + 180, 80, 60); S(12, 2, orb[4]); S(11, 2, orb[2]); S(13, 2, orb[2]); S(12, 1, orb[3]); }
+    outline(g, hsl(hue, 20, 9));
+    return fit(upscale(g, Math.max(1, Math.floor(N / 16))), N);
+  }
+
+  // ---------- WEAPON: diagonal sword / dagger / staff / spear ----------
+  function weapon(r, N, theme) {
+    const g = grid(N, N), { h: hue, s } = themeHue(r, theme);
+    const kind = pick(r, ['sword', 'sword', 'dagger', 'staff', 'spear']);
+    const magic = r() < 0.5;
+    const blade = magic ? ramp(hue, s * 0.35, ri(r, 55, 68)) : ramp(215, 8, ri(r, 58, 68));
+    const gold = ramp(44, 75, 52), wood = ramp(ri(r, 18, 32), 45, ri(r, 26, 38));
+    const grip = r() < 0.5 ? wood : ramp(hue, s * 0.5, 30), gem = ramp(hue, Math.max(s, 60), 55);
+    const P = i => [2 + i, N - 3 - i], D = N - 5, thick = N >= 24;
+    if (kind === 'sword' || kind === 'dagger') {
+      const len = kind === 'dagger' ? Math.round(D * 0.65) : D;
+      const gl = Math.max(2, Math.round(N * 0.16)), gw = Math.max(1, Math.round(N * 0.1));
+      const [px, py] = P(0); g.set(px, py, gold[3]); if (thick) g.set(px + 1, py, gold[1]);
+      for (let i = 1; i <= gl; i++) { const [x, y] = P(i); g.set(x, y, grip[i % 2 ? 2 : 1]); if (thick) g.set(x + 1, y, grip[0]); }
+      const [gx, gy] = P(gl + 1);
+      for (let k = -gw; k <= gw; k++) { g.set(gx + k, gy + k, gold[k < 0 ? 3 : k > 0 ? 1 : 4]); if (thick && k !== gw) g.set(gx + k + 1, gy + k, gold[2]); }
+      if (magic) g.set(gx, gy, gem[3]);
+      for (let i = gl + 2; i <= len; i++) {
+        const [x, y] = P(i), tip = i > len - (thick ? 2 : 1);
+        g.set(x, y, blade[tip ? 3 : 2]);
+        if (!tip) { g.set(x - 1, y, blade[4]); if (thick) g.set(x + 1, y, blade[1]); }
+      }
+    } else if (kind === 'staff') {
+      const R = Math.max(1.6, N * 0.13);
+      for (let i = 0; i <= D - 1 - Math.ceil(R); i++) { const [x, y] = P(i); g.set(x, y, wood[i % 3 ? 2 : 3]); if (thick) g.set(x + 1, y, wood[1]); }
+      const [hx, hy] = P(D - 1); sphere(g, hx + 0.5, hy + 0.5, R, gem);
+    } else {
+      for (let i = 0; i <= D - 3; i++) { const [x, y] = P(i); g.set(x, y, wood[i % 2 ? 2 : 3]); if (thick) g.set(x + 1, y, wood[1]); }
+      for (let i = D - 3; i <= D; i++) {
+        const [x, y] = P(i); g.set(x, y, blade[3]);
+        if (i <= D - 2) { g.set(x - 1, y, blade[4]); g.set(x + 1, y, blade[1]); }
+        if (thick && i === D - 3) { g.set(x - 2, y, blade[4]); g.set(x + 2, y, blade[1]); }
+      }
+      if (magic) { const [x, y] = P(D - 4); g.set(x, y, gem[3]); }
+    }
+    return outline(g, hsl(hue, 20, 9));
+  }
+
+  // ---------- POTION: round flask or vial with liquid level ----------
+  function potion(r, N, theme) {
+    const g = grid(N, N), { h: hue, s } = themeHue(r, theme);
+    const liq = ramp(hue, Math.max(s, 55), ri(r, 42, 55)), glass = ramp(205, 15, 70), cork = ramp(28, 40, 40);
+    const cx = N / 2, round = r() < 0.6;
+    const nw = Math.max(2, 2 * Math.round(N * 0.09)), neckTop = Math.round(N * 0.18);
+    let inBody, bodyTop, bodyBot, hw;
+    if (round) {
+      const cy = N * 0.64, R = N * 0.31;
+      inBody = (x, y) => Math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= R;
+      bodyTop = Math.floor(cy - R); bodyBot = cy + R; hw = R;
+    } else {
+      let bw = Math.max(4, Math.round(N * 0.42)); bw += bw % 2;
+      const x0 = cx - bw / 2, x1 = cx + bw / 2 - 1, y0 = Math.round(N * 0.36), y1 = N - 2;
+      inBody = (x, y) => x >= x0 && x <= x1 && y >= y0 && y <= y1 && !(y === y1 && (x === x0 || x === x1));
+      bodyTop = y0; bodyBot = y1; hw = bw / 2;
+    }
+    const inNeck = (x, y) => x >= cx - nw / 2 && x <= cx + nw / 2 - 1 && y >= neckTop && y <= bodyTop + 1;
+    const inShape = (x, y) => inBody(x, y) || inNeck(x, y);
+    const lvl = Math.ceil(bodyTop + (bodyBot - bodyTop) * (0.15 + r() * 0.35));
+    const empty = hsl(hue, 15, 20);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      if (!inShape(x, y)) continue;
+      const eL = !inShape(x - 1, y), eT = !inShape(x, y - 1), eR = !inShape(x + 1, y), eB = !inShape(x, y + 1);
+      if (eL || eT) { g.set(x, y, glass[4]); continue; }
+      if (eR || eB) { g.set(x, y, glass[2]); continue; }
+      if (inBody(x, y) && y >= lvl) {
+        const dx = x + 0.5 - cx;
+        g.set(x, y, liq[y === lvl ? 4 : dx < -hw * 0.3 ? 3 : dx > hw * 0.3 ? 1 : 2]);
+      } else g.set(x, y, empty);
+    }
+    const ch = Math.max(1, Math.round(N * 0.1));
+    for (let y = neckTop - ch; y < neckTop; y++) for (let x = cx - nw / 2; x <= cx + nw / 2 - 1; x++) g.set(x, y, cork[x < cx ? 3 : 1]);
+    const hx = Math.floor(cx - hw * 0.5);
+    for (let k = 0; k < Math.max(1, Math.round(N * 0.1)); k++) { const y = Math.max(bodyTop + 2, lvl) + k; if (inBody(hx, y) && inBody(hx - 1, y)) g.set(hx, y, liq[4]); }
+    return outline(g, hsl(hue, 30, 10));
+  }
+
+  // ---------- CURRENCY: orbs, shards, coins, runes ----------
+  function currency(r, N, theme) {
+    const g = grid(N, N), { h: hue, s } = themeHue(r, theme);
+    const kind = pick(r, ['orb', 'orb', 'shard', 'coin', 'rune']);
+    const c = ramp(hue, Math.max(s, 55), ri(r, 45, 58)), cx = N / 2, cy = N / 2;
+    if (kind === 'orb') {
+      const R = N * 0.34; sphere(g, cx, cy, R, c, false);
+      for (let k = 0; k < Math.round(N / 4); k++) { const a = r() * 6.283, rr = r() * R * 0.65; g.set(Math.floor(cx + Math.cos(a) * rr), Math.floor(cy + Math.sin(a) * rr), c[r() < 0.5 ? 4 : 3]); }
+      g.set(Math.floor(cx - R * 0.4), Math.floor(cy - R * 0.45), '#ffffff');
+    } else if (kind === 'shard') {
+      const w = N * 0.25, hh = N * 0.42;
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        const dx = x + 0.5 - cx, dy = y + 0.5 - cy, t = Math.abs(dx) / w + Math.abs(dy) / hh;
+        if (t > 1) continue;
+        let idx = dx < 0 ? (dy < 0 ? 4 : 3) : (dy < 0 ? 2 : 1);
+        if (t > 0.8) idx = Math.max(0, idx - 1);
+        g.set(x, y, c[idx]);
+      }
+      if (N >= 24) { const sx = Math.floor(cx + w + 1), sy = Math.floor(cy - hh * 0.55); for (const [a, b] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) g.set(sx + a, sy + b, c[4]); }
+    } else if (kind === 'coin') {
+      const cc = theme === 'random' ? ramp(44, 75, 52) : c, R = N * 0.36;
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        const dx = x + 0.5 - cx, dy = y + 0.5 - cy, d = Math.hypot(dx, dy);
+        if (d > R) continue;
+        let col;
+        if (d > R - 1.5) col = dx + dy < 0 ? cc[3] : cc[1];
+        else if (Math.abs(d - R * 0.6) < 0.6) col = cc[1];
+        else if (Math.abs(dx) + Math.abs(dy) <= R * 0.28) col = cc[4];
+        else col = dx + dy < 0 ? cc[3] : cc[2];
+        g.set(x, y, col);
+      }
+    } else {
+      const stone = ramp(ri(r, 200, 240), 8, ri(r, 35, 48)), a = Math.round(N * 0.16), b = N - 1 - a;
+      const inS = (x, y) => x >= a && x <= b && y >= a && y <= b && !((x === a || x === b) && (y === a || y === b));
+      for (let y = a; y <= b; y++) for (let x = a; x <= b; x++) {
+        if (!inS(x, y)) continue;
+        let idx = (!inS(x - 1, y) || !inS(x, y - 1)) ? 3 : (!inS(x + 1, y) || !inS(x, y + 1)) ? 1 : (r() < 0.15 ? 1 : 2);
+        g.set(x, y, stone[idx]);
+      }
+      const cs = Math.max(1, Math.floor(N / 16)), ox = Math.floor(cx - 2.5 * cs), oy = Math.floor(cy - 2.5 * cs);
+      const mask = [];
+      for (let y = 0; y < 5; y++) { const row = [r() < 0.5, r() < 0.45, r() < 0.55]; mask.push([row[0], row[1], row[2], row[1], row[0]]); }
+      mask[2][2] = true;
+      for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) if (mask[y][x])
+        for (let j = 0; j < cs; j++) for (let i = 0; i < cs; i++) g.set(ox + x * cs + i, oy + y * cs + j, c[4]);
+    }
+    return outline(g, hsl(hue, 30, 10));
+  }
+
+  // ---------- RING ----------
+  function ring(r, N, theme) {
+    const g = grid(N, N), { h: hue, s } = themeHue(r, theme);
+    const band = r() < 0.6 ? ramp(44, 75, 52) : ramp(215, 8, 62), gem = ramp(hue, Math.max(s, 60), 52);
+    const cx = N / 2, cy = N * 0.56, Ro = N * 0.32, Ri = Ro - Math.max(1.6, N * 0.1);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const dx = x + 0.5 - cx, dy = y + 0.5 - cy, d = Math.hypot(dx, dy);
+      if (d > Ro || d < Ri) continue;
+      g.set(x, y, band[clamp(Math.round(2 + (-dx - dy) / d * 1.6), 0, 4)]);
+    }
+    sphere(g, cx, cy - Ro * 0.95, Math.max(1.6, N * 0.14), gem);
+    return outline(g, hsl(hue, 20, 9));
+  }
+
+  // ---------- TILES (seamless, no outline) ----------
+  function tileRamp(r, theme, lo, hi) {
+    const t = THEMES[theme], hue = t ? t[0] + r() * (t[1] - t[0]) : ri(r, 20, 230);
+    return ramp(hue, ri(r, 8, 20) + (t ? 8 : 0), ri(r, lo, hi));
+  }
+  function crack(r, g, N, col) {
+    let x = ri(r, 0, N - 1), y = ri(r, 0, N - 1);
+    for (let k = 0; k < N * 0.6; k++) { g.wset(x, y, col); if (r() < 0.5) x += r() < 0.5 ? -1 : 1; else y += r() < 0.5 ? -1 : 1; }
+  }
+  function floor(r, N, theme) {
+    const g = grid(N, N), st = tileRamp(r, theme, 26, 38), kind = pick(r, ['flag', 'flag', 'cobble', 'dirt']);
+    const noise = () => { const v = r(); return v < 0.12 ? 1 : v > 0.9 ? 3 : 2; };
+    for (let i = 0; i < N * N; i++) g.p[i] = st[noise()];
+    if (kind === 'flag') {
+      const hf = N / 2;
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        const lx = x % hf, ly = y % hf;
+        if (lx === 0 || ly === 0) g.set(x, y, st[0]);
+        else if (lx === 1 || ly === 1) g.set(x, y, st[3]);
+        else if (lx === hf - 1 || ly === hf - 1) g.set(x, y, st[1]);
+      }
+    } else if (kind === 'cobble') {
+      const K = Math.max(4, Math.round(N * N / 50)), pts = [];
+      for (let k = 0; k < K; k++) pts.push([r() * N, r() * N]);
+      const td = (a, b) => { const d = Math.abs(a - b); return Math.min(d, N - d); };
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        let d1 = 1e9, d2 = 1e9, best = null;
+        for (const p of pts) { const d = Math.hypot(td(x + 0.5, p[0]), td(y + 0.5, p[1])); if (d < d1) { d2 = d1; d1 = d; best = p; } else if (d < d2) d2 = d; }
+        if (d2 - d1 < 1.0) { g.set(x, y, st[0]); continue; }
+        let ry = (y + 0.5) - best[1]; if (ry > N / 2) ry -= N; if (ry < -N / 2) ry += N;
+        g.set(x, y, st[ry < -1 ? 3 : ry > 1 ? 1 : 2]);
+      }
+    } else {
+      for (let k = 0; k < Math.round(N / 5); k++) { const x = ri(r, 0, N - 1), y = ri(r, 0, N - 1); g.wset(x, y, st[3]); g.wset(x, y + 1, st[0]); }
+    }
+    if (kind !== 'dirt' && r() < 0.5) crack(r, g, N, st[0]);
+    return g;
+  }
+  function wall(r, N, theme) {
+    const g = grid(N, N), st = tileRamp(r, theme, 30, 44);
+    const bh = N / 4, bw = N / 2;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const row = Math.floor(y / bh), ly = y % bh, lx = (x + (row % 2 ? bw / 2 : 0)) % bw;
+      let idx;
+      if (ly === 0 || lx === 0) idx = 0;
+      else if (ly === 1) idx = 3;
+      else if (ly === bh - 1 || lx === bw - 1) idx = 1;
+      else { const v = r(); idx = v < 0.12 ? 1 : v > 0.92 ? 3 : 2; }
+      g.set(x, y, st[idx]);
+    }
+    if (r() < 0.4) crack(r, g, N, st[0]);
+    return g;
+  }
+
+  const GEN = { monster, hero, weapon, potion, currency, ring, floor, wall };
+
+  function generate({ type = 'monster', seed = '1', size = 32, theme = 'random' } = {}) {
+    size = +size;
+    if (!GEN[type]) throw new Error('Unknown type: ' + type);
+    if (!(theme in THEMES)) theme = 'random';
+    return GEN[type](makeRng(`${type}|${seed}|${size}|${theme}`), size, theme);
+  }
+  function toCanvas(g, scale = 1) {
+    const c = document.createElement('canvas'); c.width = g.w * scale; c.height = g.h * scale;
+    const ctx = c.getContext('2d');
+    for (let i = 0; i < g.p.length; i++) { const col = g.p[i]; if (!col) continue; ctx.fillStyle = col; ctx.fillRect((i % g.w) * scale, Math.floor(i / g.w) * scale, scale, scale); }
+    return c;
+  }
+  function sheet({ type = 'monster', seed = '1', size = 32, theme = 'random', count = 16, scale = 1 } = {}) {
+    size = +size; scale = +scale; count = +count;
+    const cols = Math.ceil(Math.sqrt(count)), rows = Math.ceil(count / cols), t = size * scale;
+    const c = document.createElement('canvas'); c.width = cols * t; c.height = rows * t;
+    const ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    const frames = {};
+    for (let i = 0; i < count; i++) {
+      const sd = `${seed}-${i}`, x = (i % cols) * t, y = Math.floor(i / cols) * t;
+      ctx.drawImage(toCanvas(generate({ type, seed: sd, size, theme }), scale), x, y);
+      frames[`${type}_${i}`] = { frame: { x, y, w: t, h: t }, rotated: false, trimmed: false, spriteSourceSize: { x: 0, y: 0, w: t, h: t }, sourceSize: { w: t, h: t }, seed: sd };
+    }
+    return { canvas: c, atlas: { frames, meta: { app: 'Pixel Forge', image: `${type}_${theme}_${seed}.png`, size: { w: c.width, h: c.height }, scale: '1', tileSize: t, type, theme, seed } } };
+  }
+  return { generate, toCanvas, sheet, types: Object.keys(GEN), themes: Object.keys(THEMES) };
+})();
+if (typeof window !== 'undefined') window.PixelGen = PixelGen;
+if (typeof module !== 'undefined') module.exports = PixelGen;
+</script>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  for (const t of PixelGen.types) $('type').add(new Option(t, t));
+  for (const t of PixelGen.themes) $('theme').add(new Option(t, t));
+  const q = new URLSearchParams(location.search);
+  for (const k of ['type', 'theme', 'size', 'seed', 'count', 'scale']) if (q.has(k)) $(k).value = q.get(k);
+
+  const opts = () => ({ type: $('type').value, theme: $('theme').value, size: +$('size').value, seed: $('seed').value || 'forge', count: Math.max(1, Math.min(100, +$('count').value || 1)), scale: +$('scale').value });
+  const dl = (href, name) => { const a = document.createElement('a'); a.href = href; a.download = name; document.body.appendChild(a); a.click(); a.remove(); };
+
+  function render() {
+    const o = opts(), grid = $('grid'); grid.innerHTML = '';
+    for (let i = 0; i < o.count; i++) {
+      const seed = `${o.seed}-${i}`, g = PixelGen.generate({ ...o, seed });
+      const cell = document.createElement('div'); cell.className = 'cell';
+      const cv = PixelGen.toCanvas(g, 1);
+      const name = `${o.type}_${o.theme}_${seed}`;
+      const label = document.createElement('span'); label.textContent = seed; label.title = name;
+      cell.append(cv, label);
+      cell.onclick = () => dl(PixelGen.toCanvas(g, o.scale).toDataURL('image/png'), name + '.png');
+      grid.append(cell);
+    }
+  }
+  $('sheet').onclick = () => {
+    const o = opts(), { canvas, atlas } = PixelGen.sheet(o), base = `${o.type}_${o.theme}_${o.seed}`;
+    atlas.meta.image = base + '.png';
+    dl(canvas.toDataURL('image/png'), base + '.png');
+    setTimeout(() => dl(URL.createObjectURL(new Blob([JSON.stringify(atlas, null, 2)], { type: 'application/json' })), base + '.json'), 300);
+  };
+  $('reroll').onclick = () => { $('seed').value = Math.random().toString(36).slice(2, 8); render(); };
+  for (const id of ['type', 'theme', 'size', 'count']) $(id).addEventListener('change', render);
+  $('seed').addEventListener('input', render);
+  render();
+})();
+</script>
+</body>
+</html>
