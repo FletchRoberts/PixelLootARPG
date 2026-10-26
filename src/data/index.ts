@@ -13,6 +13,7 @@ import type {
   WeaponDef,
   ZoneGenConfig,
 } from "../sim/data/types";
+import type { SkillDef, SupportDef } from "../sim/skills/types";
 import itemBases from "./item-bases.json";
 import affixes from "./affixes.json";
 import currencies from "./currencies.json";
@@ -26,6 +27,8 @@ import progression from "./progression.json";
 import attributes from "./attributes.json";
 import monsterScaling from "./monster-scaling.json";
 import combat from "./combat.json";
+import skills from "./skills.json";
+import supports from "./supports.json";
 
 export const content = {
   itemBases: itemBases as ItemBase[],
@@ -41,6 +44,8 @@ export const content = {
   attributes: attributes as AttributeBonuses,
   monsterScaling: monsterScaling as MonsterScaling,
   combat: combat as CombatRulesDef,
+  skills: skills as SkillDef[],
+  supports: supports as SupportDef[],
 };
 
 export type Content = typeof content;

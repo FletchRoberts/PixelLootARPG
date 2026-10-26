@@ -1,0 +1,20 @@
+[
+  {
+    "id": "frost_bolt",
+    "name": "Frost Bolt",
+    "attribute": "intelligence",
+    "tags": ["spell", "projectile", "cold"],
+    "cost": 6,
+    "castTime": 0.45,
+    "critChance": 6,
+    "root": {
+      "kind": "projectile",
+      "tags": ["spell", "projectile"],
+      "damage": { "cold": [10, 15] },
+      "speed": 560,
+      "range": 620,
+      "radius": 9,
+      "knockback": 60
+    }
+  }
+]

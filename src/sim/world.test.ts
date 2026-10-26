@@ -70,7 +70,7 @@ describe("world", () => {
     const ev = step(w, quiet, { ...idle({ x: p.x - 100, y: p.y }), attack: true });
     expect(ev.some((e) => e.type === "damage")).toBe(false);
 
-    w.player.attackCooldown = 0;
+    w.player.castLock = 0;
     const ev2 = step(w, quiet, { ...idle({ x: p.x + 100, y: p.y }), attack: true });
     expect(ev2.some((e) => e.type === "damage")).toBe(true);
   });

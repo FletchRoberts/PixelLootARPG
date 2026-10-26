@@ -18,6 +18,8 @@ export type Action =
   | "inventory"
   | "character"
   | "toggleAuto"
+  | "dodge"
+  | "pickup"
   | "up"
   | "down"
   | "left"
@@ -34,9 +36,11 @@ interface Binding {
 }
 
 const BINDINGS: Record<Action, Binding> = {
-  confirm: { keys: ["E", "ENTER", "SPACE"], pad: ["cross"], label: "E" },
+  confirm: { keys: ["ENTER", "SPACE"], pad: ["cross"], label: "Enter" },
   cancel: { keys: ["ESC"], pad: ["circle"], label: "Esc" },
-  inventory: { keys: ["I"], pad: ["triangle"], label: "I" },
+  dodge: { keys: ["SPACE"], pad: ["circle"], label: "Space" },
+  pickup: { keys: ["F"], pad: ["cross"], label: "F" },
+  inventory: { keys: ["I"], pad: ["touchpad"], label: "I" }, // skills/loadout panel for now
   character: { keys: ["C"], pad: ["options"], label: "C" },
   toggleAuto: { keys: ["T"], pad: ["create"], label: "T" },
   up: { keys: ["W", "UP"], pad: ["up"], stick: "up", repeat: true, label: "W" },
@@ -47,7 +51,11 @@ const BINDINGS: Record<Action, Binding> = {
   tabNext: { keys: ["TAB"], pad: ["r1"], label: "Tab" },
 };
 
-const ATTACK_PAD: PadButton[] = ["square", "r2"];
+const ATTACK_PAD: PadButton[] = ["r2"];
+
+/** Skill slots 1–4. Slot 1 on keyboard is the right mouse button (handled via the pointer). */
+const SKILL_KEYS: (string | null)[] = [null, "Q", "E", "R"];
+const SKILL_PAD: PadButton[] = ["r1", "square", "triangle", "l1"];
 const MOVE_KEYS = { up: ["W", "UP"], down: ["S", "DOWN"], left: ["A", "LEFT"], right: ["D", "RIGHT"] };
 const REPEAT_DELAY_MS = 350;
 const REPEAT_RATE_MS = 110;
@@ -75,7 +83,11 @@ export class InputManager {
 
   constructor(private scene: Phaser.Scene) {
     const kb = scene.input.keyboard!;
-    const names = new Set([...Object.values(BINDINGS).flatMap((b) => b.keys), ...Object.values(MOVE_KEYS).flat()]);
+    const names = new Set([
+      ...Object.values(BINDINGS).flatMap((b) => b.keys),
+      ...Object.values(MOVE_KEYS).flat(),
+      ...SKILL_KEYS.filter((k): k is string => !!k),
+    ]);
     for (const name of names) this.keys.set(name, kb.addKey(name));
     kb.on("keydown", () => this.setDevice("kbm"));
     scene.input.on("pointermove", () => this.setDevice("kbm"));
@@ -131,17 +143,28 @@ export class InputManager {
     return b.label;
   }
 
-  /** Movement, aim and attack for the sim. */
-  gameplay(targets: AimTargets, pointerWorld: Vec, mouseAttack: boolean): PlayerInput {
+  /** Movement, aim, attack, skills and dodge for the sim. */
+  gameplay(targets: AimTargets, pointerWorld: Vec, mouse: { left: boolean; right: boolean }): PlayerInput {
+    const dodge = this.pressed("dodge");
+    const pickup = this.pressed("pickup");
     if (this.device === "pad" && this.pad) {
-      const move = leftStick(this.pad);
-      const aim = padAim({ ...targets, move, rightStick: rightStick(this.pad) });
-      return { move, aim, attack: ATTACK_PAD.some((b) => isDown(this.pad!, b)), autoAttack: this.autoAttack };
+      const pad = this.pad;
+      const move = leftStick(pad);
+      const aim = padAim({ ...targets, move, rightStick: rightStick(pad) });
+      const skills = SKILL_PAD.map((b) => isDown(pad, b));
+      return { move, aim, attack: ATTACK_PAD.some((b) => isDown(pad, b)), autoAttack: this.autoAttack, skills, dodge, pickup };
     }
     const k = (names: string[]) => names.some((n) => this.keys.get(n)?.isDown);
     const x = (k(MOVE_KEYS.right) ? 1 : 0) - (k(MOVE_KEYS.left) ? 1 : 0);
     const y = (k(MOVE_KEYS.down) ? 1 : 0) - (k(MOVE_KEYS.up) ? 1 : 0);
-    return { move: { x, y }, aim: pointerWorld, attack: mouseAttack, autoAttack: this.autoAttack };
+    const skills = SKILL_KEYS.map((key) => (key ? k([key]) : mouse.right));
+    return { move: { x, y }, aim: pointerWorld, attack: mouse.left, autoAttack: this.autoAttack, skills, dodge, pickup };
+  }
+
+  /** Button prompt for skill slot i (0-based) on the current device. */
+  skillPrompt(i: number): string {
+    if (this.device === "pad") return PS_GLYPH[SKILL_PAD[i]!] ?? SKILL_PAD[i]!;
+    return SKILL_KEYS[i] ?? "RMB";
   }
 
   toggleAutoAttack(): boolean {

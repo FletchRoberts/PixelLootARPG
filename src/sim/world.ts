@@ -1,10 +1,11 @@
 // Zone simulation: one player, sleeping monster packs along a generated linear zone,
-// stat-driven combat (docs/combat.md), auto attack, XP and levels, and an exit at the end.
+// stat-driven combat (docs/combat.md), skills + supports (docs/skills.md), auto attack,
+// dodge roll, XP and levels, and an exit at the end.
 // Pure and headless: state is plain data, advanced by step() with fixed dt.
 
 import { applyHit, expectedHit, rollHit, ELEMENTS, type CombatRules, type DamageRange, type Defences, type HitSummary } from "./combat/damage";
 import { Rng } from "./core/rng";
-import { add, angleOf, angleDiff, dist, len, normalize, scale, sub, type Vec } from "./core/vec";
+import { add, angleOf, dist, len, normalize, scale, sub, type Vec } from "./core/vec";
 import type {
   AttributeBonuses,
   Biome,
@@ -16,14 +17,18 @@ import type {
   WeaponDef,
   ZoneGenConfig,
 } from "./data/types";
+import { autoAttackSkill, compileSkill } from "./skills/compile";
+import { autoTarget, stepProjectiles, useSkill, type ProjectileState, type SkillContext } from "./skills/runtime";
+import type { CompiledNode, CompiledSkill, Loadout, SkillDef, SupportDef } from "./skills/types";
 import { gainXp, monsterScale, playerModifiers, playerStats, xpForKill } from "./stats/character";
-import { computeStat, type StatBlock } from "./stats/stats";
+import type { StatBlock } from "./stats/stats";
 import { buildFlowField, distAt, nextStep, UNREACHED, type FlowField } from "./zone/flowfield";
 import { generateZone } from "./zone/generate";
 import { isFloorAt, resolveWalls, tileCenter, tileOf, type Zone } from "./zone/zone";
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
+export const SKILL_SLOTS = 4;
 
 const KNOCKBACK_DECAY = 10; // per second, exponential
 const SEPARATION_STRENGTH = 0.5;
@@ -34,6 +39,8 @@ export interface SimContent {
   characters: Character[];
   monsters: Monster[];
   weapons: WeaponDef[];
+  skills: SkillDef[];
+  supports: SupportDef[];
   zoneGen: ZoneGenConfig;
   biomes: Biome[];
   progression: Progression;
@@ -47,6 +54,7 @@ export interface Progress {
   level: number;
   xp: number;
   zonesCleared: number;
+  loadout?: Loadout;
 }
 
 export const NEW_PROGRESS: Progress = { level: 1, xp: 0, zonesCleared: 0 };
@@ -64,13 +72,16 @@ export interface Actor {
 }
 
 export interface PlayerState extends Actor {
-  attackCooldown: number;
   level: number;
   xp: number;
   mana: number;
   maxMana: number;
-  weaponId: string;
   stats: StatBlock; // global (untagged) stats, recomputed when level/gear changes
+  loadout: Loadout;
+  compiled: (CompiledSkill | null)[]; // [0] = auto attack, [1..SKILL_SLOTS] = skill slots
+  castLock: number; // seconds until the player can attack/cast again
+  roll: { t: number; dir: Vec } | null; // active dodge roll
+  rollCooldown: number;
 }
 
 export interface MonsterState extends Actor {
@@ -89,24 +100,31 @@ export interface WorldState {
   status: "playing" | "dead" | "complete";
   player: PlayerState;
   monsters: MonsterState[];
+  projectiles: ProjectileState[];
   nextId: number;
   kills: number;
   totalMonsters: number;
 }
 
 /**
- * Player intent for one tick. `aim` is a world-space point; `attack` means attack is held
- * (manual, toward aim). With `autoAttack`, the weapon also swings at the nearest enemy in reach.
+ * Player intent for one tick. `aim` is a world-space point. `attack` = manual auto attack toward aim;
+ * `skills[i]` = skill slot i held; `dodge` = dodge pressed this tick; `pickup` reserved for loot.
  */
 export interface PlayerInput {
   move: Vec;
   aim: Vec;
   attack: boolean;
   autoAttack: boolean;
+  skills?: boolean[];
+  dodge?: boolean;
+  pickup?: boolean;
 }
 
 export type SimEvent =
   | { type: "swing"; actorId: number; angle: number; arc: number; range: number }
+  | { type: "cast"; slot: number; skill: string }
+  | { type: "no_mana"; slot: number }
+  | { type: "dodge" }
   | { type: "damage"; targetId: number; amount: number; crit: boolean; pos: Vec }
   | { type: "evade"; targetId: number; pos: Vec }
   | { type: "death"; actorId: number; pos: Vec }
@@ -123,6 +141,13 @@ function lookup<T extends { id: string }>(list: T[], id: string, what: string): 
   const found = list.find((e) => e.id === id);
   if (!found) throw new Error(`Unknown ${what} id "${id}"`);
   return found;
+}
+
+/** Starting loadout: the character's weapon, Frost Bolt on slot 1 so there's a skill to try. */
+export function defaultLoadout(content: SimContent, character: Character): Loadout {
+  const slots = Array.from({ length: SKILL_SLOTS }, () => ({ skill: null as string | null, supports: [] as string[] }));
+  if (content.skills.some((s) => s.id === "frost_bolt")) slots[0]!.skill = "frost_bolt";
+  return { weapon: character.startingWeapon, autoSupports: [], slots };
 }
 
 export function createWorld(content: SimContent, seed: number, progress: Progress = NEW_PROGRESS, characterId = "hero"): WorldState {
@@ -146,15 +171,19 @@ export function createWorld(content: SimContent, seed: number, progress: Progres
       maxLife: 0,
       facing: 0,
       evasionEntropy: rng.next(),
-      attackCooldown: 0,
       level: progress.level,
       xp: progress.xp,
       mana: 0,
       maxMana: 0,
-      weaponId: hero.startingWeapon,
       stats: {},
+      loadout: sanitizeLoadout(content, progress.loadout ?? defaultLoadout(content, hero)),
+      compiled: [],
+      castLock: 0,
+      roll: null,
+      rollCooldown: 0,
     },
     monsters: [],
+    projectiles: [],
     nextId: 2,
     kills: 0,
     totalMonsters: 0,
@@ -172,10 +201,29 @@ export function createWorld(content: SimContent, seed: number, progress: Progres
 
 /** Progress to carry into the next zone after this one is cleared. */
 export function progressAfterClear(world: WorldState): Progress {
-  return { level: world.player.level, xp: world.player.xp, zonesCleared: world.zonesCleared + 1 };
+  return { level: world.player.level, xp: world.player.xp, zonesCleared: world.zonesCleared + 1, loadout: world.player.loadout };
 }
 
-/** Refresh the player's stat snapshot (after level up, later gear/passive changes). Keeps missing life/mana. */
+/** Drop unknown ids and supports that don't fit their skill; always SKILL_SLOTS slots. */
+function sanitizeLoadout(content: SimContent, l: Loadout): Loadout {
+  const weapon = content.weapons.some((w) => w.id === l.weapon) ? l.weapon : content.weapons[0]!.id;
+  const known = (id: string) => content.supports.some((s) => s.id === id);
+  const slots = Array.from({ length: SKILL_SLOTS }, (_, i) => {
+    const slot = l.slots[i];
+    const skill = slot?.skill && content.skills.some((s) => s.id === slot.skill) ? slot.skill : null;
+    return { skill, supports: skill ? (slot?.supports ?? []).filter(known) : [] };
+  });
+  return { weapon, autoSupports: l.autoSupports.filter(known), slots };
+}
+
+/** Command: change weapon/skills/supports. Validates, then recompiles. */
+export function setLoadout(world: WorldState, content: SimContent, loadout: Loadout): void {
+  world.player.loadout = sanitizeLoadout(content, loadout);
+  world.projectiles = []; // compiled indices change; drop in-flight projectiles
+  recomputePlayer(world, content);
+}
+
+/** Refresh stats and compiled skills (after level up or loadout change). Keeps missing life/mana. */
 export function recomputePlayer(world: WorldState, content: SimContent): void {
   const p = world.player;
   const hero = lookup(content.characters, p.defId, "character");
@@ -187,6 +235,18 @@ export function recomputePlayer(world: WorldState, content: SimContent): void {
   p.maxMana = stats.mana ?? 0;
   p.life = Math.min(p.maxLife, p.life + Math.max(0, lifeGain));
   p.mana = Math.min(p.maxMana, p.mana + Math.max(0, manaGain));
+
+  const mods = playerModifiers(hero, p.level, content);
+  const weapon = lookup(content.weapons, p.loadout.weapon, "weapon");
+  const supportsOf = (ids: string[]) => ids.map((id) => lookup(content.supports, id, "support"));
+  p.compiled = [
+    compileSkill({ skill: autoAttackSkill(weapon), supports: supportsOf(p.loadout.autoSupports), playerMods: mods, weapon }),
+    ...p.loadout.slots.map((slot) =>
+      slot.skill
+        ? compileSkill({ skill: lookup(content.skills, slot.skill, "skill"), supports: supportsOf(slot.supports), playerMods: mods, weapon })
+        : null,
+    ),
+  ];
 }
 
 /** Advance the world by one fixed tick. Mutates `world`, returns events for the client. */
@@ -195,7 +255,10 @@ export function step(world: WorldState, content: SimContent, input: PlayerInput,
   if (world.status !== "playing") return events;
 
   const rng = new Rng(world.rngState);
-  updatePlayer(world, content, input, rng, events, dt);
+  const ctx = combatContext(world, content, rng);
+  updatePlayer(world, content, input, ctx, events, dt);
+  stepProjectiles(world, ctx, events, dt);
+  reapDead(world, content, events);
   updateMonsters(world, content, rng, events, dt);
   if (world.status === "playing" && dist(world.player.pos, world.zone.exit) < EXIT_RADIUS * world.zone.tileSize) {
     world.status = "complete";
@@ -239,101 +302,139 @@ function scaleRange(range: DamageRange, mult: number): DamageRange {
   return out;
 }
 
-/** Seconds between auto/manual attacks with the current weapon and stats. */
-export function attackInterval(world: WorldState, content: SimContent): number {
-  const p = world.player;
-  const hero = lookup(content.characters, p.defId, "character");
-  const aa = lookup(content.weapons, p.weaponId, "weapon").autoAttack;
-  const speed = computeStat("attack_speed", aa.attacksPerSecond, playerModifiers(hero, p.level, content), aa.tags);
-  return 1 / speed;
+/** How skills deal damage to monsters: the docs/combat.md pipeline. */
+function combatContext(world: WorldState, content: SimContent, rng: Rng): SkillContext {
+  const rules = content.combat as CombatRules;
+  return {
+    hit(m: MonsterState, skill: CompiledSkill, node: CompiledNode, dir: Vec, events: SimEvent[]): boolean {
+      if (m.life <= 0) return false;
+      if (!m.awake) wakePack(world, m.packId, events);
+      const def = lookup(content.monsters, m.defId, "monster");
+      const hit = rollHit(
+        {
+          base: node.base,
+          tags: node.tags,
+          critChance: skill.critChance,
+          accuracy: world.player.stats.accuracy ?? 0,
+          isAttack: skill.isAttack,
+          damageEffectiveness: node.effectiveness,
+        },
+        node.mods,
+        rules,
+        rng,
+      );
+      const entropy = { value: m.evasionEntropy };
+      const result = applyHit(hit, monsterDefences(m, def, content), rules, entropy);
+      m.evasionEntropy = entropy.value;
+      if (result.evaded) {
+        events.push({ type: "evade", targetId: m.id, pos: { ...m.pos } });
+        return false;
+      }
+      m.life -= result.total;
+      m.knock = add(m.knock, scale(dir, node.knockback));
+      events.push({ type: "damage", targetId: m.id, amount: result.total, crit: hit.crit, pos: { ...m.pos } });
+      return m.life <= 0;
+    },
+  };
 }
 
-export interface WeaponSummary extends HitSummary {
+export interface SkillSummary extends HitSummary {
   name: string;
-  attacksPerSecond: number;
-  dps: number; // vs no defences
+  usesPerSecond: number;
+  dps: number; // root delivery only, vs no defences
+  cost: number;
 }
 
-/** Character-sheet numbers for the equipped weapon's auto attack. */
-export function weaponSummary(world: WorldState, content: SimContent): WeaponSummary {
-  const p = world.player;
-  const hero = lookup(content.characters, p.defId, "character");
-  const weapon = lookup(content.weapons, p.weaponId, "weapon");
-  const aa = weapon.autoAttack;
-  const mods = playerModifiers(hero, p.level, content);
+/** Sheet/tooltip numbers for a compiled skill's root delivery. */
+export function skillSummary(world: WorldState, content: SimContent, index: number): SkillSummary | null {
+  const skill = world.player.compiled[index];
+  if (!skill) return null;
+  const node = skill.nodes[0]!;
   const hit = expectedHit(
-    { base: aa.damage, tags: aa.tags, critChance: aa.critChance, accuracy: p.stats.accuracy ?? 0, isAttack: true },
-    mods,
+    { base: node.base, tags: node.tags, critChance: skill.critChance, accuracy: 0, isAttack: skill.isAttack, damageEffectiveness: node.effectiveness },
+    node.mods,
     content.combat as CombatRules,
   );
-  const attacksPerSecond = 1 / attackInterval(world, content);
-  return { ...hit, name: weapon.name, attacksPerSecond, dps: hit.averageWithCrit * attacksPerSecond };
+  const usesPerSecond = 1 / skill.interval;
+  return { ...hit, name: skill.name, usesPerSecond, dps: hit.averageWithCrit * node.count * usesPerSecond, cost: skill.cost };
 }
 
-function updatePlayer(world: WorldState, content: SimContent, input: PlayerInput, rng: Rng, events: SimEvent[], dt: number): void {
+function updatePlayer(world: WorldState, content: SimContent, input: PlayerInput, ctx: SkillContext, events: SimEvent[], dt: number): void {
   const p = world.player;
   const hero = lookup(content.characters, p.defId, "character");
-  const aa = lookup(content.weapons, p.weaponId, "weapon").autoAttack;
+  p.mana = Math.min(p.maxMana, p.mana + (p.stats.mana_regen ?? 0) * dt);
+  p.castLock = Math.max(0, p.castLock - dt);
+  p.rollCooldown = Math.max(0, p.rollCooldown - dt);
 
+  // Dodge roll: fixed-speed dash in the move direction (or facing), cancels casting.
   const move = len(input.move) > 1 ? normalize(input.move) : input.move;
-  p.pos = add(p.pos, scale(move, hero.speed * dt));
+  if (input.dodge && !p.roll && p.rollCooldown === 0) {
+    const dir = len(move) > 0.1 ? normalize(move) : { x: Math.cos(p.facing), y: Math.sin(p.facing) };
+    p.roll = { t: 0, dir };
+    p.castLock = 0;
+    events.push({ type: "dodge" });
+  }
+  if (p.roll) {
+    const d = hero.dodge;
+    p.pos = add(p.pos, scale(p.roll.dir, (d.distance / d.duration) * dt));
+    p.roll.t += dt;
+    if (p.roll.t >= d.duration) {
+      p.roll = null;
+      p.rollCooldown = d.cooldown;
+    }
+  } else {
+    p.pos = add(p.pos, scale(move, hero.speed * dt));
+  }
   applyKnockback(p, dt);
   p.pos = resolveWalls(world.zone, p.pos, p.radius);
-  p.mana = Math.min(p.maxMana, p.mana + (p.stats.mana_regen ?? 0) * dt);
+  if (p.roll) return;
 
-  // Manual attack aims where the player points; auto attack picks the nearest enemy in reach.
-  const reach = p.radius + aa.range;
+  const aimAngle = dist(input.aim, p.pos) > 1 ? angleOf(sub(input.aim, p.pos)) : p.facing;
+
+  // Skill slots take priority over the auto attack.
+  if (p.castLock === 0) {
+    for (let i = 0; i < SKILL_SLOTS; i++) {
+      if (!input.skills?.[i]) continue;
+      const skill = p.compiled[i + 1];
+      if (!skill) continue;
+      if (p.mana < skill.cost) {
+        events.push({ type: "no_mana", slot: i });
+        continue;
+      }
+      p.mana -= skill.cost;
+      p.facing = aimAngle;
+      p.castLock = skill.interval;
+      events.push({ type: "cast", slot: i, skill: skill.id });
+      useSkill(world, i + 1, p.pos, aimAngle, ctx, events);
+      return;
+    }
+  }
+
+  // Manual attack aims where the player points; auto attack picks the nearest enemy it can reach.
+  const auto = p.compiled[0]!;
   let swingAt: number | null = null;
   if (input.attack) {
-    if (dist(input.aim, p.pos) > 1) p.facing = angleOf(sub(input.aim, p.pos));
-    swingAt = p.facing;
+    p.facing = aimAngle;
+    swingAt = aimAngle;
   } else {
-    const target = input.autoAttack ? nearestInReach(world, reach) : null;
+    const target = input.autoAttack ? autoTarget(world, auto.nodes[0]!) : null;
     if (target) {
       p.facing = angleOf(sub(target.pos, p.pos));
       swingAt = p.facing;
     } else if (dist(input.aim, p.pos) > 1) {
-      p.facing = angleOf(sub(input.aim, p.pos));
+      p.facing = aimAngle;
     }
   }
+  if (swingAt === null || p.castLock > 0) return;
+  p.castLock = auto.interval;
+  useSkill(world, 0, p.pos, swingAt, ctx, events);
+}
 
-  p.attackCooldown = Math.max(0, p.attackCooldown - dt);
-  if (swingAt === null || p.attackCooldown > 0) return;
-
-  const mods = playerModifiers(hero, p.level, content);
-  const rules = content.combat as CombatRules;
-  const arc = (aa.arcDegrees * Math.PI) / 180;
-  p.attackCooldown = attackInterval(world, content);
-  events.push({ type: "swing", actorId: p.id, angle: swingAt, arc, range: reach });
-
-  for (const m of world.monsters) {
-    const toM = sub(m.pos, p.pos);
-    if (len(toM) > reach + m.radius) continue;
-    // Monsters overlapping the player are always hit; otherwise they must be inside the arc.
-    if (len(toM) > p.radius + m.radius && Math.abs(angleDiff(angleOf(toM), swingAt)) > arc / 2) continue;
-    if (!m.awake) wakePack(world, m.packId, events);
-
-    const def = lookup(content.monsters, m.defId, "monster");
-    const hit = rollHit(
-      { base: aa.damage, tags: aa.tags, critChance: aa.critChance, accuracy: p.stats.accuracy ?? 0, isAttack: true },
-      mods,
-      rules,
-      rng,
-    );
-    const entropy = { value: m.evasionEntropy };
-    const result = applyHit(hit, monsterDefences(m, def, content), rules, entropy);
-    m.evasionEntropy = entropy.value;
-    if (result.evaded) {
-      events.push({ type: "evade", targetId: m.id, pos: { ...m.pos } });
-      continue;
-    }
-    m.life -= result.total;
-    m.knock = add(m.knock, scale(normalize(toM), aa.knockback));
-    events.push({ type: "damage", targetId: m.id, amount: result.total, crit: hit.crit, pos: { ...m.pos } });
-  }
-
+/** Remove dead monsters, award XP, level up. */
+function reapDead(world: WorldState, content: SimContent, events: SimEvent[]): void {
   const dead = world.monsters.filter((m) => m.life <= 0);
   if (dead.length === 0) return;
+  const p = world.player;
   world.monsters = world.monsters.filter((m) => m.life > 0);
   world.kills += dead.length;
   let xp = 0;
@@ -343,25 +444,10 @@ function updatePlayer(world: WorldState, content: SimContent, input: PlayerInput
     xp += xpForKill(def.xp, m.level, p.level, content.progression, content.monsterScaling);
   }
   events.push({ type: "xp", amount: xp });
-  const gained = gainXp(p, xp, content.progression);
-  if (gained > 0) {
+  if (gainXp(p, xp, content.progression) > 0) {
     recomputePlayer(world, content);
     events.push({ type: "level_up", level: p.level });
   }
-}
-
-function nearestInReach(world: WorldState, reach: number): MonsterState | null {
-  const p = world.player;
-  let best: MonsterState | null = null;
-  let bestD = Infinity;
-  for (const m of world.monsters) {
-    const d = dist(m.pos, p.pos) - m.radius;
-    if (d <= reach && d < bestD) {
-      best = m;
-      bestD = d;
-    }
-  }
-  return best;
 }
 
 function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events: SimEvent[], dt: number): void {
@@ -369,6 +455,8 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
   const zone = world.zone;
   const field = playerFlowField(world);
   const rules = content.combat as CombatRules;
+  const hero = lookup(content.characters, p.defId, "character");
+  const untouchable = p.roll !== null && hero.dodge.invulnerable;
 
   for (const m of world.monsters) {
     const def = lookup(content.monsters, m.defId, "monster");
@@ -407,7 +495,7 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
     m.pos = resolveWalls(zone, m.pos, m.radius);
 
     m.contactCooldown = Math.max(0, m.contactCooldown - dt);
-    if (m.contactCooldown > 0 || dist(m.pos, p.pos) > p.radius + m.radius + 2) continue;
+    if (untouchable || m.contactCooldown > 0 || dist(m.pos, p.pos) > p.radius + m.radius + 2) continue;
 
     m.contactCooldown = def.contactCooldown;
     const s = content.monsterScaling;

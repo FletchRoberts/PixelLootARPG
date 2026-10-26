@@ -76,21 +76,27 @@ export interface ModifierDef {
   tags?: string[];
 }
 
-/** A weapon base and the auto attack it grants. */
+/** A weapon base and the auto attack it grants (an attack skill using the weapon's damage). */
 export interface WeaponDef {
   id: string;
   name: string;
   type: string; // sword, bow, wand, …
+  damage: Partial<Record<DamageTypeId, Range>>;
+  attacksPerSecond: number;
+  critChance: number; // percent
   autoAttack: {
-    delivery: "melee";
-    tags: string[];
-    damage: Partial<Record<DamageTypeId, Range>>;
-    attacksPerSecond: number;
-    critChance: number; // percent
-    range: number; // px from the attacker's edge
-    arcDegrees: number;
-    knockback: number; // px/s impulse
+    name: string;
+    tags: string[]; // skill tags, e.g. ["attack", "melee", "physical"]
+    root: import("../skills/types").DeliveryDef;
   };
+}
+
+/** PoE2-style dodge roll. */
+export interface DodgeDef {
+  distance: number; // px
+  duration: number; // s
+  cooldown: number; // s after the roll ends
+  invulnerable: boolean; // ignore contact hits while rolling
 }
 
 export interface Character {
@@ -100,6 +106,7 @@ export interface Character {
   radius: number;
   base: Record<string, number>; // stat id -> base value at level 1 (life, mana, strength, …)
   startingWeapon: string;
+  dodge: DodgeDef;
   sprite?: SpriteSpec;
 }
 

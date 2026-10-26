@@ -1,7 +1,9 @@
 # Skills, supports and build-defining gear
 
-Status: **design**, not implemented yet. Pairs with `docs/combat.md` (the
-damage math).
+Status: **partly implemented**. Projectile and melee deliveries, hit/end/kill
+triggers, stat + structure supports, limits and auto attacks are in
+`src/sim/skills/`. Areas, zones, status effects and the rest come in later
+waves. Pairs with `docs/combat.md` (the damage math).
 
 The goal is PoE's skill + support gem depth, with the kind of chain
 reactions Noita wand-building and Vampire Survivors evolutions produce:

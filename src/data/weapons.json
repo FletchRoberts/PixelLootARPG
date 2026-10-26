@@ -3,15 +3,39 @@
     "id": "rusty_sword",
     "name": "Rusty Sword",
     "type": "sword",
+    "damage": { "physical": [8, 13] },
+    "attacksPerSecond": 2.8,
+    "critChance": 5,
     "autoAttack": {
-      "delivery": "melee",
+      "name": "Slash",
       "tags": ["attack", "melee"],
-      "damage": { "physical": [8, 13] },
-      "attacksPerSecond": 2.8,
-      "critChance": 5,
-      "range": 72,
-      "arcDegrees": 110,
-      "knockback": 260
+      "root": { "kind": "melee", "tags": ["attack", "melee"], "arcDegrees": 110, "reach": 72, "knockback": 260 }
+    }
+  },
+  {
+    "id": "short_bow",
+    "name": "Short Bow",
+    "type": "bow",
+    "damage": { "physical": [7, 12] },
+    "attacksPerSecond": 1.9,
+    "critChance": 5,
+    "autoAttack": {
+      "name": "Shoot",
+      "tags": ["attack", "projectile", "bow"],
+      "root": { "kind": "projectile", "tags": ["attack", "projectile", "bow"], "speed": 760, "range": 540, "radius": 6, "knockback": 80 }
+    }
+  },
+  {
+    "id": "apprentice_wand",
+    "name": "Apprentice Wand",
+    "type": "wand",
+    "damage": { "lightning": [5, 11] },
+    "attacksPerSecond": 1.8,
+    "critChance": 7,
+    "autoAttack": {
+      "name": "Spark Bolt",
+      "tags": ["attack", "projectile", "wand"],
+      "root": { "kind": "projectile", "tags": ["attack", "projectile", "wand"], "speed": 640, "range": 480, "radius": 7, "knockback": 40 }
     }
   }
 ]

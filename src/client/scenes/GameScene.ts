@@ -5,9 +5,10 @@ import {
   DT,
   NEW_PROGRESS,
   progressAfterClear,
+  setLoadout,
+  SKILL_SLOTS,
   step,
   TICK_RATE,
-  weaponSummary,
   type Actor,
   type PlayerInput,
   type Progress,
@@ -18,6 +19,7 @@ import { xpToNext } from "../../sim/stats/character";
 import type { Vec } from "../../sim/core/vec";
 import { isFloor, type Zone } from "../../sim/zone/zone";
 import { InputManager } from "../input/InputManager";
+import { GameMenu } from "../ui/GameMenu";
 import { textureKey, TILE_SRC } from "./BootScene";
 
 const SPRITE_SCALE = 2.6; // sprite height relative to collision diameter
@@ -50,7 +52,10 @@ export class GameScene extends Phaser.Scene {
   private lastAim: Vec = { x: 0, y: 0 };
   private knownPad: string | null = null;
   private startProgress: Progress = NEW_PROGRESS;
-  private sheet!: Phaser.GameObjects.Text;
+  private menu!: GameMenu;
+  private shots!: Phaser.GameObjects.Graphics;
+  private skillBar!: { g: Phaser.GameObjects.Graphics; labels: Phaser.GameObjects.Text[] };
+  private lastNoManaToast = 0;
 
   constructor() {
     super("Game");
@@ -78,16 +83,19 @@ export class GameScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(20_000);
     this.minimap = this.makeMinimap(zone);
-    this.sheet = this.add
-      .text(16, 150, "", { fontFamily: "monospace", fontSize: "13px", color: "#d8d8e0", backgroundColor: "#0b0b10dd", padding: { x: 10, y: 8 }, lineSpacing: 3 })
-      .setScrollFactor(0)
-      .setDepth(25_000)
-      .setVisible(false);
+    this.shots = this.add.graphics().setDepth(12_000);
+    this.skillBar = {
+      g: this.add.graphics().setScrollFactor(0).setDepth(20_000),
+      labels: Array.from({ length: SKILL_SLOTS }, () =>
+        this.add.text(0, 0, "", { fontFamily: "monospace", fontSize: "12px", color: "#d8d8e0", align: "center" }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20_001),
+      ),
+    };
 
     this.overlayHint = undefined;
     this.aimMarker = this.add.graphics().setDepth(9_000);
     this.inputs = new InputManager(this);
     this.inputs.onChange = () => this.onInputChange();
+    this.menu = new GameMenu(this, this.inputs, () => this.world, (l) => setLoadout(this.world, content, l));
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, zone.width * zone.tileSize, zone.height * zone.tileSize);
@@ -108,7 +116,7 @@ export class GameScene extends Phaser.Scene {
         // Died: retry the same zone from where you entered it. Cleared: roll a new, harder one.
         const next: SceneData =
           this.world.status === "dead"
-            ? { seed: this.world.zone.seed, progress: this.startProgress }
+            ? { seed: this.world.zone.seed, progress: { ...this.startProgress, loadout: this.world.player.loadout } }
             : { seed: (Math.random() * 2 ** 32) >>> 0, progress: progressAfterClear(this.world) };
         this.scene.restart(next);
       }
@@ -119,13 +127,23 @@ export class GameScene extends Phaser.Scene {
       const on = this.inputs.toggleAutoAttack();
       this.toast(`Auto attack ${on ? "ON" : "OFF"}`);
     }
-    if (this.inputs.pressed("character")) this.sheet.setVisible(!this.sheet.visible);
+    // The menu pauses the game while open.
+    if (this.menu.open) {
+      this.menu.update();
+      this.render();
+      return;
+    }
+    if (this.inputs.pressed("character")) return this.menu.show("character");
+    if (this.inputs.pressed("inventory")) return this.menu.show("skills");
 
     this.accumulator += Math.min(deltaMs / 1000, DT * MAX_STEPS_PER_FRAME);
     const input = this.readInput();
     while (this.accumulator >= DT) {
       this.accumulator -= DT;
       const events = step(this.world, content, input, DT);
+      // One-shot actions go to the first tick only.
+      input.dodge = false;
+      input.pickup = false;
       for (const e of events) this.onEvent(e);
       if (this.world.status !== "playing") break;
     }
@@ -139,7 +157,7 @@ export class GameScene extends Phaser.Scene {
     const input = this.inputs.gameplay(
       { player: w.player.pos, facing: w.player.facing, enemies: w.monsters.filter((m) => m.awake).map((m) => m.pos) },
       { x: world.x, y: world.y },
-      pointer.leftButtonDown(),
+      { left: pointer.leftButtonDown(), right: pointer.rightButtonDown() },
     );
     this.lastAim = input.aim;
     return input;
@@ -204,7 +222,20 @@ export class GameScene extends Phaser.Scene {
         this.onLevelUp(e.level);
         break;
       case "xp":
+      case "cast":
         break;
+      case "no_mana":
+        if (this.time.now - this.lastNoManaToast > 1500) {
+          this.lastNoManaToast = this.time.now;
+          this.toast("Not enough mana");
+        }
+        break;
+      case "dodge": {
+        const p = this.world.player;
+        const puff = this.add.circle(p.pos.x, p.pos.y + p.radius, p.radius, 0xc8c0a8, 0.45).setDepth(p.pos.y - 1);
+        this.tweens.add({ targets: puff, scale: 2, alpha: 0, duration: 300, onComplete: () => puff.destroy() });
+        break;
+      }
       case "death": {
         const view = this.views.get(e.actorId);
         this.views.delete(e.actorId);
@@ -256,9 +287,12 @@ export class GameScene extends Phaser.Scene {
       `HP ${Math.ceil(p.life)}/${Math.round(p.maxLife)}   MP ${Math.floor(p.mana)}/${Math.round(p.maxMana)}`,
       `Level ${p.level}   ${biome.name} (monster lvl ${w.monsterLevel})`,
       `Kills ${w.kills}/${w.totalMonsters}   ${formatTime(w.tick / TICK_RATE)}`,
-      `Auto attack ${this.inputs.autoAttack ? "ON" : "OFF"} [${this.inputs.prompt("toggleAuto")}]   Character [${this.inputs.prompt("character")}]`,
+      `Auto attack ${this.inputs.autoAttack ? "ON" : "OFF"} [${this.inputs.prompt("toggleAuto")}]   Menu [${this.inputs.prompt("character")}]   Skills [${this.inputs.prompt("inventory")}]`,
     ]);
-    if (this.sheet.visible) this.sheet.setText(this.sheetLines());
+    const player = this.views.get(p.id)?.sprite;
+    if (player && w.status === "playing") player.setAlpha(p.roll ? 0.55 : 1);
+    this.drawProjectiles();
+    this.drawSkillBar();
     this.drawMinimapDots();
     this.drawAimMarker();
   }
@@ -276,34 +310,40 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(0xe8e2d0, 0.75).fillTriangle(tip.x, tip.y, l.x, l.y, rr.x, rr.y);
   }
 
-  /** Character sheet: numbers come from the sim's own stat/damage functions. */
-  private sheetLines(): string[] {
-    const w = this.world;
-    const p = w.player;
-    const s = p.stats;
-    const wpn = weaponSummary(w, content);
-    const need = xpToNext(p.level, content.progression);
-    const r = (n: number | undefined) => Math.round(n ?? 0);
-    const range = Object.entries(wpn.ranges)
-      .map(([t, [lo, hi]]) => `${r(lo)}-${r(hi)} ${t}`)
-      .join(", ");
-    const points = (p.level - 1) * content.progression.passivePointsPerLevel;
-    return [
-      `CHARACTER                    [${this.inputs.prompt("character")}] close`,
-      `Level ${p.level}   XP ${r(p.xp)} / ${Number.isFinite(need) ? need : "max"}`,
-      `Passive points ${points} (tree coming later)`,
-      ``,
-      `Strength ${r(s.strength)}  Dexterity ${r(s.dexterity)}  Intelligence ${r(s.intelligence)}`,
-      `Life ${r(p.maxLife)}   Mana ${r(p.maxMana)} (+${(s.mana_regen ?? 0).toFixed(1)}/s)`,
-      ``,
-      `Armour ${r(s.armour)}   Evasion ${r(s.evasion)}   Accuracy ${r(s.accuracy)}`,
-      `Resist  fire ${r(s.fire_resistance)}%  cold ${r(s.cold_resistance)}%  lightning ${r(s.lightning_resistance)}%  chaos ${r(s.chaos_resistance)}%`,
-      ``,
-      `${wpn.name} (auto attack)`,
-      `  ${range}`,
-      `  ${wpn.attacksPerSecond.toFixed(2)} attacks/s   crit ${wpn.critChance.toFixed(1)}% (+${r(wpn.critBonus)}%)`,
-      `  DPS ${wpn.dps.toFixed(1)}`,
-    ];
+  private drawProjectiles(): void {
+    const g = this.shots.clear();
+    for (const pr of this.world.projectiles) {
+      const node = this.world.player.compiled[pr.skill]?.nodes[pr.node];
+      if (!node) continue;
+      const type = (Object.keys(node.base)[0] ?? "physical") as keyof typeof SHOT_COLORS;
+      const color = SHOT_COLORS[type] ?? 0xffffff;
+      const r = Math.max(3, node.radius);
+      g.fillStyle(color, 0.25).fillCircle(pr.pos.x, pr.pos.y, r * 1.9);
+      g.fillStyle(color, 1).fillCircle(pr.pos.x, pr.pos.y, r);
+      g.fillStyle(0xffffff, 0.8).fillCircle(pr.pos.x - pr.dir.x * r * 0.3, pr.pos.y - pr.dir.y * r * 0.3, r * 0.4);
+    }
+  }
+
+  /** Four skill slots along the bottom: button prompt, skill name, mana cost (dim when unaffordable). */
+  private drawSkillBar(): void {
+    const { g, labels } = this.skillBar;
+    const { width, height } = this.scale;
+    const box = 116;
+    const gap = 8;
+    const x0 = width / 2 - (SKILL_SLOTS * box + (SKILL_SLOTS - 1) * gap) / 2;
+    const y = height - 70;
+    g.clear();
+    for (let i = 0; i < SKILL_SLOTS; i++) {
+      const skill = this.world.player.compiled[i + 1];
+      const affordable = !!skill && this.world.player.mana >= skill.cost;
+      const x = x0 + i * (box + gap);
+      g.fillStyle(0x0b0b10, 0.75).fillRect(x, y, box, 46);
+      g.lineStyle(1, affordable ? 0x6a8ad8 : 0x3a3a48, 1).strokeRect(x, y, box, 46);
+      labels[i]!
+        .setPosition(x + box / 2, y + 5)
+        .setColor(skill ? (affordable ? "#d8d8e0" : "#6a6a76") : "#4a4a56")
+        .setText([`[${this.inputs.skillPrompt(i)}]`, skill ? `${skill.name} ${Math.round(skill.cost)}mp` : "empty"]);
+    }
   }
 
   private onLevelUp(level: number): void {
@@ -476,3 +516,11 @@ function formatTime(seconds: number): string {
   const s = Math.floor(seconds);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
+
+const SHOT_COLORS = {
+  physical: 0xe8dcc0,
+  fire: 0xff8a3a,
+  cold: 0x9fe0ff,
+  lightning: 0xfff07a,
+  chaos: 0xc070ff,
+};

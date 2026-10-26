@@ -86,3 +86,14 @@ export function resolveWalls(zone: Zone, pos: Vec, radius: number): Vec {
   }
   return { x, y };
 }
+
+/** True if the straight line a→b stays on floor tiles (sampled every quarter tile). */
+export function hasLineOfSight(zone: Zone, a: Vec, b: Vec): boolean {
+  const d = Math.hypot(b.x - a.x, b.y - a.y);
+  const steps = Math.max(1, Math.ceil(d / (zone.tileSize / 4)));
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    if (!isFloorAt(zone, { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t })) return false;
+  }
+  return true;
+}

@@ -222,9 +222,11 @@ they show `E` or `✕` depending on the last-used device.
   Xbox, etc. in Chrome/Edge) are first-class. Every new UI screen must be
   fully usable with a pad: navigate with `up/down/left/right` (D-pad or left
   stick, auto-repeat), `confirm`/`cancel`, `tabPrev`/`tabNext`.
-- Pad gameplay: left stick move, right stick aim, R2 or □ attack. With the
-  right stick idle, aim assist soft-locks the nearest awake enemy, preferring
-  ones ahead (`src/client/input/aim.ts`).
+- Pad gameplay: left stick move, right stick aim, R2 manual attack, skills on
+  R1/□/△/L1, ○ dodge roll, ✕ pickup. With the right stick idle, aim assist
+  soft-locks the nearest awake enemy, preferring ones ahead
+  (`src/client/input/aim.ts`). Menus pause the game; inside menus ○ = back,
+  ✕ = confirm, L1/R1 = tabs, D-pad = navigate.
 - Add new actions to `BINDINGS` in `InputManager.ts`; don't read raw input in
   scenes.
 
@@ -232,11 +234,16 @@ they show `E` or `✕` depending on the last-used device.
 |--------|----------|-----------------|
 | move | WASD / arrows | left stick |
 | aim | mouse | right stick (else aim assist) |
-| attack | hold left click | hold R2 or □ |
-| confirm | E / Enter / Space (or click on overlays) | ✕ |
-| cancel | Esc | ○ |
-| inventory (reserved) | I | △ |
-| tab prev / next (reserved) | Q / Tab | L1 / R1 |
+| auto attack on/off | T | Create |
+| manual attack | hold left click | hold R2 |
+| skill slots 1–4 | right click, Q, E, R | R1, □, △, L1 |
+| dodge roll | Space | ○ |
+| pickup (reserved for loot) | F | ✕ |
+| menu (Character/Skills tabs) | C | Options |
+| skills tab shortcut | I | touchpad click |
+| confirm (menus/overlays) | Enter / Space / click | ✕ |
+| cancel / back (menus) | Esc | ○ |
+| tab prev / next (menus) | Q / Tab | L1 / R1 |
 
 ### 4. Placeholder art: PixelGen
 
@@ -276,6 +283,7 @@ src/
     input/InputManager.ts keyboard/mouse + gamepad -> PlayerInput and UI actions
     input/gamepad.ts      standard-mapping buttons, deadzones (pure, tested)
     input/aim.ts          controller aim assist (pure, tested)
+    ui/GameMenu.ts        pause menu: Character sheet + Skills (debug loadout editor)
     scenes/BootScene.ts   builds placeholder textures + biome tilesets
     scenes/GameScene.ts   fixed-step loop, input -> sim, sim state -> tilemap/sprites/HUD/minimap
   sim/
@@ -286,13 +294,19 @@ src/
     stats/stats.ts        stat ids, flat/increased/more modifiers, computeStats()
     stats/character.ts    player stats from base + levels + attributes; XP, levels, monster scaling
     combat/damage.ts      hit pipeline: rollHit / applyHit / expectedHit (docs/combat.md)
+    skills/types.ts       DeliveryDef / SkillDef / SupportDef / Loadout / CompiledSkill
+    skills/compile.ts     skill + supports + player mods -> CompiledSkill (flat node tree)
+    skills/runtime.ts     melee strikes, projectiles (pierce→fork→chain→end), triggers, budget
+    skills/describe.ts    human-readable skill breakdown for UI
     world.test.ts         headless sim tests
     zone/generate.ts      linear zone generator (path, branches, arenas, packs)
     zone/zone.ts          Zone data, tile queries, circle-vs-wall collision
     zone/flowfield.ts     BFS distance field; monsters path along it
   data/
     characters.json       player characters (base stats, attributes, starting weapon, sprite)
-    weapons.json          weapon bases and the auto attack each grants
+    weapons.json          weapon bases and the auto attack each grants (a DeliveryDef)
+    skills.json           active skill gems
+    supports.json         support gems (tag-scoped mods and/or trigger additions)
     monsters.json         monsters (life, typed damage, accuracy/evasion/armour, xp, sprite)
     progression.json      XP curve, per-level gains, XP penalty
     attributes.json       per-point Str/Dex/Int bonuses
@@ -336,7 +350,17 @@ PoE2-style hit pipeline (armour, entropy evasion, resistances, crits),
 levels/XP carried between zones, Str/Dex/Int with small bonuses, mana pool +
 regen (no spenders yet), monster level = 1 + zones cleared with per-level
 scaling, sword auto attack (toggle T / Create), character sheet (C / Options).
-Next: step 2, the wave-1 skill engine (docs/skill-catalog.md §7).
+
+
+**Step 2, push 1 (done):** skill engine (compile → cast → step; melee and
+projectile deliveries; hit/end/kill triggers; depth 3, 400-projectile
+budget), Frost Bolt, supports Volley/Pierce/Chain/Fork/Shatter, weapon-based
+auto attacks (Sword melee, Bow and Wand projectiles) that take supports,
+dodge roll (○/Space, invulnerable to contact while rolling), 4 skill slots
+with mana costs, skill bar, pause menu with a debug loadout editor.
+Next: push 2, the rest of wave 1 (Fireball, Earthsplitter, Fanning Shot, Ice
+Nova, Magma Strike; Echo, Cast on Kill, Added Cold, Concentrated, Knockback;
+area delivery; chill/freeze/ignite).
 
 **Controller support (done):** DualSense/Xbox via the browser Gamepad API,
 twin-stick aim with aim assist, rumble on hits/death, prompts swap between
