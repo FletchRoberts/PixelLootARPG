@@ -10,6 +10,8 @@ import {
   step,
   TICK_RATE,
   type Actor,
+  type Ailments,
+  type MonsterState,
   type PlayerInput,
   type Progress,
   type SimEvent,
@@ -29,6 +31,7 @@ const MINIMAP_MAX = 180; // px, longest side
 
 interface ActorView {
   sprite: Phaser.GameObjects.Image;
+  flashUntil: number; // scene time; status tints wait until a hit flash is over
 }
 
 interface SceneData {
@@ -195,18 +198,21 @@ export class GameScene extends Phaser.Scene {
     const sprite = this.add.image(actor.pos.x, actor.pos.y, key);
     const height = actor.radius * 2 * SPRITE_SCALE;
     sprite.setScale(height / sprite.height);
-    return { sprite };
+    return { sprite, flashUntil: 0 };
   }
 
   private onEvent(e: SimEvent): void {
     switch (e.type) {
+      case "area":
+        this.showArea(e.pos, e.radius, e.angle, e.arc, SHOT_COLORS[e.element]);
+        break;
       case "swing":
         this.showSwing(e.angle, e.arc, e.range);
         break;
       case "damage": {
         const isPlayer = e.targetId === this.world.player.id;
         const view = this.views.get(e.targetId);
-        if (view) this.flash(view.sprite, isPlayer ? 0xff4040 : 0xffffff);
+        if (view) this.flash(view, isPlayer ? 0xff4040 : 0xffffff);
         if (isPlayer) {
           this.cameras.main.shake(90, 0.004);
           this.inputs.rumble(0.45, 0.25, 110);
@@ -270,6 +276,7 @@ export class GameScene extends Phaser.Scene {
       const view = this.views.get(a.id);
       if (!view) continue;
       view.sprite.setPosition(a.pos.x, a.pos.y).setDepth(a.pos.y).setFlipX(Math.cos(a.facing) < 0);
+      if (a !== w.player) this.drawAilments(a as MonsterState);
       if (a !== w.player && a.life < a.maxLife) {
         this.drawBar(this.bars, a.pos.x - 16, a.pos.y - a.radius * SPRITE_SCALE - 8, 32, 4, a.life / a.maxLife, 0xd04040);
       }
@@ -336,14 +343,17 @@ export class GameScene extends Phaser.Scene {
     g.clear();
     for (let i = 0; i < SKILL_SLOTS; i++) {
       const skill = this.world.player.compiled[i + 1];
-      const affordable = !!skill && this.world.player.mana >= skill.cost;
+      const affordable = !!skill && (!!skill.trigger || this.world.player.mana >= skill.cost);
       const x = x0 + i * (box + gap);
       g.fillStyle(0x0b0b10, 0.75).fillRect(x, y, box, 46);
       g.lineStyle(1, affordable ? 0x6a8ad8 : 0x3a3a48, 1).strokeRect(x, y, box, 46);
       labels[i]!
         .setPosition(x + box / 2, y + 5)
         .setColor(skill ? (affordable ? "#d8d8e0" : "#6a6a76") : "#4a4a56")
-        .setText([`[${this.inputs.skillPrompt(i)}]`, skill ? `${skill.name} ${Math.round(skill.cost)}mp` : "empty"]);
+        .setText([
+          skill?.trigger ? "on kill" : `[${this.inputs.skillPrompt(i)}]`,
+          skill ? `${skill.name}${skill.trigger ? "" : ` ${Math.round(skill.cost)}mp`}` : "empty",
+        ]);
     }
   }
 
@@ -449,9 +459,47 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: g, alpha: 0, duration: 140, onComplete: () => g.destroy() });
   }
 
-  private flash(sprite: Phaser.GameObjects.Image, color: number): void {
-    sprite.setTintFill(color);
-    this.time.delayedCall(70, () => sprite.active && sprite.clearTint());
+  private flash(view: ActorView, color: number): void {
+    view.sprite.setTintFill(color);
+    view.flashUntil = this.time.now + 70;
+    this.time.delayedCall(70, () => view.sprite.active && view.sprite.clearTint());
+  }
+
+  /**
+   * Status overlays (drawn over the sprite rather than tinting it, which just looks muddy):
+   * frozen = icy disc with a white rim, chilled = blue ring, burning = flickering embers.
+   */
+  private drawAilments(m: MonsterState): void {
+    const a: Ailments = m.ailments;
+    const g = this.bars;
+    const { x, y } = m.pos;
+    const r = m.radius * 1.5;
+    if (a.freeze > 0) {
+      g.fillStyle(0x58b8ff, 0.5).fillCircle(x, y, r);
+      g.lineStyle(2, 0xffffff, 0.9).strokeCircle(x, y, r);
+    } else if (a.chill > 0) {
+      g.lineStyle(2, 0x7fd0ff, 0.85).strokeCircle(x, y, r);
+    }
+    if (a.ignite > 0) {
+      const t = this.time.now / 120;
+      for (let i = 0; i < 3; i++) {
+        const flick = Math.sin(t + i * 2.1);
+        g.fillStyle(flick > 0 ? 0xffb040 : 0xff6020, 0.95).fillCircle(x + (i - 1) * m.radius * 0.8, y - m.radius * 1.3 - flick * 5, 4.5 + flick * 1.5);
+      }
+    }
+  }
+
+  /** Burst (circle) or cone (sector) that flashes and fades. */
+  private showArea(pos: Vec, radius: number, angle: number, arc: number, color: number): void {
+    const g = this.add.graphics().setDepth(pos.y + 2);
+    g.fillStyle(color, 0.45).lineStyle(2, color, 0.95);
+    if (arc > 0) {
+      g.slice(pos.x, pos.y, radius, angle - arc / 2, angle + arc / 2, false).fillPath();
+      g.beginPath().arc(pos.x, pos.y, radius, angle - arc / 2, angle + arc / 2, false).strokePath();
+    } else {
+      g.fillCircle(pos.x, pos.y, radius).strokeCircle(pos.x, pos.y, radius);
+    }
+    this.tweens.add({ targets: g, alpha: 0, duration: 280, ease: "Quad.easeIn", onComplete: () => g.destroy() });
   }
 
   private floatText(x: number, y: number, text: string, color: string, size = 14): void {
@@ -519,7 +567,7 @@ function formatTime(seconds: number): string {
 }
 
 const SHOT_COLORS = {
-  physical: 0xe8dcc0,
+  physical: 0xc8a070, // earthy, so slams read differently from the white sword swing
   fire: 0xff8a3a,
   cold: 0x9fe0ff,
   lightning: 0xfff07a,

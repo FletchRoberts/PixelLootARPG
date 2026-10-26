@@ -296,7 +296,7 @@ src/
     combat/damage.ts      hit pipeline: rollHit / applyHit / expectedHit (docs/combat.md)
     skills/types.ts       DeliveryDef / SkillDef / SupportDef / Loadout / CompiledSkill
     skills/compile.ts     skill + supports + player mods -> CompiledSkill (flat node tree)
-    skills/runtime.ts     melee strikes, projectiles (pierce→fork→chain→end), triggers, budget
+    skills/runtime.ts     melee strikes, area bursts, projectiles (pierce→fork→chain→end), triggers, budget
     skills/describe.ts    human-readable skill breakdown for UI
     world.test.ts         headless sim tests
     zone/generate.ts      linear zone generator (path, branches, arenas, packs)
@@ -361,9 +361,16 @@ with mana costs, skill bar, pause menu with a debug loadout editor.
 **Auto attack removed** at the user's request: the weapon attacks only while
 R2 / left click is held; aim assist stays.
 
-Next: push 2, the rest of wave 1 (Fireball, Earthsplitter, Fanning Shot, Ice
-Nova, Magma Strike; Echo, Cast on Kill, Added Cold, Concentrated, Knockback;
-area delivery; chill/freeze/ignite).
+
+
+**Step 2, push 2 (done):** area deliveries (circle burst / forward cone,
+blocked by walls), lobbed projectiles, damage conversion (`convertTo`),
+skill-level mods; ailments chill/freeze/ignite (rules in `combat.json`,
+`MonsterState.ailments`); skills Fireball, Earthsplitter, Fanning Shot, Ice
+Nova, Magma Strike; supports Echo (`repeat`), Cast on Kill (`trigger`: the
+skill casts itself at the corpse, its button is disabled), Added Cold,
+Concentrated, Knockback. Wave 1 of docs/skill-catalog.md is complete.
+Next (step 3): gems as items, socketing UI, skill bar from gems; then gear.
 
 **Controller support (done):** DualSense/Xbox via the browser Gamepad API,
 twin-stick aim with aim assist, rumble on hits/death, prompts swap between

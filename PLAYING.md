@@ -49,10 +49,26 @@ Controller: plug it in, open the page, press any button. A "Controller connected
 2. **Skills:** you start with **Frost Bolt on Skill 1** (R1 / right click). Hold the button to keep casting toward where you aim. Each cast costs mana (blue bar). If you run dry you'll see "Not enough mana".
 3. **Build combos in the menu's Skills tab** (Options → R1, or touchpad / I). It's a debug editor until gems drop as loot:
    - **Weapon:** Rusty Sword (melee swing), Short Bow (arrows) or Apprentice Wand (lightning bolts). The weapon decides what R2 / left click does.
-   - **Skill 1–4:** pick a skill for each button (only Frost Bolt exists so far).
-   - **Supports:** up to 4 per skill, *including your weapon attack*: **Volley** (+2 projectiles), **Pierce** (goes through 2 enemies), **Chain** (bounces to another enemy), **Fork** (splits in two on hit), **Shatter** (bursts into 5 shards when it ends).
-   - The right side of the panel spells out what your build does, e.g. "3 × projectile … on end → 7 × projectile (ring) [21 total]".
-   - Try: Frost Bolt + Volley + Shatter, or Wand attack + Fork + Chain, or Bow + Pierce + Shatter. More supports = higher mana cost.
+   - **Skills (pick any for each of the 4 buttons):**
+     - **Frost Bolt**: cold bolt that chills.
+     - **Fireball**: explodes on impact, can set enemies on fire.
+     - **Ice Nova**: ring of cold around you, freezes weaker enemies.
+     - **Earthsplitter**: long forward slam (uses your weapon's damage).
+     - **Fanning Shot**: fan of 5 arrows (weapon damage).
+     - **Magma Strike**: melee hit that lobs 3 magma balls which explode where they land.
+   - **Supports:** up to 4 per skill, *including your weapon attack*:
+     - **Volley** (+2 projectiles), **Pierce**, **Chain**, **Fork**, **Shatter** (burst into 5 shards).
+     - **Echo**: the skill repeats itself 0.3 s later for free.
+     - **Cast on Kill**: put it on a spell and that spell goes off by itself wherever you kill something. Its button then shows "on kill" and does nothing when pressed.
+     - **Added Cold**: adds cold damage (your sword starts chilling and freezing).
+     - **Concentrated**: smaller area, more damage.
+     - **Knockback**: send enemies flying.
+   - The right side of the panel spells out what your build does.
+   - Combos to try:
+     - Ice Nova + Cast on Kill, then fight with anything: chains of novas through a pack.
+     - Fireball + Volley + Echo: six fireballs per press.
+     - Magma Strike + Volley: 5 magma balls per enemy hit.
+     - Sword + Added Cold + Knockback: freeze and shove.
 4. **Dodge roll** (○ / Space) dashes you out of trouble. While rolling, enemies can't hurt you by touch.
 5. Follow the path. Packs sleep until you get close, then chase you. Kills give XP; level-ups add life, mana and attributes.
 6. Reach the glowing EXIT to clear the zone. Each cleared zone raises the monster level by 1. Your level and loadout carry over.
@@ -63,12 +79,15 @@ Controller: plug it in, open the page, press any button. A "Controller connected
 - Top left: life and mana bars, level, zone name and monster level, kills, timer, button hints.
 - Bottom: skill bar (button, skill, mana cost; dim when you can't afford it) and the XP bar.
 - Damage numbers: white = your hits, **yellow with "!" = critical**, red = damage you take, grey "evade" = dodged.
+- Enemy status: **blue ring = chilled** (slowed), **solid icy disc = frozen** (can't move or attack), **flickering embers = burning**.
 - Menu → Character tab: attributes, defences, and damage/speed/DPS for your weapon attack and each skill.
 
 ## New in this version
 
-- **Auto attack removed.** Your weapon attacks only while you hold R2 / left click. The T / Create toggle is gone.
-- **Aim assist kept and improved:** it now also targets sleeping enemies, and never aims at enemies behind walls.
+- **5 new skills:** Fireball, Ice Nova, Earthsplitter, Fanning Shot, Magma Strike.
+- **5 new supports:** Echo, Cast on Kill, Added Cold, Concentrated, Knockback.
+- **Explosions and cones** (area attacks), with walls blocking them.
+- **Chill, freeze and ignite**, shown on enemies as a blue ring, an icy disc and embers.
 
 ## Extras
 

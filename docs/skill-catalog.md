@@ -313,7 +313,7 @@ engine wave should cover enough to make most of the catalog possible.
 | corpses, pull, wall-pierce, sigils/brands | Corpse Burst, Void Sphere, Drill Bolt, Storm Sigil | **4** |
 | element queue | Elemental Weave | **4** |
 
-### Suggested first playable set (engine wave 1)
+### First playable set (engine wave 1): **implemented**
 
 | Weapon attacks | Skills | Supports |
 |---|---|---|

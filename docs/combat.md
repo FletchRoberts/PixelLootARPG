@@ -106,6 +106,20 @@ The Husk hits for 10 physical.
 That's exactly the behaviour we want: armour trivialises trash while bosses
 still need respect.
 
+## 4b. Ailments (implemented)
+
+Rules live in `src/data/combat.json` → `ailments`:
+
+- **Chill:** any hit that deals cold damage slows the target by `slow`% for
+  `duration` s.
+- **Freeze:** a cold hit worth at least `threshold`% of the target's max life
+  freezes it (no moving, no attacking) for `percent × secondsPerPercent` s,
+  clamped to `min`–`max`. Bigger monsters are harder to freeze.
+- **Ignite:** fire hits ignite with chance `ignite_chance` (a stat, e.g. from
+  Fireball's own mods) × the delivery's proc coefficient. It burns for
+  `dpsPercentOfHit`% of the hit's fire damage per second for `duration` s,
+  reduced only by fire resistance. A stronger ignite replaces a weaker one.
+
 ## 5. Monster scaling
 
 - **Monster level** comes from the zone tier (later the Cairnstone tier).
