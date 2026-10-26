@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { content } from "../data";
-import { createWorld, NEW_PROGRESS, progressAfterClear, step, TICK_RATE, type MonsterState, type PlayerInput, type SimContent, type WorldState } from "./world";
+import { newCharacter } from "./items/save";
+import { createWorld, saveAfterClear, step, TICK_RATE, type MonsterState, type PlayerInput, type SimContent, type WorldState } from "./world";
 import { xpToNext } from "./stats/character";
 import { buildFlowField, nextStep } from "./zone/flowfield";
 import { isFloorAt, tileCenter, tileOf } from "./zone/zone";
@@ -27,6 +28,7 @@ function addMonster(w: WorldState, pos: { x: number; y: number }, awake = true):
     packId: 999,
     awake,
     ailments: { chill: 0, slow: 0, freeze: 0, ignite: 0, igniteDps: 0 },
+    dropTable: "none",
   };
   w.monsters.push(m);
   return m;
@@ -147,7 +149,7 @@ describe("world", () => {
 
   it("monster level rises with zones cleared and scales their life", () => {
     const w1 = createWorld(content, 9);
-    const w5 = createWorld(content, 9, { ...NEW_PROGRESS, zonesCleared: 4 });
+    const w5 = createWorld(content, 9, { ...newCharacter(content, 9), zonesCleared: 4 });
     expect(w5.monsterLevel).toBe(5);
     expect(w5.monsters[0]!.maxLife).toBeCloseTo(w1.monsters[0]!.maxLife * Math.pow(content.monsterScaling.life, 4));
   });
@@ -164,11 +166,11 @@ describe("world", () => {
   });
 
   it("level and XP carry into the next zone, which is one monster level higher", () => {
-    const w = createWorld(quiet, 4, { level: 3, xp: 50, zonesCleared: 2 });
+    const w = createWorld(quiet, 4, { ...newCharacter(quiet, 4), level: 3, xp: 50, zonesCleared: 2 });
     expect(w.player.level).toBe(3);
     expect(w.player.life).toBe(w.player.maxLife);
     w.status = "complete";
-    const next = createWorld(quiet, 5, progressAfterClear(w));
+    const next = createWorld(quiet, 5, saveAfterClear(w));
     expect(next.player.level).toBe(3);
     expect(next.player.xp).toBe(50);
     expect(next.monsterLevel).toBe(4);

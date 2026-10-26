@@ -115,6 +115,7 @@ export interface Progression {
   xpToNext: { base: number; growth: number }; // xp for level L→L+1 = base × growth^(L-1)
   perLevel: ModifierDef[]; // granted once per level above 1
   passivePointsPerLevel: number;
+  deathXpPenalty: number; // % of the current level's XP requirement lost on death (never below 0)
   xpPenalty: { freeLevels: number; perLevel: number; min: number }; // when levels differ a lot
 }
 
@@ -179,6 +180,7 @@ export interface ZoneGenConfig {
   };
   monsterPool: WeightedRef[];
   biomes: WeightedRef[];
+  endPackDropTable: string; // the end-arena pack drops from this instead of its own table
 }
 
 /** Visual set for a zone. Client-only; the sim just picks one by id. */
@@ -193,7 +195,9 @@ export interface Biome {
 
 export interface DropEntry {
   weight: number;
-  kind: "item" | "currency" | "table" | "nothing";
+  // skill_gem / support_gem: a specific gem if `ref` is set, otherwise any gem of that kind.
+  // table: roll another table (`ref`). item / currency: reserved for gear and currency.
+  kind: "nothing" | "table" | "skill_gem" | "support_gem" | "item" | "currency";
   ref?: string;
 }
 
@@ -201,4 +205,15 @@ export interface DropTable {
   id: string;
   rolls: number;
   entries: DropEntry[];
+}
+
+/** Gem progression and inventory rules (src/data/gems.json). */
+export interface GemRules {
+  maxLevel: number;
+  xpToNext: { base: number; growth: number }; // gem XP for level L→L+1 = base × growth^(L-1)
+  damagePerLevel: number; // increased damage % per skill gem level above 1
+  sockets: { level: number; count: number }[]; // skill gem support sockets by level
+  attackSockets: number; // support sockets for the weapon attack
+  bagSize: number;
+  pickupRange: number; // px
 }

@@ -9,6 +9,7 @@ export const textureKey = {
   character: (id: string) => `character:${id}`,
   monster: (id: string) => `monster:${id}`,
   tileset: (biomeId: string) => `tiles:${biomeId}`,
+  gem: (kind: string, defId: string) => `gem:${kind}:${defId}`,
 };
 
 /** Generates placeholder textures for all content, then starts the game. */
@@ -25,6 +26,10 @@ export class BootScene extends Phaser.Scene {
       if (m.sprite) this.textures.addCanvas(textureKey.monster(m.id), makeSprite(m.sprite));
     }
     for (const b of content.biomes) this.textures.addCanvas(textureKey.tileset(b.id), makeTileset(b));
+    // Gem icons: PixelGen "currency" sprites coloured by attribute (red Str, green Dex, blue Int).
+    const theme = { strength: "blood", dexterity: "poison", intelligence: "ice" } as const;
+    for (const g of content.skills) this.textures.addCanvas(textureKey.gem("skill_gem", g.id), makeSprite({ type: "currency", seed: `skill-${g.id}`, theme: theme[g.attribute], size: 16 }));
+    for (const g of content.supports) this.textures.addCanvas(textureKey.gem("support_gem", g.id), makeSprite({ type: "currency", seed: `support-${g.id}`, theme: theme[g.attribute], size: 16 }));
     this.scene.start("Game");
   }
 }

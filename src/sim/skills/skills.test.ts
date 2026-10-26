@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { content } from "../../data";
-import { createWorld, progressAfterClear, setLoadout, step, TICK_RATE, type PlayerInput, type SimContent, type WorldState } from "../world";
+import { createWorld, inventoryCommand, saveAfterClear, setLoadout, step, TICK_RATE, type PlayerInput, type SimContent, type WorldState } from "../world";
 import { hasLineOfSight } from "../zone/zone";
 import { weaponAttackSkill, compileSkill, MAX_DEPTH, supportFits } from "./compile";
 import { MAX_PROJECTILES } from "./runtime";
@@ -84,7 +84,7 @@ function arena(c: SimContent = quiet, loadout?: Partial<Loadout>): WorldState {
 
 function addMonster(w: WorldState, x: number, y: number) {
   const def = content.monsters[0]!;
-  const m = { id: w.nextId++, defId: def.id, pos: { x, y }, knock: { x: 0, y: 0 }, radius: def.radius, life: 1e6, maxLife: 1e6, facing: 0, evasionEntropy: 0.5, contactCooldown: 99, packId: 999, awake: true, level: 1, ailments: { chill: 0, slow: 0, freeze: 0, ignite: 0, igniteDps: 0 } };
+  const m = { id: w.nextId++, defId: def.id, pos: { x, y }, knock: { x: 0, y: 0 }, radius: def.radius, life: 1e6, maxLife: 1e6, facing: 0, evasionEntropy: 0.5, contactCooldown: 99, packId: 999, awake: true, level: 1, ailments: { chill: 0, slow: 0, freeze: 0, ignite: 0, igniteDps: 0 }, dropTable: "none" };
   w.monsters.push(m);
   return m;
 }
@@ -199,10 +199,13 @@ describe("skill runtime", () => {
     expect(w.player.life).toBe(w.player.maxLife);
   });
 
-  it("the loadout carries into the next zone", () => {
-    const w = arena(quiet, { weapon: "short_bow", slots: [{ skill: "frost_bolt", supports: ["volley"] }] });
-    const next = createWorld(quiet, 3, progressAfterClear(w));
-    expect(next.player.loadout.weapon).toBe("short_bow");
+  it("equipped gems (with their supports) carry into the next zone", () => {
+    const w = createWorld(quiet, 21);
+    expect(inventoryCommand(w, quiet, { type: "debug_give", kind: "support_gem", defId: "volley" })).toBeNull();
+    const bagIndex = w.player.save.bag.findIndex((g) => g.defId === "volley");
+    expect(inventoryCommand(w, quiet, { type: "socket", bagIndex, target: { kind: "skill", slot: 0 }, socket: 0 })).toBeNull();
+    expect(w.player.compiled[1]!.nodes[0]!.count).toBe(3);
+    const next = createWorld(quiet, 3, saveAfterClear(w));
     expect(next.player.compiled[1]!.nodes[0]!.count).toBe(3);
   });
 });

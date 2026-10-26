@@ -47,9 +47,10 @@ interface CompileInput {
   supports: SupportDef[];
   playerMods: readonly Modifier[];
   weapon?: WeaponDef; // attacks take damage, speed and crit from the weapon
+  extraMods?: Modifier[]; // e.g. skill gem level bonuses
 }
 
-export function compileSkill({ skill, supports, playerMods, weapon }: CompileInput): CompiledSkill {
+export function compileSkill({ skill, supports, playerMods, weapon, extraMods = [] }: CompileInput): CompiledSkill {
   const fitting = supports.filter((s) => supportFits(s, skill));
   const isAttack = skill.tags.includes("attack");
   const nodes: CompiledNode[] = [];
@@ -57,6 +58,7 @@ export function compileSkill({ skill, supports, playerMods, weapon }: CompileInp
   const sources = [{ id: skill.id, mods: skill.mods }, ...fitting];
   const modsAt = (depth: number): Modifier[] => [
     ...playerMods,
+    ...extraMods,
     ...sources.flatMap((s) => (s.mods ?? []).filter((m) => inScope(m.scope, depth)).map(({ scope: _scope, ...m }) => ({ ...m, source: s.id }))),
   ];
 

@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "id": "trash",
+    "rolls": 1,
+    "entries": [
+      {
+        "weight": 94,
+        "kind": "nothing"
+      },
+      {
+        "weight": 2.5,
+        "kind": "skill_gem"
+      },
+      {
+        "weight": 3.5,
+        "kind": "support_gem"
+      }
+    ]
+  },
+  {
+    "id": "end_pack",
+    "rolls": 1,
+    "entries": [
+      {
+        "weight": 70,
+        "kind": "nothing"
+      },
+      {
+        "weight": 12,
+        "kind": "skill_gem"
+      },
+      {
+        "weight": 18,
+        "kind": "support_gem"
+      }
+    ]
+  }
+]

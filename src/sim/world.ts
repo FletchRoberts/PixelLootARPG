@@ -1,9 +1,10 @@
 // Zone simulation: one player, sleeping monster packs along a generated linear zone,
 // stat-driven combat (docs/combat.md), skills + supports (docs/skills.md), weapon attack,
-// dodge roll, XP and levels, and an exit at the end.
+// dodge roll, XP and levels, gem drops and pickup, and an exit at the end.
 // Pure and headless: state is plain data, advanced by step() with fixed dt.
 
 import { applyHit, expectedHit, rollHit, ELEMENTS, type CombatRules, type DamageRange, type Defences, type HitSummary } from "./combat/damage";
+import { clone } from "./core/clone";
 import { Rng } from "./core/rng";
 import { add, angleOf, dist, len, normalize, scale, sub, type Vec } from "./core/vec";
 import type {
@@ -11,6 +12,8 @@ import type {
   Biome,
   Character,
   CombatRulesDef,
+  DropTable,
+  GemRules,
   Monster,
   MonsterScaling,
   Progression,
@@ -20,6 +23,11 @@ import type {
 import { weaponAttackSkill, compileSkill } from "./skills/compile";
 import { stepProjectiles, useSkill, type ProjectileState, type SkillContext } from "./skills/runtime";
 import type { CompiledNode, CompiledSkill, Loadout, SkillDef, SupportDef } from "./skills/types";
+import { rollDrops } from "./items/drops";
+import { gainGemXp, makeGem } from "./items/gems";
+import { addToBag, equipSkill, socketSupport, unequipSkill, unsocket } from "./items/inventory";
+import { applyDeathPenalty, equippedSkillGems, loadoutOf, newCharacter } from "./items/save";
+import type { CharacterSave, GemItem, GroundItem, SocketTarget } from "./items/types";
 import { gainXp, monsterScale, playerModifiers, playerStats, xpForKill } from "./stats/character";
 import type { StatBlock } from "./stats/stats";
 import { buildFlowField, distAt, nextStep, UNREACHED, type FlowField } from "./zone/flowfield";
@@ -47,17 +55,9 @@ export interface SimContent {
   attributes: AttributeBonuses;
   monsterScaling: MonsterScaling;
   combat: CombatRulesDef;
+  dropTables: DropTable[];
+  gems: GemRules;
 }
-
-/** What carries over between zones. */
-export interface Progress {
-  level: number;
-  xp: number;
-  zonesCleared: number;
-  loadout?: Loadout;
-}
-
-export const NEW_PROGRESS: Progress = { level: 1, xp: 0, zonesCleared: 0 };
 
 export interface Actor {
   id: number;
@@ -77,7 +77,9 @@ export interface PlayerState extends Actor {
   mana: number;
   maxMana: number;
   stats: StatBlock; // global (untagged) stats, recomputed when level/gear changes
-  loadout: Loadout;
+  save: CharacterSave; // equipped gems, bag, weapon (level/xp live on the player and are written back)
+  loadout: Loadout; // derived from the save's gems (or a debug/test override)
+  loadoutOverride: Loadout | null;
   compiled: (CompiledSkill | null)[]; // [0] = weapon attack, [1..SKILL_SLOTS] = skill slots
   castLock: number; // seconds until the player can attack/cast again
   roll: { t: number; dir: Vec } | null; // active dodge roll
@@ -102,6 +104,7 @@ export interface MonsterState extends Actor {
   awake: boolean;
   level: number;
   ailments: Ailments;
+  dropTable: string;
 }
 
 export interface WorldState {
@@ -114,6 +117,7 @@ export interface WorldState {
   player: PlayerState;
   monsters: MonsterState[];
   projectiles: ProjectileState[];
+  groundItems: GroundItem[];
   nextId: number;
   kills: number;
   totalMonsters: number;
@@ -122,7 +126,7 @@ export interface WorldState {
 /**
  * Player intent for one tick. `aim` is a world-space point (the client applies aim assist).
  * `attack` = weapon attack held, toward aim;
- * `skills[i]` = skill slot i held; `dodge` = dodge pressed this tick; `pickup` reserved for loot.
+ * `skills[i]` = skill slot i held; `dodge` = dodge pressed this tick; `pickup` = pick up the nearest item.
  */
 export interface PlayerInput {
   move: Vec;
@@ -144,6 +148,10 @@ export type SimEvent =
   | { type: "death"; actorId: number; pos: Vec }
   | { type: "xp"; amount: number }
   | { type: "level_up"; level: number }
+  | { type: "drop"; itemId: number }
+  | { type: "pickup"; item: GemItem }
+  | { type: "bag_full" }
+  | { type: "gem_level"; gem: GemItem }
   | { type: "wake"; packId: number }
   | { type: "player_died" }
   | { type: "zone_complete" };
@@ -157,23 +165,17 @@ function lookup<T extends { id: string }>(list: T[], id: string, what: string): 
   return found;
 }
 
-/** Starting loadout: the character's weapon, Frost Bolt on slot 1 so there's a skill to try. */
-export function defaultLoadout(content: SimContent, character: Character): Loadout {
-  const slots = Array.from({ length: SKILL_SLOTS }, () => ({ skill: null as string | null, supports: [] as string[] }));
-  if (content.skills.some((s) => s.id === "frost_bolt")) slots[0]!.skill = "frost_bolt";
-  return { weapon: character.startingWeapon, attackSupports: [], slots };
-}
-
-export function createWorld(content: SimContent, seed: number, progress: Progress = NEW_PROGRESS, characterId = "hero"): WorldState {
+export function createWorld(content: SimContent, seed: number, save: CharacterSave = newCharacter(content, seed)): WorldState {
   const zone = generateZone(content.zoneGen, seed);
-  const hero = lookup(content.characters, characterId, "character");
+  const hero = lookup(content.characters, save.characterId, "character");
   const rng = new Rng((seed ^ 0x9e3779b9) >>> 0);
+  const own: CharacterSave = clone(save); // the world mutates its own copy
   const world: WorldState = {
     tick: 0,
     rngState: 0,
     zone,
-    monsterLevel: 1 + progress.zonesCleared,
-    zonesCleared: progress.zonesCleared,
+    monsterLevel: 1 + own.zonesCleared,
+    zonesCleared: own.zonesCleared,
     status: "playing",
     player: {
       id: 1,
@@ -185,12 +187,14 @@ export function createWorld(content: SimContent, seed: number, progress: Progres
       maxLife: 0,
       facing: 0,
       evasionEntropy: rng.next(),
-      level: progress.level,
-      xp: progress.xp,
+      level: own.level,
+      xp: own.xp,
       mana: 0,
       maxMana: 0,
       stats: {},
-      loadout: sanitizeLoadout(content, progress.loadout ?? defaultLoadout(content, hero)),
+      save: own,
+      loadout: loadoutOf(own),
+      loadoutOverride: null,
       compiled: [],
       castLock: 0,
       roll: null,
@@ -200,6 +204,7 @@ export function createWorld(content: SimContent, seed: number, progress: Progres
     },
     monsters: [],
     projectiles: [],
+    groundItems: [],
     nextId: 2,
     kills: 0,
     totalMonsters: 0,
@@ -208,34 +213,79 @@ export function createWorld(content: SimContent, seed: number, progress: Progres
   world.player.life = world.player.maxLife;
   world.player.mana = world.player.maxMana;
   zone.packs.forEach((pack, packId) => {
-    for (let i = 0; i < pack.size; i++) spawnMonster(world, content, rng, pack.pos, content.zoneGen.packs.spread, packId);
+    const table = pack.kind === "end" ? content.zoneGen.endPackDropTable : undefined;
+    for (let i = 0; i < pack.size; i++) spawnMonster(world, content, rng, pack.pos, content.zoneGen.packs.spread, packId, table);
   });
   world.totalMonsters = world.monsters.length;
   world.rngState = rng.state;
   return world;
 }
 
-/** Progress to carry into the next zone after this one is cleared. */
-export function progressAfterClear(world: WorldState): Progress {
-  return { level: world.player.level, xp: world.player.xp, zonesCleared: world.zonesCleared + 1, loadout: world.player.loadout };
+/** The character as it stands right now (level, XP, gems, bag). A deep copy. */
+export function currentSave(world: WorldState): CharacterSave {
+  const p = world.player;
+  return clone({ ...p.save, level: p.level, xp: p.xp, zonesCleared: world.zonesCleared });
 }
 
-/** Drop unknown ids and supports that don't fit their skill; always SKILL_SLOTS slots. */
-function sanitizeLoadout(content: SimContent, l: Loadout): Loadout {
-  const weapon = content.weapons.some((w) => w.id === l.weapon) ? l.weapon : content.weapons[0]!.id;
-  const known = (id: string) => content.supports.some((s) => s.id === id);
-  const slots = Array.from({ length: SKILL_SLOTS }, (_, i) => {
-    const slot = l.slots[i];
-    const skill = slot?.skill && content.skills.some((s) => s.id === slot.skill) ? slot.skill : null;
-    return { skill, supports: skill ? (slot?.supports ?? []).filter(known) : [] };
-  });
-  return { weapon, attackSupports: l.attackSupports.filter(known), slots };
+/** Character to carry into the next zone after clearing this one. */
+export function saveAfterClear(world: WorldState): CharacterSave {
+  return { ...currentSave(world), zonesCleared: world.zonesCleared + 1 };
 }
 
-/** Command: change weapon/skills/supports. Validates, then recompiles. */
+/** Character after dying: keeps everything picked up, loses some XP (never a level). */
+export function saveAfterDeath(world: WorldState, content: SimContent): CharacterSave {
+  const save = currentSave(world);
+  applyDeathPenalty(save, content.progression);
+  return save;
+}
+
+/** Debug/test helper: run with this loadout instead of the equipped gems. */
 export function setLoadout(world: WorldState, content: SimContent, loadout: Loadout): void {
-  world.player.loadout = sanitizeLoadout(content, loadout);
-  world.projectiles = []; // compiled indices change; drop in-flight projectiles and queued repeats
+  world.player.loadoutOverride = loadout;
+  world.player.save.weapon = loadout.weapon;
+  refreshSkills(world, content);
+}
+
+export type InventoryCommand =
+  | { type: "equip"; bagIndex: number; slot: number }
+  | { type: "unequip"; slot: number }
+  | { type: "socket"; bagIndex: number; target: SocketTarget; socket: number }
+  | { type: "unsocket"; target: SocketTarget; socket: number }
+  | { type: "debug_give"; kind: GemItem["kind"]; defId: string }
+  | { type: "debug_weapon"; weapon: string }; // until weapons drop as items
+
+/** Change equipped gems. Returns null on success or why it was refused. */
+export function inventoryCommand(world: WorldState, content: SimContent, cmd: InventoryCommand): string | null {
+  const save = world.player.save;
+  let result: string | null;
+  switch (cmd.type) {
+    case "equip":
+      result = equipSkill(save, cmd.bagIndex, cmd.slot);
+      break;
+    case "unequip":
+      result = unequipSkill(save, cmd.slot, content);
+      break;
+    case "socket":
+      result = socketSupport(save, cmd.bagIndex, cmd.target, cmd.socket, content);
+      break;
+    case "unsocket":
+      result = unsocket(save, cmd.target, cmd.socket, content);
+      break;
+    case "debug_give":
+      result = addToBag(save, makeGem(save, cmd.kind, cmd.defId, content.gems), content) ? null : "bag is full";
+      break;
+    case "debug_weapon":
+      result = content.weapons.some((w) => w.id === cmd.weapon) ? null : "unknown weapon";
+      if (result === null) save.weapon = cmd.weapon;
+      break;
+  }
+  if (result === null) refreshSkills(world, content);
+  return result;
+}
+
+/** Recompile after the equipped gems change; drops in-flight projectiles (compiled indices shift). */
+function refreshSkills(world: WorldState, content: SimContent): void {
+  world.projectiles = [];
   world.player.pending = [];
   recomputePlayer(world, content);
 }
@@ -253,16 +303,18 @@ export function recomputePlayer(world: WorldState, content: SimContent): void {
   p.life = Math.min(p.maxLife, p.life + Math.max(0, lifeGain));
   p.mana = Math.min(p.maxMana, p.mana + Math.max(0, manaGain));
 
+  p.loadout = p.loadoutOverride ?? loadoutOf(p.save);
   const mods = playerModifiers(hero, p.level, content);
   const weapon = lookup(content.weapons, p.loadout.weapon, "weapon");
-  const supportsOf = (ids: string[]) => ids.map((id) => lookup(content.supports, id, "support"));
+  const supportsOf = (ids: string[]) => ids.filter((id) => content.supports.some((s) => s.id === id)).map((id) => lookup(content.supports, id, "support"));
+  const gemLevelMods = (level = 1) => (level > 1 ? [{ stat: "damage", kind: "increased" as const, value: (level - 1) * content.gems.damagePerLevel, source: "gem level" }] : []);
   p.compiled = [
     compileSkill({ skill: weaponAttackSkill(weapon), supports: supportsOf(p.loadout.attackSupports), playerMods: mods, weapon }),
-    ...p.loadout.slots.map((slot) =>
-      slot.skill
-        ? compileSkill({ skill: lookup(content.skills, slot.skill, "skill"), supports: supportsOf(slot.supports), playerMods: mods, weapon })
-        : null,
-    ),
+    ...Array.from({ length: SKILL_SLOTS }, (_, i) => {
+      const slot = p.loadout.slots[i];
+      const def = slot?.skill ? content.skills.find((k) => k.id === slot.skill) : undefined;
+      return def ? compileSkill({ skill: def, supports: supportsOf(slot!.supports), playerMods: mods, weapon, extraMods: gemLevelMods(slot!.level) }) : null;
+    }),
   ];
 }
 
@@ -275,7 +327,7 @@ export function step(world: WorldState, content: SimContent, input: PlayerInput,
   const ctx = combatContext(world, content, rng);
   updatePlayer(world, content, input, ctx, events, dt);
   stepProjectiles(world, ctx, events, dt);
-  reapDead(world, content, ctx, events);
+  reapDead(world, content, ctx, rng, events);
   updateMonsters(world, content, rng, events, dt);
   if (world.status === "playing" && dist(world.player.pos, world.zone.exit) < EXIT_RADIUS * world.zone.tileSize) {
     world.status = "complete";
@@ -439,6 +491,7 @@ function updatePlayer(world: WorldState, content: SimContent, input: PlayerInput
   }
   applyKnockback(p, dt);
   p.pos = resolveWalls(world.zone, p.pos, p.radius);
+  if (input.pickup) pickUpNearest(world, content, events);
   if (p.roll) return;
 
   const aimAngle = dist(input.aim, p.pos) > 1 ? angleOf(sub(input.aim, p.pos)) : p.facing;
@@ -477,8 +530,33 @@ function castWithRepeats(world: WorldState, index: number, angle: number, ctx: S
   if (repeat) p.pending.push({ t: repeat.delay, skill: index, angle, left: repeat.count });
 }
 
-/** Remove dead monsters, award XP, level up, and fire Cast on Kill skills at the corpses. */
-function reapDead(world: WorldState, content: SimContent, ctx: SkillContext, events: SimEvent[]): void {
+/** The ground item the player would pick up right now, if any. */
+export function nearestPickup(world: WorldState, content: SimContent): GroundItem | null {
+  let best: GroundItem | null = null;
+  let bestD = content.gems.pickupRange;
+  for (const g of world.groundItems) {
+    const d = dist(g.pos, world.player.pos);
+    if (d <= bestD) {
+      best = g;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+function pickUpNearest(world: WorldState, content: SimContent, events: SimEvent[]): void {
+  const g = nearestPickup(world, content);
+  if (!g) return;
+  if (!addToBag(world.player.save, g.item, content)) {
+    events.push({ type: "bag_full" });
+    return;
+  }
+  world.groundItems = world.groundItems.filter((x) => x !== g);
+  events.push({ type: "pickup", item: clone(g.item) });
+}
+
+/** Remove dead monsters, award XP (character and equipped gems), drop loot, and fire Cast on Kill skills. */
+function reapDead(world: WorldState, content: SimContent, ctx: SkillContext, rng: Rng, events: SimEvent[]): void {
   const dead = world.monsters.filter((m) => m.life <= 0);
   if (dead.length === 0) return;
   const p = world.player;
@@ -489,12 +567,29 @@ function reapDead(world: WorldState, content: SimContent, ctx: SkillContext, eve
     events.push({ type: "death", actorId: m.id, pos: { ...m.pos } });
     const def = lookup(content.monsters, m.defId, "monster");
     xp += xpForKill(def.xp, m.level, p.level, content.progression, content.monsterScaling);
+    for (const drop of rollDrops(content, m.dropTable, rng)) {
+      const item = makeGem(p.save, drop.kind, drop.defId, content.gems);
+      const spread = 24;
+      const pos = resolveWalls(world.zone, { x: m.pos.x + rng.range(-spread, spread), y: m.pos.y + rng.range(-spread, spread) }, 8);
+      const id = world.nextId++;
+      world.groundItems.push({ id, item, pos });
+      events.push({ type: "drop", itemId: id });
+    }
   }
   events.push({ type: "xp", amount: xp });
+  let recompute = false;
   if (gainXp(p, xp, content.progression) > 0) {
-    recomputePlayer(world, content);
+    recompute = true;
     events.push({ type: "level_up", level: p.level });
   }
+  // Equipped skill gems learn alongside the character (their sockets grow as they level).
+  for (const gem of equippedSkillGems(p.save)) {
+    if (gainGemXp(gem, xp, content.gems) > 0) {
+      recompute = true;
+      events.push({ type: "gem_level", gem: clone(gem) });
+    }
+  }
+  if (recompute) recomputePlayer(world, content);
 
   // Cast on Kill: after removal, so anything the triggered skill kills is reaped (with XP) next tick.
   p.compiled.forEach((skill, index) => {
@@ -611,7 +706,7 @@ function wakePack(world: WorldState, packId: number, events: SimEvent[]): void {
   if (woke) events.push({ type: "wake", packId });
 }
 
-function spawnMonster(world: WorldState, content: SimContent, rng: Rng, center: Vec, spreadTiles: number, packId: number): void {
+function spawnMonster(world: WorldState, content: SimContent, rng: Rng, center: Vec, spreadTiles: number, packId: number, dropTable?: string): void {
   const monsterId = rng.weighted(content.zoneGen.monsterPool)?.id;
   if (!monsterId) return;
   const def = lookup(content.monsters, monsterId, "monster");
@@ -643,6 +738,7 @@ function spawnMonster(world: WorldState, content: SimContent, rng: Rng, center: 
     awake: false,
     level,
     ailments: { ...NO_AILMENTS },
+    dropTable: dropTable ?? def.dropTable,
   });
 }
 

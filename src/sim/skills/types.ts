@@ -58,6 +58,7 @@ export interface SupportModDef extends Omit<Modifier, "source"> {
 export interface SupportDef {
   id: string;
   name: string;
+  attribute: "strength" | "dexterity" | "intelligence"; // gem colour
   description: string;
   requires: string[]; // skill must have at least one of these tags (on any node)
   costMultiplier: number;
@@ -76,7 +77,7 @@ export interface SupportDef {
 export interface Loadout {
   weapon: string;
   attackSupports: string[];
-  slots: { skill: string | null; supports: string[] }[];
+  slots: { skill: string | null; supports: string[]; level?: number }[]; // level: skill gem level (default 1)
 }
 
 /** A delivery after compiling: final numbers, its own modifier list, flattened children. */

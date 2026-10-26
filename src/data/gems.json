@@ -1,0 +1,29 @@
+{
+  "maxLevel": 20,
+  "xpToNext": {
+    "base": 120,
+    "growth": 1.3
+  },
+  "damagePerLevel": 8,
+  "sockets": [
+    {
+      "level": 1,
+      "count": 2
+    },
+    {
+      "level": 4,
+      "count": 3
+    },
+    {
+      "level": 8,
+      "count": 4
+    },
+    {
+      "level": 12,
+      "count": 5
+    }
+  ],
+  "attackSockets": 2,
+  "bagSize": 40,
+  "pickupRange": 70
+}

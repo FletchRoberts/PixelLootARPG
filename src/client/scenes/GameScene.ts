@@ -2,10 +2,12 @@ import Phaser from "phaser";
 import { content } from "../../data";
 import {
   createWorld,
+  currentSave,
   DT,
-  NEW_PROGRESS,
-  progressAfterClear,
-  setLoadout,
+  inventoryCommand,
+  nearestPickup,
+  saveAfterClear,
+  saveAfterDeath,
   SKILL_SLOTS,
   step,
   TICK_RATE,
@@ -13,11 +15,13 @@ import {
   type Ailments,
   type MonsterState,
   type PlayerInput,
-  type Progress,
   type SimEvent,
   type WorldState,
 } from "../../sim/world";
 import { xpToNext } from "../../sim/stats/character";
+import { newCharacter } from "../../sim/items/save";
+import type { CharacterSave, GemItem } from "../../sim/items/types";
+import { clearSave, loadSave, writeSave } from "../save/storage";
 import type { Vec } from "../../sim/core/vec";
 import { hasLineOfSight, isFloor, type Zone } from "../../sim/zone/zone";
 import { InputManager } from "../input/InputManager";
@@ -28,6 +32,8 @@ const SPRITE_SCALE = 2.6; // sprite height relative to collision diameter
 const MAX_STEPS_PER_FRAME = 5; // avoid a spiral of death after a long hitch
 const OVERLAY_DELAY_MS = 600; // ignore the attack that was held when the overlay appeared
 const MINIMAP_MAX = 180; // px, longest side
+const AUTOSAVE_MS = 5000;
+const GEM_LABEL = "#4ad8c8"; // PoE-style teal for gems
 
 interface ActorView {
   sprite: Phaser.GameObjects.Image;
@@ -36,8 +42,15 @@ interface ActorView {
 
 interface SceneData {
   seed?: number;
-  progress?: Progress; // level/xp/zones cleared at the start of this zone
+  save?: CharacterSave; // the character entering this zone (else the browser save, else a new one)
 }
+
+interface ItemView {
+  icon: Phaser.GameObjects.Image;
+  label: Phaser.GameObjects.Text;
+}
+
+const randomSeed = () => (Math.random() * 2 ** 32) >>> 0;
 
 /** Renders the sim and feeds it input. Owns no game rules. */
 export class GameScene extends Phaser.Scene {
@@ -54,7 +67,9 @@ export class GameScene extends Phaser.Scene {
   private aimMarker!: Phaser.GameObjects.Graphics;
   private lastAim: Vec = { x: 0, y: 0 };
   private knownPad: string | null = null;
-  private startProgress: Progress = NEW_PROGRESS;
+  private itemViews = new Map<number, ItemView>();
+  private deathSave: CharacterSave | null = null;
+  private lastAutosave = 0;
   private menu!: GameMenu;
   private shots!: Phaser.GameObjects.Graphics;
   private skillBar!: { g: Phaser.GameObjects.Graphics; labels: Phaser.GameObjects.Text[] };
@@ -68,8 +83,11 @@ export class GameScene extends Phaser.Scene {
     // ?seed=123 in the URL pins the first zone, handy for reproducing layouts.
     const urlSeed = Number(new URLSearchParams(location.search).get("seed"));
     const seed = data.seed ?? (Number.isFinite(urlSeed) && urlSeed > 0 ? urlSeed : (Math.random() * 2 ** 32) >>> 0);
-    this.startProgress = data.progress ?? NEW_PROGRESS;
-    this.world = createWorld(content, seed, this.startProgress);
+    const save = data.save ?? loadSave() ?? newCharacter(content, randomSeed());
+    this.world = createWorld(content, seed, save);
+    this.itemViews.clear();
+    this.deathSave = null;
+    this.persist();
     this.accumulator = 0;
     this.views.clear();
 
@@ -98,7 +116,18 @@ export class GameScene extends Phaser.Scene {
     this.aimMarker = this.add.graphics().setDepth(9_000);
     this.inputs = new InputManager(this);
     this.inputs.onChange = () => this.onInputChange();
-    this.menu = new GameMenu(this, this.inputs, () => this.world, (l) => setLoadout(this.world, content, l));
+    this.menu = new GameMenu(this, this.inputs, () => this.world, {
+      command: (cmd) => {
+        const refused = inventoryCommand(this.world, content, cmd);
+        if (!refused) this.persist();
+        return refused;
+      },
+      resetCharacter: () => {
+        clearSave();
+        const seed = randomSeed();
+        this.scene.restart({ seed, save: newCharacter(content, seed) } satisfies SceneData);
+      },
+    });
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, zone.width * zone.tileSize, zone.height * zone.tileSize);
@@ -116,11 +145,12 @@ export class GameScene extends Phaser.Scene {
       const ready = this.time.now - this.overlayAt > OVERLAY_DELAY_MS;
       const pressed = this.inputs.pressed("confirm") || this.input.activePointer.leftButtonDown();
       if (ready && pressed) {
-        // Died: retry the same zone from where you entered it. Cleared: roll a new, harder one.
+        // Died: retry the same zone (items kept, some XP lost). Cleared: roll a new, harder one.
         const next: SceneData =
           this.world.status === "dead"
-            ? { seed: this.world.zone.seed, progress: { ...this.startProgress, loadout: this.world.player.loadout } }
-            : { seed: (Math.random() * 2 ** 32) >>> 0, progress: progressAfterClear(this.world) };
+            ? { seed: this.world.zone.seed, save: this.deathSave ?? saveAfterDeath(this.world, content) }
+            : { seed: randomSeed(), save: saveAfterClear(this.world) };
+        if (next.save) writeSave(next.save);
         this.scene.restart(next);
       }
       return;
@@ -133,7 +163,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (this.inputs.pressed("character")) return this.menu.show("character");
-    if (this.inputs.pressed("inventory")) return this.menu.show("skills");
+    if (this.inputs.pressed("inventory")) return this.menu.show("inventory");
 
     this.accumulator += Math.min(deltaMs / 1000, DT * MAX_STEPS_PER_FRAME);
     const input = this.readInput();
@@ -228,6 +258,18 @@ export class GameScene extends Phaser.Scene {
       case "level_up":
         this.onLevelUp(e.level);
         break;
+      case "pickup":
+        this.toast(`+ ${itemName(e.item)}`);
+        this.persist();
+        break;
+      case "bag_full":
+        this.toast("Bag is full");
+        break;
+      case "gem_level":
+        this.toast(`${itemName(e.gem)} reached level ${e.gem.level} (${e.gem.sockets?.length ?? 0} sockets)`);
+        this.persist();
+        break;
+      case "drop":
       case "xp":
       case "cast":
         break;
@@ -300,6 +342,8 @@ export class GameScene extends Phaser.Scene {
     const player = this.views.get(p.id)?.sprite;
     if (player && w.status === "playing") player.setAlpha(p.roll ? 0.55 : 1);
     this.drawProjectiles();
+    this.syncItems();
+    if (this.time.now - this.lastAutosave > AUTOSAVE_MS) this.persist();
     this.drawSkillBar();
     this.drawMinimapDots();
     this.drawAimMarker();
@@ -316,6 +360,41 @@ export class GameScene extends Phaser.Scene {
     const l = { x: p.pos.x + Math.cos(a - 0.35) * r, y: p.pos.y + Math.sin(a - 0.35) * r };
     const rr = { x: p.pos.x + Math.cos(a + 0.35) * r, y: p.pos.y + Math.sin(a + 0.35) * r };
     g.fillStyle(0xe8e2d0, 0.75).fillTriangle(tip.x, tip.y, l.x, l.y, rr.x, rr.y);
+  }
+
+  /** Save the character as it is right now (zone progress isn't saved mid-zone, the character is). */
+  private persist(): void {
+    this.lastAutosave = this.time.now;
+    if (this.world.status === "playing") writeSave(currentSave(this.world));
+  }
+
+  /** Ground items: icon + teal name; the one ✕ would pick up gets highlighted with the prompt. */
+  private syncItems(): void {
+    const w = this.world;
+    const live = new Set(w.groundItems.map((g) => g.id));
+    for (const [id, v] of this.itemViews) {
+      if (live.has(id)) continue;
+      v.icon.destroy();
+      v.label.destroy();
+      this.itemViews.delete(id);
+    }
+    const target = w.status === "playing" ? nearestPickup(w, content) : null;
+    for (const g of w.groundItems) {
+      let v = this.itemViews.get(g.id);
+      if (!v) {
+        const icon = this.add.image(g.pos.x, g.pos.y, gemTexture(g.item)).setDisplaySize(26, 26).setDepth(g.pos.y - 1);
+        const label = this.add
+          .text(g.pos.x, g.pos.y - 22, itemName(g.item), { fontFamily: "monospace", fontSize: "12px", color: GEM_LABEL, backgroundColor: "#000000aa", padding: { x: 4, y: 1 } })
+          .setOrigin(0.5, 1)
+          .setDepth(11_000);
+        this.tweens.add({ targets: icon, y: g.pos.y - 10, duration: 160, yoyo: true, ease: "Quad.easeOut" });
+        v = { icon, label };
+        this.itemViews.set(g.id, v);
+      }
+      const hot = target?.id === g.id;
+      v.label.setText(hot ? `[${this.inputs.prompt("pickup")}] ${itemName(g.item)}` : itemName(g.item)).setColor(hot ? "#ffffff" : GEM_LABEL);
+      v.label.setBackgroundColor(hot ? "#1c5a54ee" : "#000000aa");
+    }
   }
 
   private drawProjectiles(): void {
@@ -442,6 +521,7 @@ export class GameScene extends Phaser.Scene {
     const oy = image.y;
     dots.clear();
     dots.fillStyle(0x6fd3ff, 1).fillCircle(ox + z.exit.x * k, oy + z.exit.y * k, 3);
+    for (const g of this.world.groundItems) dots.fillStyle(0x4ad8c8, 1).fillRect(ox + g.pos.x * k - 1.5, oy + g.pos.y * k - 1.5, 3, 3);
     for (const m of this.world.monsters) {
       dots.fillStyle(m.awake ? 0xff5040 : 0x903028, 1).fillRect(ox + m.pos.x * k - 1, oy + m.pos.y * k - 1, 2, 2);
     }
@@ -514,7 +594,10 @@ export class GameScene extends Phaser.Scene {
     const view = this.views.get(this.world.player.id);
     if (view) this.tweens.add({ targets: view.sprite, angle: 90, alpha: 0.5, duration: 400 });
     this.inputs.rumble(1, 0.8, 400);
-    this.showOverlay("YOU DIED", "#c0302a", () => `press ${this.inputs.prompt("confirm")} to retry this zone`);
+    this.deathSave = saveAfterDeath(this.world, content);
+    writeSave(this.deathSave);
+    const lost = Math.round(this.world.player.xp - this.deathSave.xp);
+    this.showOverlay("YOU DIED", "#c0302a", () => `lost ${lost} XP, kept all items   ·   press ${this.inputs.prompt("confirm")} to retry this zone`);
   }
 
   private onZoneComplete(): void {
@@ -573,3 +656,12 @@ const SHOT_COLORS = {
   lightning: 0xfff07a,
   chaos: 0xc070ff,
 };
+
+function itemName(item: GemItem): string {
+  if (item.kind === "skill_gem") return `${content.skills.find((s) => s.id === item.defId)?.name ?? item.defId}${item.level > 1 ? ` (Lv${item.level})` : ""}`;
+  return `${content.supports.find((s) => s.id === item.defId)?.name ?? item.defId} Support`;
+}
+
+function gemTexture(item: GemItem): string {
+  return textureKey.gem(item.kind, item.defId);
+}

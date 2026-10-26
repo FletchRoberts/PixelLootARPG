@@ -2,6 +2,7 @@
   {
     "id": "volley",
     "name": "Volley",
+    "attribute": "dexterity",
     "description": "+2 projectiles, 25% less damage",
     "requires": [
       "projectile"
@@ -29,6 +30,7 @@
   {
     "id": "pierce",
     "name": "Pierce",
+    "attribute": "dexterity",
     "description": "Projectiles pierce 2 more enemies",
     "requires": [
       "projectile"
@@ -48,6 +50,7 @@
   {
     "id": "chain",
     "name": "Chain",
+    "attribute": "intelligence",
     "description": "Projectiles chain to 1 more enemy, 10% less damage",
     "requires": [
       "projectile"
@@ -75,6 +78,7 @@
   {
     "id": "fork",
     "name": "Fork",
+    "attribute": "dexterity",
     "description": "Projectiles split in two on their first hit",
     "requires": [
       "projectile"
@@ -94,6 +98,7 @@
   {
     "id": "shatter",
     "name": "Shatter",
+    "attribute": "intelligence",
     "description": "When a projectile ends, it bursts into 5 shards (40% damage)",
     "requires": [
       "projectile"
@@ -125,6 +130,7 @@
   {
     "id": "echo",
     "name": "Echo",
+    "attribute": "intelligence",
     "description": "The skill repeats once 0.3 s later, 10% less damage",
     "requires": [
       "spell",
@@ -146,6 +152,7 @@
   {
     "id": "cast_on_kill",
     "name": "Cast on Kill",
+    "attribute": "intelligence",
     "description": "This skill casts itself where you kill an enemy (no mana, 0.3 s cooldown); its button does nothing",
     "requires": [
       "spell"
@@ -166,6 +173,7 @@
   {
     "id": "added_cold",
     "name": "Added Cold",
+    "attribute": "dexterity",
     "description": "Adds 4\u20137 cold damage (chills, can freeze)",
     "requires": [
       "spell",
@@ -188,6 +196,7 @@
   {
     "id": "concentrated",
     "name": "Concentrated",
+    "attribute": "intelligence",
     "description": "35% less area, 35% more area damage",
     "requires": [
       "area"
@@ -215,6 +224,7 @@
   {
     "id": "knockback",
     "name": "Knockback",
+    "attribute": "strength",
     "description": "Hits push enemies much further",
     "requires": [
       "spell",

@@ -3,7 +3,12 @@
     "id": "husk",
     "name": "Husk",
     "life": 30,
-    "damage": { "physical": [8, 12] },
+    "damage": {
+      "physical": [
+        8,
+        12
+      ]
+    },
     "accuracy": 60,
     "evasion": 20,
     "armour": 0,
@@ -12,7 +17,11 @@
     "radius": 13,
     "contactCooldown": 0.6,
     "aggroRange": 9,
-    "dropTable": "",
-    "sprite": { "type": "monster", "seed": "husk-1", "theme": "earth" }
+    "dropTable": "trash",
+    "sprite": {
+      "type": "monster",
+      "seed": "husk-1",
+      "theme": "earth"
+    }
   }
 ]

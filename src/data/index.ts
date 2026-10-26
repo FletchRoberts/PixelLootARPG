@@ -6,6 +6,7 @@ import type {
   CombatRulesDef,
   Currency,
   DropTable,
+  GemRules,
   ItemBase,
   Monster,
   MonsterScaling,
@@ -29,6 +30,7 @@ import monsterScaling from "./monster-scaling.json";
 import combat from "./combat.json";
 import skills from "./skills.json";
 import supports from "./supports.json";
+import gems from "./gems.json";
 
 export const content = {
   itemBases: itemBases as ItemBase[],
@@ -46,6 +48,7 @@ export const content = {
   combat: combat as CombatRulesDef,
   skills: skills as SkillDef[],
   supports: supports as SupportDef[],
+  gems: gems as GemRules,
 };
 
 export type Content = typeof content;
