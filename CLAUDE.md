@@ -129,7 +129,9 @@ modifiers or generic structure changes, never skill-specific code; chain
 reactions are bounded by depth (3), proc coefficient, damage effectiveness
 and an entity budget. Every character has an **auto attack** that takes
 supports. Characters have **levels** and **Str/Dex/Int** (requirements +
-small bonuses). Legendaries change skill structure.
+small bonuses). Legendaries change skill structure. The full menu of
+skills, supports, auto attacks, legendaries, evolutions and the engine
+build waves is in **`docs/skill-catalog.md`**.
 
 ### Crafting currency
 
@@ -288,6 +290,7 @@ src/
 docs/
   combat.md               stats, damage and defence formulas
   skills.md               skill/support/trigger system, gems, attributes, auto attack
+  skill-catalog.md        full skill/support/legendary list with inspirations + build waves
 tools/
   pixel-forge.html        PixelGen placeholder sprite generator
 ```

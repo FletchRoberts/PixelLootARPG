@@ -129,8 +129,9 @@ auto-fires arrows, a sword auto-swings, a wand auto-shoots bolts.
 already a build. Active skills sit on buttons: keyboard LMB/RMB/Q/E/R/F,
 controller □/△/○/R1/R2/L1.
 
-Auto attack can be switched off in options for players who want full manual
-control. It then works like a normal skill on the attack button.
+**Decided:** auto attack is in. It can still be switched off in options for
+players who want full manual control; it then works like a normal skill on
+the attack button. Per-weapon auto attacks are listed in `skill-catalog.md`.
 
 ## Gear that changes skills
 
