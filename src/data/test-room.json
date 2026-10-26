@@ -1,0 +1,10 @@
+{
+  "id": "test_room",
+  "width": 1600,
+  "height": 1000,
+  "monster": "husk",
+  "initialMonsters": 4,
+  "maxMonsters": 8,
+  "spawnInterval": 1.2,
+  "minSpawnDistance": 320
+}

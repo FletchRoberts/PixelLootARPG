@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": "husk",
+    "name": "Husk",
+    "life": 30,
+    "damage": 10,
+    "speed": 115,
+    "radius": 13,
+    "contactCooldown": 0.6,
+    "dropTable": "",
+    "sprite": { "kind": "monster", "seed": 7 }
+  }
+]

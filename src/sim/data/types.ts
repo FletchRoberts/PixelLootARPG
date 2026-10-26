@@ -38,14 +38,52 @@ export interface Currency {
   stackSize: number;
 }
 
+/** PixelGen placeholder sprite params. Client-only; the sim just carries them. */
+export interface SpriteSpec {
+  kind: string;
+  seed: number;
+}
+
 export interface Monster {
   id: string;
   name: string;
   life: number;
-  damage: number;
-  speed: number;
+  damage: number; // contact damage per hit
+  speed: number; // px/s
+  radius: number; // px, collision circle
+  contactCooldown: number; // seconds between contact hits on the same target
   dropTable: string;
-  sprite?: { seed: number; kind: string }; // PixelGen placeholder params
+  sprite?: SpriteSpec;
+}
+
+export interface MeleeAttack {
+  damage: [number, number];
+  range: number; // px from the attacker's edge
+  arcDegrees: number;
+  cooldown: number; // seconds
+  knockback: number; // px/s impulse
+}
+
+export interface Character {
+  id: string;
+  name: string;
+  life: number;
+  speed: number;
+  radius: number;
+  attack: MeleeAttack;
+  sprite?: SpriteSpec;
+}
+
+/** Temporary single-room arena used until zone generation exists. */
+export interface TestRoom {
+  id: string;
+  width: number;
+  height: number;
+  monster: string;
+  initialMonsters: number;
+  maxMonsters: number;
+  spawnInterval: number;
+  minSpawnDistance: number;
 }
 
 export interface DropEntry {

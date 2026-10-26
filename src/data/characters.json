@@ -1,0 +1,11 @@
+[
+  {
+    "id": "hero",
+    "name": "Wanderer",
+    "life": 100,
+    "speed": 220,
+    "radius": 14,
+    "attack": { "damage": [8, 13], "range": 72, "arcDegrees": 110, "cooldown": 0.35, "knockback": 260 },
+    "sprite": { "kind": "hero", "seed": 1 }
+  }
+]
