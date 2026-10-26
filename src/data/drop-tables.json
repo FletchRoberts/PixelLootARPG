@@ -4,16 +4,20 @@
     "rolls": 1,
     "entries": [
       {
-        "weight": 94,
+        "weight": 86,
         "kind": "nothing"
       },
       {
-        "weight": 2.5,
+        "weight": 2,
         "kind": "skill_gem"
       },
       {
-        "weight": 3.5,
+        "weight": 3,
         "kind": "support_gem"
+      },
+      {
+        "weight": 9,
+        "kind": "item"
       }
     ]
   },
@@ -22,16 +26,24 @@
     "rolls": 1,
     "entries": [
       {
-        "weight": 70,
+        "weight": 52,
         "kind": "nothing"
       },
       {
-        "weight": 12,
+        "weight": 9,
         "kind": "skill_gem"
       },
       {
-        "weight": 18,
+        "weight": 13,
         "kind": "support_gem"
+      },
+      {
+        "weight": 24,
+        "kind": "item"
+      },
+      {
+        "weight": 2,
+        "kind": "unique"
       }
     ]
   }

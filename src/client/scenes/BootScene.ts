@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { content } from "../../data";
 import type { Biome } from "../../sim/data/types";
-import { makeSprite } from "../art/sprites";
+import { armourIcon, makeSprite } from "../art/sprites";
 
 export const TILE_SRC = 16; // source px per tile in biome tilesets
 
@@ -30,6 +30,14 @@ export class BootScene extends Phaser.Scene {
     const theme = { strength: "blood", dexterity: "poison", intelligence: "ice" } as const;
     for (const g of content.skills) this.textures.addCanvas(textureKey.gem("skill_gem", g.id), makeSprite({ type: "currency", seed: `skill-${g.id}`, theme: theme[g.attribute], size: 16 }));
     for (const g of content.supports) this.textures.addCanvas(textureKey.gem("support_gem", g.id), makeSprite({ type: "currency", seed: `support-${g.id}`, theme: theme[g.attribute], size: 16 }));
+    // Gear icons: PixelGen weapons and rings; drawn silhouettes for armour (until the art pass).
+    const jewelTheme: Record<string, string> = { iron_ring: "earth", coral_ring: "fire", ruby_ring: "blood", sapphire_ring: "ice", bone_amulet: "earth", jade_amulet: "poison", lapis_amulet: "arcane" };
+    for (const b of content.itemBases) {
+      const key = `gear:${b.id}`;
+      if (b.slot === "weapon") this.textures.addCanvas(key, makeSprite({ type: "weapon", seed: b.id, theme: b.tags.includes("wand") ? "arcane" : "random", size: 16 }));
+      else if (b.slot === "ring" || b.slot === "amulet") this.textures.addCanvas(key, makeSprite({ type: "ring", seed: b.id, theme: jewelTheme[b.id] ?? "gold", size: 16 }));
+      else this.textures.addCanvas(key, armourIcon(b.slot, b.tags.includes("dex_armour") || b.slot === "belt" ? "#9a6a3a" : "#9aa3ad"));
+    }
     this.scene.start("Game");
   }
 }

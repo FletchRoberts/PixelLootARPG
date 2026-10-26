@@ -2,6 +2,8 @@
 // (private mode, storage full, old/corrupt data), so every call is guarded and
 // the game simply starts a new character when nothing usable is stored.
 
+import { content } from "../../data";
+import { migrateSave } from "../../sim/items/save";
 import type { CharacterSave } from "../../sim/items/types";
 
 const KEY = "arpg.character.v1";
@@ -10,8 +12,7 @@ export function loadSave(): CharacterSave | null {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
-    const save = JSON.parse(raw) as CharacterSave;
-    return save?.version === 1 && Array.isArray(save.skillBar) && Array.isArray(save.bag) ? save : null;
+    return migrateSave(JSON.parse(raw), content); // older saves are upgraded in place
   } catch {
     return null;
   }

@@ -11,13 +11,17 @@ import type {
   AttributeBonuses,
   Biome,
   Character,
+  Affix,
   CombatRulesDef,
   DropTable,
+  GearRules,
   GemRules,
+  ItemBase,
   Monster,
   MonsterScaling,
   Progression,
   WeaponDef,
+  UniqueDef,
   ZoneGenConfig,
 } from "./data/types";
 import { weaponAttackSkill, compileSkill } from "./skills/compile";
@@ -25,9 +29,10 @@ import { stepProjectiles, useSkill, type ProjectileState, type SkillContext } fr
 import type { CompiledNode, CompiledSkill, Loadout, SkillDef, SupportDef } from "./skills/types";
 import { rollDrops } from "./items/drops";
 import { gainGemXp, makeGem } from "./items/gems";
-import { addToBag, equipSkill, socketSupport, unequipSkill, unsocket } from "./items/inventory";
+import { equipmentGrants, equipmentModifiers, rollGear, type RollOptions } from "./items/gear";
+import { addToBag, equipGear, equipSkill, socketSupport, unequipGear, unequipSkill, unsocket } from "./items/inventory";
 import { applyDeathPenalty, equippedSkillGems, loadoutOf, newCharacter } from "./items/save";
-import type { CharacterSave, GemItem, GroundItem, SocketTarget } from "./items/types";
+import type { CharacterSave, EquipSlot, GemItem, GroundItem, Item, SocketTarget } from "./items/types";
 import { gainXp, monsterScale, playerModifiers, playerStats, xpForKill } from "./stats/character";
 import { computeStat, type StatBlock } from "./stats/stats";
 import { buildFlowField, distAt, nextStep, UNREACHED, type FlowField } from "./zone/flowfield";
@@ -58,6 +63,10 @@ export interface SimContent {
   combat: CombatRulesDef;
   dropTables: DropTable[];
   gems: GemRules;
+  itemBases: ItemBase[];
+  affixes: Affix[];
+  uniques: UniqueDef[];
+  gear: GearRules;
 }
 
 export interface Actor {
@@ -81,6 +90,7 @@ export interface PlayerState extends Actor {
   save: CharacterSave; // equipped gems, bag, weapon (level/xp live on the player and are written back)
   loadout: Loadout; // derived from the save's gems (or a debug/test override)
   loadoutOverride: Loadout | null;
+  speed: number; // px/s after movement speed modifiers
   compiled: (CompiledSkill | null)[]; // [0] = weapon attack, [1..SKILL_SLOTS] = skill slots
   castLock: number; // seconds until the player can attack/cast again
   roll: { t: number; dir: Vec } | null; // active dodge roll
@@ -151,7 +161,7 @@ export type SimEvent =
   | { type: "xp"; amount: number }
   | { type: "level_up"; level: number }
   | { type: "drop"; itemId: number }
-  | { type: "pickup"; item: GemItem }
+  | { type: "pickup"; item: Item }
   | { type: "bag_full" }
   | { type: "gem_level"; gem: GemItem }
   | { type: "wake"; packId: number }
@@ -197,6 +207,7 @@ export function createWorld(content: SimContent, seed: number, save: CharacterSa
       save: own,
       loadout: loadoutOf(own),
       loadoutOverride: null,
+      speed: hero.speed,
       compiled: [],
       castLock: 0,
       roll: null,
@@ -254,8 +265,10 @@ export type InventoryCommand =
   | { type: "unequip"; slot: number }
   | { type: "socket"; bagIndex: number; target: SocketTarget; socket: number }
   | { type: "unsocket"; target: SocketTarget; socket: number }
+  | { type: "equip_gear"; bagIndex: number; slot?: EquipSlot }
+  | { type: "unequip_gear"; slot: EquipSlot }
   | { type: "debug_give"; kind: GemItem["kind"]; defId: string }
-  | { type: "debug_weapon"; weapon: string }; // until weapons drop as items
+  | { type: "debug_give_gear"; opts: RollOptions; seed: number };
 
 /** Change equipped gems. Returns null on success or why it was refused. */
 export function inventoryCommand(world: WorldState, content: SimContent, cmd: InventoryCommand): string | null {
@@ -277,10 +290,20 @@ export function inventoryCommand(world: WorldState, content: SimContent, cmd: In
     case "debug_give":
       result = addToBag(save, makeGem(save, cmd.kind, cmd.defId, content.gems), content) ? null : "bag is full";
       break;
-    case "debug_weapon":
-      result = content.weapons.some((w) => w.id === cmd.weapon) ? null : "unknown weapon";
-      if (result === null) save.weapon = cmd.weapon;
+    case "equip_gear": {
+      const s = world.player.stats;
+      result = equipGear(save, cmd.bagIndex, cmd.slot, { level: world.player.level, strength: s.strength ?? 0, dexterity: s.dexterity ?? 0, intelligence: s.intelligence ?? 0 }, content);
       break;
+    }
+    case "unequip_gear":
+      result = unequipGear(save, cmd.slot, content);
+      break;
+    case "debug_give_gear": {
+      const item = rollGear(content, new Rng(cmd.seed), world.monsterLevel, save.nextUid, cmd.opts);
+      if (item) save.nextUid++;
+      result = !item ? "nothing fits" : addToBag(save, item, content) ? null : "bag is full";
+      break;
+    }
   }
   if (result === null) refreshSkills(world, content);
   return result;
@@ -297,7 +320,8 @@ function refreshSkills(world: WorldState, content: SimContent): void {
 export function recomputePlayer(world: WorldState, content: SimContent): void {
   const p = world.player;
   const hero = lookup(content.characters, p.defId, "character");
-  const stats = playerStats(hero, p.level, content);
+  const gearMods = equipmentModifiers(content, p.save.equipment);
+  const stats = playerStats(hero, p.level, content, gearMods);
   const lifeGain = (stats.life ?? 0) - p.maxLife;
   const manaGain = (stats.mana ?? 0) - p.maxMana;
   p.stats = stats;
@@ -307,16 +331,22 @@ export function recomputePlayer(world: WorldState, content: SimContent): void {
   p.mana = Math.min(p.maxMana, p.mana + Math.max(0, manaGain));
 
   p.loadout = p.loadoutOverride ?? loadoutOf(p.save);
-  const mods = playerModifiers(hero, p.level, content);
+  const mods = playerModifiers(hero, p.level, content, gearMods);
+  p.speed = computeStat("movement_speed", hero.speed, mods);
   const weapon = lookup(content.weapons, p.loadout.weapon, "weapon");
-  const supportsOf = (ids: string[]) => ids.filter((id) => content.supports.some((s) => s.id === id)).map((id) => lookup(content.supports, id, "support"));
+  // Socketed supports plus supports granted by uniques (for skills with the grant's tags).
+  const grants = equipmentGrants(content, p.save.equipment);
+  const supportsOf = (ids: string[], skillTags: string[]) => {
+    const granted = grants.filter((g) => g.tags.every((t) => skillTags.includes(t))).map((g) => g.support);
+    return [...new Set([...ids, ...granted])].filter((id) => content.supports.some((s) => s.id === id)).map((id) => lookup(content.supports, id, "support"));
+  };
   const gemLevelMods = (level = 1) => (level > 1 ? [{ stat: "damage", kind: "increased" as const, value: (level - 1) * content.gems.damagePerLevel, source: "gem level" }] : []);
   p.compiled = [
-    compileSkill({ skill: weaponAttackSkill(weapon), supports: supportsOf(p.loadout.attackSupports), playerMods: mods, weapon }),
+    compileSkill({ skill: weaponAttackSkill(weapon), supports: supportsOf(p.loadout.attackSupports, weapon.attack.tags), playerMods: mods, weapon }),
     ...Array.from({ length: SKILL_SLOTS }, (_, i) => {
       const slot = p.loadout.slots[i];
       const def = slot?.skill ? content.skills.find((k) => k.id === slot.skill) : undefined;
-      return def ? compileSkill({ skill: def, supports: supportsOf(slot!.supports), playerMods: mods, weapon, extraMods: gemLevelMods(slot!.level) }) : null;
+      return def ? compileSkill({ skill: def, supports: supportsOf(slot!.supports, def.tags), playerMods: mods, weapon, extraMods: gemLevelMods(slot!.level) }) : null;
     }),
   ];
 }
@@ -495,7 +525,7 @@ function updatePlayer(world: WorldState, content: SimContent, input: PlayerInput
       p.rollCooldown = d.cooldown;
     }
   } else {
-    p.pos = add(p.pos, scale(move, hero.speed * dt));
+    p.pos = add(p.pos, scale(move, p.speed * dt));
   }
   applyKnockback(p, dt);
   p.pos = resolveWalls(world.zone, p.pos, p.radius);
@@ -607,7 +637,12 @@ function reapDead(world: WorldState, content: SimContent, ctx: SkillContext, rng
     const def = lookup(content.monsters, m.defId, "monster");
     xp += xpForKill(def.xp, m.level, p.level, content.progression, content.monsterScaling);
     for (const drop of rollDrops(content, m.dropTable, rng)) {
-      const item = makeGem(p.save, drop.kind, drop.defId, content.gems);
+      // Gear rolls at the monster's level (item level gates affix tiers and bases).
+      const item: Item | null =
+        drop.kind === "gear" || drop.kind === "unique"
+          ? rollGear(content, rng, m.level, p.save.nextUid++, drop.kind === "unique" ? (drop.unique ? { unique: drop.unique } : { rarity: "unique" }) : { base: drop.base })
+          : makeGem(p.save, drop.kind, drop.defId, content.gems);
+      if (!item) continue;
       const spread = 24;
       const pos = resolveWalls(world.zone, { x: m.pos.x + rng.range(-spread, spread), y: m.pos.y + rng.range(-spread, spread) }, 8);
       const id = world.nextId++;

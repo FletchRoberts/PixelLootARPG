@@ -3,10 +3,12 @@
 
 import { supportFits, weaponAttackSkill } from "../skills/compile";
 import type { SkillDef, SupportDef } from "../skills/types";
-import type { WeaponDef } from "../data/types";
-import type { CharacterSave, GemItem, Item, SocketTarget } from "./types";
+import type { ItemBase, WeaponDef } from "../data/types";
+import { requirementProblem, slotAccepts, slotFor } from "./gear";
+import type { CharacterSave, EquipSlot, GemItem, Item, SocketTarget } from "./types";
 
 export interface InventoryContent {
+  itemBases: ItemBase[];
   skills: SkillDef[];
   supports: SupportDef[];
   weapons: WeaponDef[];
@@ -17,6 +19,45 @@ export function addToBag(save: CharacterSave, item: Item, content: InventoryCont
   if (save.bag.length >= content.gems.bagSize) return false;
   save.bag.push(item);
   return true;
+}
+
+/** The weapon attack follows the equipped weapon; no weapon = fists. */
+function syncWeapon(save: CharacterSave, content: InventoryContent): void {
+  const w = save.equipment.weapon;
+  save.weapon = (w && content.itemBases.find((b) => b.id === w.base)?.weapon) ?? "unarmed";
+}
+
+/** Equip gear from the bag (into `slot`, or the natural slot); whatever was there goes back to the bag. */
+export function equipGear(
+  save: CharacterSave,
+  bagIndex: number,
+  slot: EquipSlot | undefined,
+  character: { level: number; strength: number; dexterity: number; intelligence: number },
+  content: InventoryContent,
+): string | null {
+  const item = save.bag[bagIndex];
+  if (!item || item.kind !== "gear") return "not equipment";
+  const base = content.itemBases.find((b) => b.id === item.base);
+  if (!base) return "unknown item";
+  const target = slot ?? slotFor(base, save.equipment);
+  if (!slotAccepts(target, base)) return `doesn't go in ${target}`;
+  const problem = requirementProblem(base, character.level, character);
+  if (problem) return problem;
+  const old = save.equipment[target];
+  save.equipment[target] = item;
+  if (old) save.bag[bagIndex] = old;
+  else save.bag.splice(bagIndex, 1);
+  syncWeapon(save, content);
+  return null;
+}
+
+export function unequipGear(save: CharacterSave, slot: EquipSlot, content: InventoryContent): string | null {
+  const item = save.equipment[slot];
+  if (!item) return "slot is empty";
+  if (!addToBag(save, item, content)) return "bag is full";
+  delete save.equipment[slot];
+  syncWeapon(save, content);
+  return null;
 }
 
 /** Put a skill gem from the bag on a skill button; whatever was there goes back to the bag. */

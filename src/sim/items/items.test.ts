@@ -10,7 +10,7 @@ import { newCharacter } from "./save";
 const quiet: SimContent = { ...content, zoneGen: { ...content.zoneGen, monsterPool: [] } };
 const idle = (): PlayerInput => ({ move: { x: 0, y: 0 }, aim: { x: 0, y: 0 }, attack: false });
 const give = (w: WorldState, kind: "skill_gem" | "support_gem", defId: string) => inventoryCommand(w, quiet, { type: "debug_give", kind, defId });
-const bagIndexOf = (w: WorldState, defId: string) => w.player.save.bag.findIndex((g) => g.defId === defId);
+const bagIndexOf = (w: WorldState, defId: string) => w.player.save.bag.findIndex((g) => g.kind !== "gear" && g.defId === defId);
 
 describe("new character", () => {
   it("starts with Frost Bolt (2 sockets) on the first button and one support in the bag", () => {
@@ -20,6 +20,7 @@ describe("new character", () => {
     expect(save.skillBar.slice(1)).toEqual([null, null, null]);
     expect(save.bag).toHaveLength(1);
     expect(save.bag[0]!.kind).toBe("support_gem");
+    expect(save.equipment.weapon?.base).toBe("rusty_sword");
     expect(newCharacter(content, 5)).toEqual(save);
   });
 
@@ -51,7 +52,7 @@ describe("drop tables", () => {
     const drops = Array.from({ length: 2000 }, () => rollDrops(c, "half", rng)).flat();
     expect(drops.length).toBeGreaterThan(900);
     expect(drops.length).toBeLessThan(1100);
-    expect(drops.every((d) => content.skills.some((s) => s.id === d.defId))).toBe(true);
+    expect(drops.every((d) => d.kind === "skill_gem" && content.skills.some((s) => s.id === d.defId))).toBe(true);
   });
 
   it("a full zone drops a handful of gems on the floor", () => {
@@ -130,7 +131,7 @@ describe("equipping and socketing", () => {
     expect(inventoryCommand(w, quiet, { type: "equip", bagIndex: bagIndexOf(w, "ice_nova"), slot: 0 })).toBeNull();
     expect(w.player.compiled[1]!.id).toBe("ice_nova");
     const old = w.player.save.bag[bagIndexOf(w, "frost_bolt")]!;
-    expect(old.sockets![0]?.defId).toBe("volley");
+    expect(old.kind !== "gear" && old.sockets![0]?.defId).toBe("volley");
   });
 
   it("the weapon attack has its own support sockets", () => {
@@ -179,7 +180,7 @@ describe("death", () => {
     const after = saveAfterDeath(w, quiet);
     expect(after.level).toBe(4);
     expect(after.xp).toBeCloseTo(Math.max(0, 100 - need * content.progression.deathXpPenalty / 100));
-    expect(after.bag.some((g) => g.defId === "chain")).toBe(true);
+    expect(after.bag.some((g) => g.kind !== "gear" && g.defId === "chain")).toBe(true);
 
     const broke = createWorld(quiet, 1, { ...newCharacter(quiet, 1), level: 4, xp: 1 });
     expect(saveAfterDeath(broke, quiet).xp).toBe(0);

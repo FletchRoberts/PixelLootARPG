@@ -20,7 +20,8 @@ import {
 } from "../../sim/world";
 import { xpToNext } from "../../sim/stats/character";
 import { newCharacter } from "../../sim/items/save";
-import type { CharacterSave, GemItem } from "../../sim/items/types";
+import type { CharacterSave } from "../../sim/items/types";
+import { itemColor, itemName, itemTextureKey } from "../ui/items";
 import { clearSave, loadSave, writeSave } from "../save/storage";
 import type { Vec } from "../../sim/core/vec";
 import { hasLineOfSight, isFloor, type Zone } from "../../sim/zone/zone";
@@ -33,7 +34,6 @@ const MAX_STEPS_PER_FRAME = 5; // avoid a spiral of death after a long hitch
 const OVERLAY_DELAY_MS = 600; // ignore the attack that was held when the overlay appeared
 const MINIMAP_MAX = 180; // px, longest side
 const AUTOSAVE_MS = 5000;
-const GEM_LABEL = "#4ad8c8"; // PoE-style teal for gems
 
 interface ActorView {
   sprite: Phaser.GameObjects.Image;
@@ -163,7 +163,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (this.inputs.pressed("character")) return this.menu.show("character");
-    if (this.inputs.pressed("inventory")) return this.menu.show("inventory");
+    if (this.inputs.pressed("inventory")) return this.menu.show("gear");
 
     this.accumulator += Math.min(deltaMs / 1000, DT * MAX_STEPS_PER_FRAME);
     const input = this.readInput();
@@ -382,9 +382,9 @@ export class GameScene extends Phaser.Scene {
     for (const g of w.groundItems) {
       let v = this.itemViews.get(g.id);
       if (!v) {
-        const icon = this.add.image(g.pos.x, g.pos.y, gemTexture(g.item)).setDisplaySize(26, 26).setDepth(g.pos.y - 1);
+        const icon = this.add.image(g.pos.x, g.pos.y, itemTextureKey(g.item)).setDisplaySize(26, 26).setDepth(g.pos.y - 1);
         const label = this.add
-          .text(g.pos.x, g.pos.y - 22, itemName(g.item), { fontFamily: "monospace", fontSize: "12px", color: GEM_LABEL, backgroundColor: "#000000aa", padding: { x: 4, y: 1 } })
+          .text(g.pos.x, g.pos.y - 22, itemName(g.item), { fontFamily: "monospace", fontSize: "12px", color: itemColor(g.item), backgroundColor: "#000000aa", padding: { x: 4, y: 1 } })
           .setOrigin(0.5, 1)
           .setDepth(11_000);
         this.tweens.add({ targets: icon, y: g.pos.y - 10, duration: 160, yoyo: true, ease: "Quad.easeOut" });
@@ -394,7 +394,7 @@ export class GameScene extends Phaser.Scene {
       if (!this.tweens.isTweening(v.icon)) v.icon.setPosition(g.pos.x, g.pos.y);
       v.label.setPosition(g.pos.x, g.pos.y - 22);
       const hot = target?.id === g.id;
-      v.label.setText(hot ? `[${this.inputs.prompt("pickup")}] ${itemName(g.item)}` : itemName(g.item)).setColor(hot ? "#ffffff" : GEM_LABEL);
+      v.label.setText(hot ? `[${this.inputs.prompt("pickup")}] ${itemName(g.item)}` : itemName(g.item)).setColor(hot ? "#ffffff" : itemColor(g.item));
       v.label.setBackgroundColor(hot ? "#1c5a54ee" : "#000000aa");
     }
   }
@@ -523,7 +523,7 @@ export class GameScene extends Phaser.Scene {
     const oy = image.y;
     dots.clear();
     dots.fillStyle(0x6fd3ff, 1).fillCircle(ox + z.exit.x * k, oy + z.exit.y * k, 3);
-    for (const g of this.world.groundItems) dots.fillStyle(0x4ad8c8, 1).fillRect(ox + g.pos.x * k - 1.5, oy + g.pos.y * k - 1.5, 3, 3);
+    for (const g of this.world.groundItems) dots.fillStyle(Phaser.Display.Color.HexStringToColor(itemColor(g.item)).color, 1).fillRect(ox + g.pos.x * k - 1.5, oy + g.pos.y * k - 1.5, 3, 3);
     for (const m of this.world.monsters) {
       dots.fillStyle(m.awake ? 0xff5040 : 0x903028, 1).fillRect(ox + m.pos.x * k - 1, oy + m.pos.y * k - 1, 2, 2);
     }
@@ -658,12 +658,3 @@ const SHOT_COLORS = {
   lightning: 0xfff07a,
   chaos: 0xc070ff,
 };
-
-function itemName(item: GemItem): string {
-  if (item.kind === "skill_gem") return `${content.skills.find((s) => s.id === item.defId)?.name ?? item.defId}${item.level > 1 ? ` (Lv${item.level})` : ""}`;
-  return `${content.supports.find((s) => s.id === item.defId)?.name ?? item.defId} Support`;
-}
-
-function gemTexture(item: GemItem): string {
-  return textureKey.gem(item.kind, item.defId);
-}

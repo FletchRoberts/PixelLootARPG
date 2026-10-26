@@ -1,1 +1,521 @@
-[]
+[
+  {
+    "id": "rusty_sword",
+    "name": "Rusty Sword",
+    "slot": "weapon",
+    "tags": [
+      "weapon",
+      "sword",
+      "melee_weapon"
+    ],
+    "dropLevel": 1,
+    "weapon": "rusty_sword"
+  },
+  {
+    "id": "broadsword",
+    "name": "Broadsword",
+    "slot": "weapon",
+    "tags": [
+      "weapon",
+      "sword",
+      "melee_weapon"
+    ],
+    "dropLevel": 10,
+    "requires": {
+      "level": 10,
+      "strength": 20
+    },
+    "weapon": "broadsword"
+  },
+  {
+    "id": "short_bow",
+    "name": "Short Bow",
+    "slot": "weapon",
+    "tags": [
+      "weapon",
+      "bow",
+      "ranged_weapon"
+    ],
+    "dropLevel": 1,
+    "weapon": "short_bow"
+  },
+  {
+    "id": "recurve_bow",
+    "name": "Recurve Bow",
+    "slot": "weapon",
+    "tags": [
+      "weapon",
+      "bow",
+      "ranged_weapon"
+    ],
+    "dropLevel": 10,
+    "requires": {
+      "level": 10,
+      "dexterity": 22
+    },
+    "weapon": "recurve_bow"
+  },
+  {
+    "id": "apprentice_wand",
+    "name": "Apprentice Wand",
+    "slot": "weapon",
+    "tags": [
+      "weapon",
+      "wand",
+      "ranged_weapon"
+    ],
+    "dropLevel": 1,
+    "weapon": "apprentice_wand"
+  },
+  {
+    "id": "sparking_wand",
+    "name": "Sparking Wand",
+    "slot": "weapon",
+    "tags": [
+      "weapon",
+      "wand",
+      "ranged_weapon"
+    ],
+    "dropLevel": 10,
+    "requires": {
+      "level": 10,
+      "intelligence": 22
+    },
+    "weapon": "sparking_wand"
+  },
+  {
+    "id": "iron_cap",
+    "name": "Iron Cap",
+    "slot": "helmet",
+    "tags": [
+      "armour",
+      "helmet",
+      "str_armour"
+    ],
+    "dropLevel": 1,
+    "implicits": [
+      {
+        "stat": "armour",
+        "kind": "flat",
+        "value": [
+          12,
+          16
+        ]
+      }
+    ]
+  },
+  {
+    "id": "leather_hood",
+    "name": "Leather Hood",
+    "slot": "helmet",
+    "tags": [
+      "armour",
+      "helmet",
+      "dex_armour"
+    ],
+    "dropLevel": 1,
+    "implicits": [
+      {
+        "stat": "evasion",
+        "kind": "flat",
+        "value": [
+          12,
+          16
+        ]
+      }
+    ]
+  },
+  {
+    "id": "plated_helm",
+    "name": "Plated Helm",
+    "slot": "helmet",
+    "tags": [
+      "armour",
+      "helmet",
+      "str_armour"
+    ],
+    "dropLevel": 12,
+    "requires": {
+      "level": 12,
+      "strength": 25
+    },
+    "implicits": [
+      {
+        "stat": "armour",
+        "kind": "flat",
+        "value": [
+          40,
+          55
+        ]
+      }
+    ]
+  },
+  {
+    "id": "scale_vest",
+    "name": "Scale Vest",
+    "slot": "body",
+    "tags": [
+      "armour",
+      "body",
+      "str_armour"
+    ],
+    "dropLevel": 1,
+    "implicits": [
+      {
+        "stat": "armour",
+        "kind": "flat",
+        "value": [
+          30,
+          40
+        ]
+      }
+    ]
+  },
+  {
+    "id": "leather_jerkin",
+    "name": "Leather Jerkin",
+    "slot": "body",
+    "tags": [
+      "armour",
+      "body",
+      "dex_armour"
+    ],
+    "dropLevel": 1,
+    "implicits": [
+      {
+        "stat": "evasion",
+        "kind": "flat",
+        "value": [
+          30,
+          40
+        ]
+      }
+    ]
+  },
+  {
+    "id": "full_plate",
+    "name": "Full Plate",
+    "slot": "body",
+    "tags": [
+      "armour",
+      "body",
+      "str_armour"
+    ],
+    "dropLevel": 15,
+    "requires": {
+      "level": 15,
+      "strength": 35
+    },
+    "implicits": [
+      {
+        "stat": "armour",
+        "kind": "flat",
+        "value": [
+          110,
+          140
+        ]
+      }
+    ]
+  },
+  {
+    "id": "shadow_garb",
+    "name": "Shadow Garb",
+    "slot": "body",
+    "tags": [
+      "armour",
+      "body",
+      "dex_armour"
+    ],
+    "dropLevel": 15,
+    "requires": {
+      "level": 15,
+      "dexterity": 35
+    },
+    "implicits": [
+      {
+        "stat": "evasion",
+        "kind": "flat",
+        "value": [
+          110,
+          140
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iron_gauntlets",
+    "name": "Iron Gauntlets",
+    "slot": "gloves",
+    "tags": [
+      "armour",
+      "gloves",
+      "str_armour"
+    ],
+    "dropLevel": 1,
+    "implicits": [
+      {
+        "stat": "armour",
+        "kind": "flat",
+        "value": [
+          8,
+          12
+        ]
+      }
+    ]
+  },
+  {
+    "id": "leather_wraps",
+    "name": "Leather Wraps",
+    "slot": "gloves",
+    "tags": [
+      "armour",
+      "gloves",
+      "dex_armour"
+    ],
+    "dropLevel": 1,
+    "implicits": [
+      {
+        "stat": "evasion",
+        "kind": "flat",
+        "value": [
+          8,
+          12
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iron_greaves",
+    "name": "Iron Greaves",
+    "slot": "boots",
+    "tags": [
+      "armour",
+      "boots",
+      "str_armour"
+    ],
+    "dropLevel": 1,
+    "implicits": [
+      {
+        "stat": "armour",
+        "kind": "flat",
+        "value": [
+          8,
+          12
+        ]
+      }
+    ]
+  },
+  {
+    "id": "leather_boots",
+    "name": "Leather Boots",
+    "slot": "boots",
+    "tags": [
+      "armour",
+      "boots",
+      "dex_armour"
+    ],
+    "dropLevel": 1,
+    "implicits": [
+      {
+        "stat": "evasion",
+        "kind": "flat",
+        "value": [
+          8,
+          12
+        ]
+      }
+    ]
+  },
+  {
+    "id": "leather_belt",
+    "name": "Leather Belt",
+    "slot": "belt",
+    "tags": [
+      "belt"
+    ],
+    "dropLevel": 1,
+    "implicits": [
+      {
+        "stat": "life",
+        "kind": "flat",
+        "value": [
+          10,
+          20
+        ]
+      }
+    ]
+  },
+  {
+    "id": "heavy_belt",
+    "name": "Heavy Belt",
+    "slot": "belt",
+    "tags": [
+      "belt"
+    ],
+    "dropLevel": 10,
+    "implicits": [
+      {
+        "stat": "strength",
+        "kind": "flat",
+        "value": [
+          15,
+          25
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bone_amulet",
+    "name": "Bone Amulet",
+    "slot": "amulet",
+    "tags": [
+      "jewellery",
+      "amulet"
+    ],
+    "dropLevel": 1,
+    "implicits": [
+      {
+        "stat": "strength",
+        "kind": "flat",
+        "value": [
+          8,
+          12
+        ]
+      }
+    ]
+  },
+  {
+    "id": "jade_amulet",
+    "name": "Jade Amulet",
+    "slot": "amulet",
+    "tags": [
+      "jewellery",
+      "amulet"
+    ],
+    "dropLevel": 1,
+    "implicits": [
+      {
+        "stat": "dexterity",
+        "kind": "flat",
+        "value": [
+          8,
+          12
+        ]
+      }
+    ]
+  },
+  {
+    "id": "lapis_amulet",
+    "name": "Lapis Amulet",
+    "slot": "amulet",
+    "tags": [
+      "jewellery",
+      "amulet"
+    ],
+    "dropLevel": 1,
+    "implicits": [
+      {
+        "stat": "intelligence",
+        "kind": "flat",
+        "value": [
+          8,
+          12
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iron_ring",
+    "name": "Iron Ring",
+    "slot": "ring",
+    "tags": [
+      "jewellery",
+      "ring"
+    ],
+    "dropLevel": 1,
+    "implicits": [
+      {
+        "stat": "added_physical_min",
+        "kind": "flat",
+        "value": [
+          1,
+          1
+        ],
+        "tags": [
+          "attack"
+        ]
+      },
+      {
+        "stat": "added_physical_max",
+        "kind": "flat",
+        "value": [
+          3,
+          4
+        ],
+        "tags": [
+          "attack"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "coral_ring",
+    "name": "Coral Ring",
+    "slot": "ring",
+    "tags": [
+      "jewellery",
+      "ring"
+    ],
+    "dropLevel": 1,
+    "implicits": [
+      {
+        "stat": "life",
+        "kind": "flat",
+        "value": [
+          15,
+          25
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ruby_ring",
+    "name": "Ruby Ring",
+    "slot": "ring",
+    "tags": [
+      "jewellery",
+      "ring"
+    ],
+    "dropLevel": 5,
+    "implicits": [
+      {
+        "stat": "fire_resistance",
+        "kind": "flat",
+        "value": [
+          15,
+          25
+        ]
+      }
+    ]
+  },
+  {
+    "id": "sapphire_ring",
+    "name": "Sapphire Ring",
+    "slot": "ring",
+    "tags": [
+      "jewellery",
+      "ring"
+    ],
+    "dropLevel": 5,
+    "implicits": [
+      {
+        "stat": "cold_resistance",
+        "kind": "flat",
+        "value": [
+          15,
+          25
+        ]
+      }
+    ]
+  }
+]

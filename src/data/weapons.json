@@ -3,39 +3,222 @@
     "id": "rusty_sword",
     "name": "Rusty Sword",
     "type": "sword",
-    "damage": { "physical": [8, 13] },
+    "damage": {
+      "physical": [
+        8,
+        13
+      ]
+    },
     "attacksPerSecond": 2.8,
     "critChance": 5,
     "attack": {
       "name": "Slash",
-      "tags": ["attack", "melee"],
-      "root": { "kind": "melee", "tags": ["attack", "melee"], "arcDegrees": 110, "reach": 72, "knockback": 260 }
+      "tags": [
+        "attack",
+        "melee"
+      ],
+      "root": {
+        "kind": "melee",
+        "tags": [
+          "attack",
+          "melee"
+        ],
+        "arcDegrees": 110,
+        "reach": 72,
+        "knockback": 260
+      }
     }
   },
   {
     "id": "short_bow",
     "name": "Short Bow",
     "type": "bow",
-    "damage": { "physical": [7, 12] },
+    "damage": {
+      "physical": [
+        7,
+        12
+      ]
+    },
     "attacksPerSecond": 1.9,
     "critChance": 5,
     "attack": {
       "name": "Shoot",
-      "tags": ["attack", "projectile", "bow"],
-      "root": { "kind": "projectile", "tags": ["attack", "projectile", "bow"], "speed": 760, "range": 540, "radius": 6, "knockback": 80 }
+      "tags": [
+        "attack",
+        "projectile",
+        "bow"
+      ],
+      "root": {
+        "kind": "projectile",
+        "tags": [
+          "attack",
+          "projectile",
+          "bow"
+        ],
+        "speed": 760,
+        "range": 540,
+        "radius": 6,
+        "knockback": 80
+      }
     }
   },
   {
     "id": "apprentice_wand",
     "name": "Apprentice Wand",
     "type": "wand",
-    "damage": { "lightning": [5, 11] },
+    "damage": {
+      "lightning": [
+        5,
+        11
+      ]
+    },
     "attacksPerSecond": 1.8,
     "critChance": 7,
     "attack": {
       "name": "Spark Bolt",
-      "tags": ["attack", "projectile", "wand"],
-      "root": { "kind": "projectile", "tags": ["attack", "projectile", "wand"], "speed": 640, "range": 480, "radius": 7, "knockback": 40 }
+      "tags": [
+        "attack",
+        "projectile",
+        "wand"
+      ],
+      "root": {
+        "kind": "projectile",
+        "tags": [
+          "attack",
+          "projectile",
+          "wand"
+        ],
+        "speed": 640,
+        "range": 480,
+        "radius": 7,
+        "knockback": 40
+      }
+    }
+  },
+  {
+    "id": "broadsword",
+    "name": "Broadsword",
+    "type": "sword",
+    "damage": {
+      "physical": [
+        15,
+        26
+      ]
+    },
+    "attacksPerSecond": 2.4,
+    "critChance": 5,
+    "attack": {
+      "name": "Slash",
+      "tags": [
+        "attack",
+        "melee"
+      ],
+      "root": {
+        "kind": "melee",
+        "tags": [
+          "attack",
+          "melee"
+        ],
+        "arcDegrees": 110,
+        "reach": 72,
+        "knockback": 260
+      }
+    }
+  },
+  {
+    "id": "recurve_bow",
+    "name": "Recurve Bow",
+    "type": "bow",
+    "damage": {
+      "physical": [
+        13,
+        24
+      ]
+    },
+    "attacksPerSecond": 1.9,
+    "critChance": 6,
+    "attack": {
+      "name": "Shoot",
+      "tags": [
+        "attack",
+        "projectile",
+        "bow"
+      ],
+      "root": {
+        "kind": "projectile",
+        "tags": [
+          "attack",
+          "projectile",
+          "bow"
+        ],
+        "speed": 760,
+        "range": 540,
+        "radius": 6,
+        "knockback": 80
+      }
+    }
+  },
+  {
+    "id": "sparking_wand",
+    "name": "Sparking Wand",
+    "type": "wand",
+    "damage": {
+      "lightning": [
+        9,
+        20
+      ]
+    },
+    "attacksPerSecond": 1.8,
+    "critChance": 8,
+    "attack": {
+      "name": "Spark Bolt",
+      "tags": [
+        "attack",
+        "projectile",
+        "wand"
+      ],
+      "root": {
+        "kind": "projectile",
+        "tags": [
+          "attack",
+          "projectile",
+          "wand"
+        ],
+        "speed": 640,
+        "range": 480,
+        "radius": 7,
+        "knockback": 40
+      }
+    }
+  },
+  {
+    "id": "unarmed",
+    "name": "Fists",
+    "type": "unarmed",
+    "damage": {
+      "physical": [
+        2,
+        5
+      ]
+    },
+    "attacksPerSecond": 2.2,
+    "critChance": 3,
+    "attack": {
+      "name": "Punch",
+      "tags": [
+        "attack",
+        "melee"
+      ],
+      "root": {
+        "kind": "melee",
+        "tags": [
+          "attack",
+          "melee"
+        ],
+        "arcDegrees": 70,
+        "reach": 40,
+        "knockback": 120
+      }
     }
   }
 ]

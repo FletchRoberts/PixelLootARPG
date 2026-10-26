@@ -10,8 +10,8 @@ export interface DropContent {
   supports: { id: string }[];
 }
 
-/** What a roll produced, before it becomes an item (the world assigns uids). */
-export type DropResult = { kind: GemItem["kind"]; defId: string };
+/** What a roll produced, before it becomes an item (the world rolls gear and assigns uids). */
+export type DropResult = { kind: GemItem["kind"]; defId: string } | { kind: "gear"; base?: string } | { kind: "unique"; unique?: string };
 
 const MAX_NESTING = 5;
 
@@ -28,7 +28,9 @@ export function rollDrops(content: DropContent, tableId: string, rng: Rng, depth
       const defId = entry.ref ?? pool[Math.floor(rng.next() * pool.length)]?.id;
       if (defId) out.push({ kind: entry.kind, defId });
     }
-    // "nothing" drops nothing; "item"/"currency" wait for gear and currency.
+    else if (entry.kind === "item") out.push({ kind: "gear", base: entry.ref });
+    else if (entry.kind === "unique") out.push({ kind: "unique", unique: entry.ref });
+    // "nothing" drops nothing; "currency" waits for crafting currency.
   }
   return out;
 }

@@ -1,0 +1,60 @@
+{
+  "rarityWeights": {
+    "normal": 55,
+    "magic": 33,
+    "rare": 11,
+    "unique": 1
+  },
+  "affixCount": {
+    "magic": [
+      1,
+      2
+    ],
+    "rare": [
+      4,
+      6
+    ]
+  },
+  "maxPerKind": {
+    "magic": 1,
+    "rare": 3
+  },
+  "rareNames": {
+    "first": [
+      "Grim",
+      "Storm",
+      "Ash",
+      "Bone",
+      "Dusk",
+      "Hollow",
+      "Iron",
+      "Mire",
+      "Rune",
+      "Thorn",
+      "Vex",
+      "Wraith",
+      "Ember",
+      "Frost",
+      "Gloom",
+      "Rift"
+    ],
+    "second": [
+      "Bite",
+      "Coil",
+      "Shroud",
+      "Ward",
+      "Grasp",
+      "Song",
+      "Mark",
+      "Veil",
+      "Heart",
+      "Fang",
+      "Crown",
+      "Tread",
+      "Loop",
+      "Spire",
+      "Knot",
+      "Brand"
+    ]
+  }
+}

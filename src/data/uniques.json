@@ -1,0 +1,155 @@
+[
+  {
+    "id": "duplicators_coil",
+    "name": "Duplicator's Coil",
+    "base": "iron_ring",
+    "weight": 10,
+    "mods": [
+      {
+        "stat": "life",
+        "kind": "flat",
+        "value": [
+          20,
+          30
+        ],
+        "text": "+{0} to maximum Life"
+      }
+    ],
+    "grants": [
+      {
+        "support": "volley",
+        "tags": [
+          "projectile"
+        ],
+        "text": "Your projectile skills are supported by Volley"
+      }
+    ],
+    "flavour": "Two is a coincidence. Three is a volley."
+  },
+  {
+    "id": "glacier_heart",
+    "name": "Glacier Heart",
+    "base": "scale_vest",
+    "weight": 10,
+    "mods": [
+      {
+        "stat": "armour",
+        "kind": "flat",
+        "value": [
+          60,
+          90
+        ],
+        "text": "+{0} to Armour"
+      },
+      {
+        "stat": "cold_resistance",
+        "kind": "flat",
+        "value": [
+          20,
+          30
+        ],
+        "text": "+{0}% to Cold Resistance"
+      }
+    ],
+    "grants": [
+      {
+        "support": "added_cold",
+        "text": "All your skills are supported by Added Cold"
+      }
+    ],
+    "flavour": "It has not been warm since the mountain fell."
+  },
+  {
+    "id": "patient_blade",
+    "name": "The Patient Blade",
+    "base": "broadsword",
+    "weight": 6,
+    "mods": [
+      {
+        "stat": "physical_damage",
+        "kind": "increased",
+        "tags": [
+          "attack"
+        ],
+        "value": [
+          40,
+          60
+        ],
+        "text": "{0}% increased Physical Damage with Attacks"
+      }
+    ],
+    "grants": [
+      {
+        "support": "echo",
+        "tags": [
+          "attack"
+        ],
+        "text": "Your attacks are supported by Echo"
+      }
+    ],
+    "flavour": "Strike once. Then wait."
+  },
+  {
+    "id": "bloodthirst",
+    "name": "Bloodthirst",
+    "base": "leather_wraps",
+    "weight": 10,
+    "mods": [
+      {
+        "stat": "life_leech",
+        "kind": "flat",
+        "tags": [
+          "attack"
+        ],
+        "value": [
+          3,
+          4
+        ],
+        "text": "{0}% of Attack Damage Leeched as Life"
+      },
+      {
+        "stat": "attack_speed",
+        "kind": "increased",
+        "tags": [
+          "attack"
+        ],
+        "value": [
+          5,
+          8
+        ],
+        "text": "{0}% increased Attack Speed"
+      }
+    ],
+    "flavour": "The wraps are never quite dry."
+  },
+  {
+    "id": "wanderers_compass",
+    "name": "Wanderer's Compass",
+    "base": "leather_boots",
+    "weight": 10,
+    "mods": [
+      {
+        "stat": "movement_speed",
+        "kind": "increased",
+        "value": [
+          20,
+          30
+        ],
+        "text": "{0}% increased Movement Speed"
+      },
+      {
+        "stat": "pierce",
+        "kind": "flat",
+        "tags": [
+          "projectile"
+        ],
+        "value": [
+          1,
+          1
+        ],
+        "text": "Projectiles pierce {0} additional enemy"
+      }
+    ],
+    "flavour": "North is wherever the road goes."
+  }
+]

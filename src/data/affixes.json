@@ -1,1 +1,1813 @@
-[]
+[
+  {
+    "id": "life",
+    "kind": "prefix",
+    "group": "life",
+    "mods": [
+      {
+        "stat": "life",
+        "kind": "flat"
+      }
+    ],
+    "text": "+{0} to maximum Life",
+    "tags": [
+      "armour",
+      "belt",
+      "amulet",
+      "ring"
+    ],
+    "tiers": [
+      {
+        "tier": 5,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            19
+          ]
+        ]
+      },
+      {
+        "tier": 4,
+        "itemLevel": 8,
+        "weight": 100,
+        "values": [
+          [
+            20,
+            34
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 16,
+        "weight": 100,
+        "values": [
+          [
+            35,
+            49
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 26,
+        "weight": 100,
+        "values": [
+          [
+            50,
+            69
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 36,
+        "weight": 100,
+        "values": [
+          [
+            70,
+            89
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "mana",
+    "kind": "prefix",
+    "group": "mana",
+    "mods": [
+      {
+        "stat": "mana",
+        "kind": "flat"
+      }
+    ],
+    "text": "+{0} to maximum Mana",
+    "tags": [
+      "ring",
+      "amulet",
+      "helmet",
+      "gloves",
+      "wand"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            19
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 10,
+        "weight": 100,
+        "values": [
+          [
+            20,
+            34
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            35,
+            49
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 32,
+        "weight": 100,
+        "values": [
+          [
+            50,
+            64
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "flat_armour",
+    "kind": "prefix",
+    "group": "armour_flat",
+    "mods": [
+      {
+        "stat": "armour",
+        "kind": "flat"
+      }
+    ],
+    "text": "+{0} to Armour",
+    "tags": [
+      "str_armour",
+      "belt"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            8,
+            15
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 10,
+        "weight": 100,
+        "values": [
+          [
+            16,
+            30
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            31,
+            50
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 32,
+        "weight": 100,
+        "values": [
+          [
+            51,
+            80
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "pct_armour",
+    "kind": "prefix",
+    "group": "armour_pct",
+    "mods": [
+      {
+        "stat": "armour",
+        "kind": "increased"
+      }
+    ],
+    "text": "{0}% increased Armour",
+    "tags": [
+      "str_armour"
+    ],
+    "tiers": [
+      {
+        "tier": 3,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            20
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 14,
+        "weight": 100,
+        "values": [
+          [
+            21,
+            35
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 28,
+        "weight": 100,
+        "values": [
+          [
+            36,
+            50
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "flat_evasion",
+    "kind": "prefix",
+    "group": "evasion_flat",
+    "mods": [
+      {
+        "stat": "evasion",
+        "kind": "flat"
+      }
+    ],
+    "text": "+{0} to Evasion",
+    "tags": [
+      "dex_armour"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            8,
+            15
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 10,
+        "weight": 100,
+        "values": [
+          [
+            16,
+            30
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            31,
+            50
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 32,
+        "weight": 100,
+        "values": [
+          [
+            51,
+            80
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "pct_evasion",
+    "kind": "prefix",
+    "group": "evasion_pct",
+    "mods": [
+      {
+        "stat": "evasion",
+        "kind": "increased"
+      }
+    ],
+    "text": "{0}% increased Evasion",
+    "tags": [
+      "dex_armour"
+    ],
+    "tiers": [
+      {
+        "tier": 3,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            20
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 14,
+        "weight": 100,
+        "values": [
+          [
+            21,
+            35
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 28,
+        "weight": 100,
+        "values": [
+          [
+            36,
+            50
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "physical_attack",
+    "kind": "prefix",
+    "group": "added_physical",
+    "mods": [
+      {
+        "stat": "added_physical_min",
+        "kind": "flat",
+        "tags": [
+          "attack"
+        ]
+      },
+      {
+        "stat": "added_physical_max",
+        "kind": "flat",
+        "tags": [
+          "attack"
+        ]
+      }
+    ],
+    "text": "Adds {0} to {1} Physical Damage to Attacks",
+    "tags": [
+      "weapon",
+      "ring",
+      "gloves"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 10,
+        "weight": 100,
+        "values": [
+          [
+            3,
+            5
+          ],
+          [
+            6,
+            9
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            6,
+            8
+          ],
+          [
+            11,
+            15
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 32,
+        "weight": 100,
+        "values": [
+          [
+            9,
+            12
+          ],
+          [
+            17,
+            22
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fire_attack",
+    "kind": "prefix",
+    "group": "added_fire",
+    "mods": [
+      {
+        "stat": "added_fire_min",
+        "kind": "flat",
+        "tags": [
+          "attack"
+        ]
+      },
+      {
+        "stat": "added_fire_max",
+        "kind": "flat",
+        "tags": [
+          "attack"
+        ]
+      }
+    ],
+    "text": "Adds {0} to {1} Fire Damage to Attacks",
+    "tags": [
+      "weapon",
+      "ring",
+      "gloves"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            1,
+            3
+          ],
+          [
+            4,
+            6
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 10,
+        "weight": 100,
+        "values": [
+          [
+            4,
+            7
+          ],
+          [
+            8,
+            12
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            7,
+            10
+          ],
+          [
+            14,
+            19
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 32,
+        "weight": 100,
+        "values": [
+          [
+            11,
+            15
+          ],
+          [
+            21,
+            28
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cold_attack",
+    "kind": "prefix",
+    "group": "added_cold",
+    "mods": [
+      {
+        "stat": "added_cold_min",
+        "kind": "flat",
+        "tags": [
+          "attack"
+        ]
+      },
+      {
+        "stat": "added_cold_max",
+        "kind": "flat",
+        "tags": [
+          "attack"
+        ]
+      }
+    ],
+    "text": "Adds {0} to {1} Cold Damage to Attacks",
+    "tags": [
+      "weapon",
+      "ring",
+      "gloves"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            1,
+            3
+          ],
+          [
+            4,
+            6
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 10,
+        "weight": 100,
+        "values": [
+          [
+            4,
+            7
+          ],
+          [
+            8,
+            12
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            7,
+            10
+          ],
+          [
+            14,
+            19
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 32,
+        "weight": 100,
+        "values": [
+          [
+            11,
+            15
+          ],
+          [
+            21,
+            28
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "lightning_attack",
+    "kind": "prefix",
+    "group": "added_lightning",
+    "mods": [
+      {
+        "stat": "added_lightning_min",
+        "kind": "flat",
+        "tags": [
+          "attack"
+        ]
+      },
+      {
+        "stat": "added_lightning_max",
+        "kind": "flat",
+        "tags": [
+          "attack"
+        ]
+      }
+    ],
+    "text": "Adds {0} to {1} Lightning Damage to Attacks",
+    "tags": [
+      "weapon",
+      "ring",
+      "gloves"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            1,
+            1
+          ],
+          [
+            5,
+            9
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 10,
+        "weight": 100,
+        "values": [
+          [
+            1,
+            2
+          ],
+          [
+            11,
+            18
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            2,
+            3
+          ],
+          [
+            21,
+            30
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 32,
+        "weight": 100,
+        "values": [
+          [
+            3,
+            4
+          ],
+          [
+            33,
+            45
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "phys_pct",
+    "kind": "prefix",
+    "group": "physical_pct",
+    "mods": [
+      {
+        "stat": "physical_damage",
+        "kind": "increased",
+        "tags": [
+          "attack"
+        ]
+      }
+    ],
+    "text": "{0}% increased Physical Damage with Attacks",
+    "tags": [
+      "melee_weapon",
+      "ranged_weapon"
+    ],
+    "tiers": [
+      {
+        "tier": 3,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            15,
+            29
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            30,
+            49
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 25,
+        "weight": 100,
+        "values": [
+          [
+            50,
+            79
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "spell_damage",
+    "kind": "prefix",
+    "group": "spell_damage",
+    "mods": [
+      {
+        "stat": "damage",
+        "kind": "increased",
+        "tags": [
+          "spell"
+        ]
+      }
+    ],
+    "text": "{0}% increased Spell Damage",
+    "tags": [
+      "wand",
+      "amulet"
+    ],
+    "tiers": [
+      {
+        "tier": 3,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            19
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            20,
+            34
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 25,
+        "weight": 100,
+        "values": [
+          [
+            35,
+            49
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "elemental_damage",
+    "kind": "prefix",
+    "group": "elemental_damage",
+    "mods": [
+      {
+        "stat": "damage",
+        "kind": "increased",
+        "tags": [
+          "elemental"
+        ]
+      }
+    ],
+    "text": "{0}% increased Elemental Damage",
+    "tags": [
+      "amulet",
+      "ring",
+      "wand"
+    ],
+    "tiers": [
+      {
+        "tier": 2,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            8,
+            15
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 15,
+        "weight": 100,
+        "values": [
+          [
+            16,
+            25
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "strength",
+    "kind": "suffix",
+    "group": "strength",
+    "mods": [
+      {
+        "stat": "strength",
+        "kind": "flat"
+      }
+    ],
+    "text": "+{0} to Strength",
+    "tags": [
+      "armour",
+      "belt",
+      "jewellery",
+      "weapon"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            5,
+            9
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 8,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            15
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 18,
+        "weight": 100,
+        "values": [
+          [
+            16,
+            22
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 30,
+        "weight": 100,
+        "values": [
+          [
+            23,
+            30
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dexterity",
+    "kind": "suffix",
+    "group": "dexterity",
+    "mods": [
+      {
+        "stat": "dexterity",
+        "kind": "flat"
+      }
+    ],
+    "text": "+{0} to Dexterity",
+    "tags": [
+      "armour",
+      "belt",
+      "jewellery",
+      "weapon"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            5,
+            9
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 8,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            15
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 18,
+        "weight": 100,
+        "values": [
+          [
+            16,
+            22
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 30,
+        "weight": 100,
+        "values": [
+          [
+            23,
+            30
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "intelligence",
+    "kind": "suffix",
+    "group": "intelligence",
+    "mods": [
+      {
+        "stat": "intelligence",
+        "kind": "flat"
+      }
+    ],
+    "text": "+{0} to Intelligence",
+    "tags": [
+      "armour",
+      "belt",
+      "jewellery",
+      "weapon"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            5,
+            9
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 8,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            15
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 18,
+        "weight": 100,
+        "values": [
+          [
+            16,
+            22
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 30,
+        "weight": 100,
+        "values": [
+          [
+            23,
+            30
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fire_res",
+    "kind": "suffix",
+    "group": "fire_res",
+    "mods": [
+      {
+        "stat": "fire_resistance",
+        "kind": "flat"
+      }
+    ],
+    "text": "+{0}% to Fire Resistance",
+    "tags": [
+      "armour",
+      "belt",
+      "jewellery"
+    ],
+    "tiers": [
+      {
+        "tier": 5,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            6,
+            11
+          ]
+        ]
+      },
+      {
+        "tier": 4,
+        "itemLevel": 8,
+        "weight": 100,
+        "values": [
+          [
+            12,
+            17
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 16,
+        "weight": 100,
+        "values": [
+          [
+            18,
+            23
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 26,
+        "weight": 100,
+        "values": [
+          [
+            24,
+            29
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 36,
+        "weight": 100,
+        "values": [
+          [
+            30,
+            35
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cold_res",
+    "kind": "suffix",
+    "group": "cold_res",
+    "mods": [
+      {
+        "stat": "cold_resistance",
+        "kind": "flat"
+      }
+    ],
+    "text": "+{0}% to Cold Resistance",
+    "tags": [
+      "armour",
+      "belt",
+      "jewellery"
+    ],
+    "tiers": [
+      {
+        "tier": 5,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            6,
+            11
+          ]
+        ]
+      },
+      {
+        "tier": 4,
+        "itemLevel": 8,
+        "weight": 100,
+        "values": [
+          [
+            12,
+            17
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 16,
+        "weight": 100,
+        "values": [
+          [
+            18,
+            23
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 26,
+        "weight": 100,
+        "values": [
+          [
+            24,
+            29
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 36,
+        "weight": 100,
+        "values": [
+          [
+            30,
+            35
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "lightning_res",
+    "kind": "suffix",
+    "group": "lightning_res",
+    "mods": [
+      {
+        "stat": "lightning_resistance",
+        "kind": "flat"
+      }
+    ],
+    "text": "+{0}% to Lightning Resistance",
+    "tags": [
+      "armour",
+      "belt",
+      "jewellery"
+    ],
+    "tiers": [
+      {
+        "tier": 5,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            6,
+            11
+          ]
+        ]
+      },
+      {
+        "tier": 4,
+        "itemLevel": 8,
+        "weight": 100,
+        "values": [
+          [
+            12,
+            17
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 16,
+        "weight": 100,
+        "values": [
+          [
+            18,
+            23
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 26,
+        "weight": 100,
+        "values": [
+          [
+            24,
+            29
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 36,
+        "weight": 100,
+        "values": [
+          [
+            30,
+            35
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chaos_res",
+    "kind": "suffix",
+    "group": "chaos_res",
+    "mods": [
+      {
+        "stat": "chaos_resistance",
+        "kind": "flat"
+      }
+    ],
+    "text": "+{0}% to Chaos Resistance",
+    "tags": [
+      "armour",
+      "belt",
+      "jewellery"
+    ],
+    "tiers": [
+      {
+        "tier": 3,
+        "itemLevel": 1,
+        "weight": 60,
+        "values": [
+          [
+            5,
+            10
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 15,
+        "weight": 60,
+        "values": [
+          [
+            11,
+            17
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 30,
+        "weight": 60,
+        "values": [
+          [
+            18,
+            23
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "attack_speed",
+    "kind": "suffix",
+    "group": "attack_speed",
+    "mods": [
+      {
+        "stat": "attack_speed",
+        "kind": "increased",
+        "tags": [
+          "attack"
+        ]
+      }
+    ],
+    "text": "{0}% increased Attack Speed",
+    "tags": [
+      "weapon",
+      "gloves"
+    ],
+    "tiers": [
+      {
+        "tier": 3,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            5,
+            9
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            14
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 25,
+        "weight": 100,
+        "values": [
+          [
+            15,
+            19
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cast_speed",
+    "kind": "suffix",
+    "group": "cast_speed",
+    "mods": [
+      {
+        "stat": "cast_speed",
+        "kind": "increased",
+        "tags": [
+          "spell"
+        ]
+      }
+    ],
+    "text": "{0}% increased Cast Speed",
+    "tags": [
+      "wand",
+      "amulet",
+      "ring"
+    ],
+    "tiers": [
+      {
+        "tier": 3,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            5,
+            9
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            14
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 25,
+        "weight": 100,
+        "values": [
+          [
+            15,
+            19
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "crit_chance",
+    "kind": "suffix",
+    "group": "crit_chance",
+    "mods": [
+      {
+        "stat": "crit_chance",
+        "kind": "increased"
+      }
+    ],
+    "text": "{0}% increased Critical Hit Chance",
+    "tags": [
+      "weapon",
+      "amulet"
+    ],
+    "tiers": [
+      {
+        "tier": 3,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            19
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            20,
+            34
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 25,
+        "weight": 100,
+        "values": [
+          [
+            35,
+            49
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "crit_bonus",
+    "kind": "suffix",
+    "group": "crit_bonus",
+    "mods": [
+      {
+        "stat": "crit_bonus",
+        "kind": "flat"
+      }
+    ],
+    "text": "+{0}% to Critical Damage Bonus",
+    "tags": [
+      "weapon",
+      "amulet"
+    ],
+    "tiers": [
+      {
+        "tier": 3,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            19
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 15,
+        "weight": 100,
+        "values": [
+          [
+            20,
+            29
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 30,
+        "weight": 100,
+        "values": [
+          [
+            30,
+            39
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "mana_regen",
+    "kind": "suffix",
+    "group": "mana_regen",
+    "mods": [
+      {
+        "stat": "mana_regen",
+        "kind": "flat"
+      }
+    ],
+    "text": "+{0} Mana Regenerated per second",
+    "tags": [
+      "amulet",
+      "ring",
+      "helmet",
+      "wand"
+    ],
+    "tiers": [
+      {
+        "tier": 3,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            2,
+            4
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 25,
+        "weight": 100,
+        "values": [
+          [
+            4,
+            6
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "life_leech",
+    "kind": "suffix",
+    "group": "life_leech",
+    "mods": [
+      {
+        "stat": "life_leech",
+        "kind": "flat",
+        "tags": [
+          "attack"
+        ]
+      }
+    ],
+    "text": "{0}% of Attack Damage Leeched as Life",
+    "tags": [
+      "weapon",
+      "gloves",
+      "ring"
+    ],
+    "tiers": [
+      {
+        "tier": 3,
+        "itemLevel": 5,
+        "weight": 50,
+        "values": [
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 15,
+        "weight": 50,
+        "values": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 30,
+        "weight": 50,
+        "values": [
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "mana_leech",
+    "kind": "suffix",
+    "group": "mana_leech",
+    "mods": [
+      {
+        "stat": "mana_leech",
+        "kind": "flat"
+      }
+    ],
+    "text": "{0}% of Damage Leeched as Mana",
+    "tags": [
+      "weapon",
+      "ring",
+      "amulet"
+    ],
+    "tiers": [
+      {
+        "tier": 3,
+        "itemLevel": 5,
+        "weight": 50,
+        "values": [
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 15,
+        "weight": 50,
+        "values": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 30,
+        "weight": 50,
+        "values": [
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "movement_speed",
+    "kind": "suffix",
+    "group": "movement_speed",
+    "mods": [
+      {
+        "stat": "movement_speed",
+        "kind": "increased"
+      }
+    ],
+    "text": "{0}% increased Movement Speed",
+    "tags": [
+      "boots"
+    ],
+    "tiers": [
+      {
+        "tier": 3,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            14
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 15,
+        "weight": 100,
+        "values": [
+          [
+            15,
+            19
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 30,
+        "weight": 100,
+        "values": [
+          [
+            20,
+            25
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "accuracy",
+    "kind": "suffix",
+    "group": "accuracy",
+    "mods": [
+      {
+        "stat": "accuracy",
+        "kind": "flat"
+      }
+    ],
+    "text": "+{0} to Accuracy Rating",
+    "tags": [
+      "weapon",
+      "gloves",
+      "helmet",
+      "ring"
+    ],
+    "tiers": [
+      {
+        "tier": 3,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            20,
+            40
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            41,
+            80
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 25,
+        "weight": 100,
+        "values": [
+          [
+            81,
+            130
+          ]
+        ]
+      }
+    ]
+  }
+]

@@ -1,22 +1,38 @@
 // Pause menu with tabs:
 //   Character  stats sheet
-//   Inventory  skill gems on the four buttons, support gems in their sockets, the bag
-//   Debug      spawn gems, switch weapon, reset the character (until weapons drop)
+//   Gear       equipment slots and gear in the bag, with tooltips and comparison
+//   Gems       skill gems on the four buttons, support gems in their sockets
+//   Debug      spawn gems and gear, reset the character
 // Fully usable with keyboard or controller: D-pad/WASD move, ✕/Enter confirm, ○/Esc back.
 
 import Phaser from "phaser";
 import { content } from "../../data";
 import { gemXpToNext } from "../../sim/items/gems";
 import { supportFitsTarget } from "../../sim/items/inventory";
-import type { GemItem, SocketTarget } from "../../sim/items/types";
+import { EQUIP_SLOTS, type EquipSlot, type GearItem, type GemItem, type SocketTarget } from "../../sim/items/types";
+import { gearTooltip, itemColor, itemName, RARITY_COLOR } from "./items";
 import { describeSkill } from "../../sim/skills/describe";
 import { xpToNext } from "../../sim/stats/character";
 import { computeStat } from "../../sim/stats/stats";
 import { skillSummary, SKILL_SLOTS, type InventoryCommand, type WorldState } from "../../sim/world";
 import type { InputManager } from "../input/InputManager";
 
-export type MenuTab = "character" | "inventory" | "debug";
-const TABS: MenuTab[] = ["character", "inventory", "debug"];
+export type MenuTab = "character" | "gear" | "gems" | "debug";
+const TABS: MenuTab[] = ["character", "gear", "gems", "debug"];
+const GEAR_ROWS = 24; // visible rows in the gear list
+
+type GearEntry = { kind: "slot"; slot: EquipSlot } | { kind: "bag"; bagIndex: number };
+const SLOT_LABEL: Record<EquipSlot, string> = {
+  weapon: "Weapon",
+  helmet: "Helmet",
+  body: "Body",
+  gloves: "Gloves",
+  boots: "Boots",
+  belt: "Belt",
+  amulet: "Amulet",
+  ring1: "Ring",
+  ring2: "Ring",
+};
 const FONT = { fontFamily: "monospace", fontSize: "14px", color: "#d8d8e0" };
 
 type Cell = { kind: "skill"; slot: number } | { kind: "socket"; target: SocketTarget; socket: number };
@@ -49,6 +65,8 @@ export class GameMenu {
   private left: Phaser.GameObjects.Text;
   private right: Phaser.GameObjects.Text;
   private footer: Phaser.GameObjects.Text;
+  private gearRows: Phaser.GameObjects.Text[] = [];
+  private tip: { title: Phaser.GameObjects.Text; body: Phaser.GameObjects.Text; cmpTitle: Phaser.GameObjects.Text; cmpBody: Phaser.GameObjects.Text };
 
   constructor(
     private scene: Phaser.Scene,
@@ -61,7 +79,18 @@ export class GameMenu {
     this.left = scene.add.text(0, 0, "", { ...FONT, lineSpacing: 5 });
     this.right = scene.add.text(0, 0, "", { ...FONT, fontSize: "13px", color: "#a8c8e8", lineSpacing: 4 });
     this.footer = scene.add.text(0, 0, "", { ...FONT, fontSize: "12px", color: "#8a8a96" });
-    this.root = scene.add.container(0, 0, [this.bg, this.header, this.left, this.right, this.footer]).setScrollFactor(0).setDepth(35_000).setVisible(false);
+    for (let i = 0; i < GEAR_ROWS; i++) this.gearRows.push(scene.add.text(0, 0, "", { ...FONT, fontSize: "13px" }));
+    this.tip = {
+      title: scene.add.text(0, 0, "", { ...FONT, fontSize: "15px" }),
+      body: scene.add.text(0, 0, "", { ...FONT, fontSize: "13px", color: "#c8c8d0", lineSpacing: 3 }),
+      cmpTitle: scene.add.text(0, 0, "", { ...FONT, fontSize: "13px" }),
+      cmpBody: scene.add.text(0, 0, "", { ...FONT, fontSize: "12px", color: "#9a9aa6", lineSpacing: 2 }),
+    };
+    this.root = scene.add
+      .container(0, 0, [this.bg, this.header, this.left, this.right, this.footer, ...this.gearRows, this.tip.title, this.tip.body, this.tip.cmpTitle, this.tip.cmpBody])
+      .setScrollFactor(0)
+      .setDepth(35_000)
+      .setVisible(false);
   }
 
   show(tab: MenuTab): void {
@@ -97,7 +126,8 @@ export class GameMenu {
       this.message = "";
       this.confirmReset = false;
     }
-    if (this.tab === "inventory") this.updateInventory();
+    if (this.tab === "gear") this.updateGear();
+    if (this.tab === "gems") this.updateInventory();
     if (this.tab === "debug") this.updateDebug();
     this.render();
   }
@@ -203,8 +233,8 @@ export class GameMenu {
 
     // Bag, grouped.
     const counts = new Map<string, number>();
-    for (const g of save.bag) counts.set(gemName(g), (counts.get(gemName(g)) ?? 0) + 1);
-    left.push("", `BAG ${save.bag.length}/${content.gems.bagSize}`);
+    for (const g of save.bag) if (g.kind !== "gear") counts.set(gemName(g), (counts.get(gemName(g)) ?? 0) + 1);
+    left.push("", `GEMS IN BAG (bag ${save.bag.length}/${content.gems.bagSize})`);
     const entries = [...counts.entries()].map(([name, n]) => (n > 1 ? `${name} ×${n}` : name));
     for (let k = 0; k < entries.length; k += 3) left.push("  " + entries.slice(k, k + 3).join("   "));
     if (entries.length === 0) left.push("  (empty: gems drop from monsters, pick up with " + this.inputs.prompt("pickup") + ")");
@@ -243,13 +273,100 @@ export class GameMenu {
     return lines;
   }
 
+  // ---------------------------------------------------------------- gear
+
+  private gearEntries(): GearEntry[] {
+    const save = this.world().player.save;
+    const out: GearEntry[] = EQUIP_SLOTS.map((slot) => ({ kind: "slot", slot }));
+    save.bag.forEach((it, bagIndex) => {
+      if (it.kind === "gear") out.push({ kind: "bag", bagIndex });
+    });
+    return out;
+  }
+
+  private entryItem(e: GearEntry | undefined): GearItem | undefined {
+    const save = this.world().player.save;
+    if (!e) return undefined;
+    const it = e.kind === "slot" ? save.equipment[e.slot] : save.bag[e.bagIndex];
+    return it?.kind === "gear" ? it : undefined;
+  }
+
+  private updateGear(): void {
+    const i = this.inputs;
+    const entries = this.gearEntries();
+    if (i.pressed("down")) this.row = (this.row + 1) % entries.length;
+    if (i.pressed("up")) this.row = (this.row - 1 + entries.length) % entries.length;
+    this.row = Math.min(this.row, entries.length - 1);
+    const e = entries[this.row];
+    if (!e || !i.pressed("confirm")) return;
+    const refused =
+      e.kind === "slot"
+        ? this.entryItem(e)
+          ? this.actions.command({ type: "unequip_gear", slot: e.slot })
+          : "nothing equipped there"
+        : this.actions.command({ type: "equip_gear", bagIndex: e.bagIndex });
+    this.message = refused ? `Can't: ${refused}` : "";
+  }
+
+  private renderGear(x: number, y: number, w: number): void {
+    const entries = this.gearEntries();
+    const first = Math.max(0, Math.min(this.row - Math.floor(GEAR_ROWS / 2), entries.length - GEAR_ROWS));
+    this.gearRows.forEach((t, k) => {
+      const idx = first + k;
+      const e = entries[idx];
+      if (!e) return t.setText("");
+      const it = this.entryItem(e);
+      const mark = idx === this.row ? "▶ " : "  ";
+      const label = e.kind === "slot" ? `${SLOT_LABEL[e.slot].padEnd(7)} ` : "  ";
+      const header = e.kind === "bag" && (idx === 0 || entries[idx - 1]?.kind === "slot") ? "BAG  " : "";
+      const name = it ? itemName(it) : "—";
+      t.setPosition(x + 16, y + 48 + k * 19)
+        .setText(`${mark}${header || label}${name}`)
+        .setColor(it ? itemColor(it) : "#5a5a66");
+    });
+
+    const tx = x + 16 + Math.min(470, w * 0.47);
+    const sel = entries[this.row];
+    const item = this.entryItem(sel);
+    if (item) {
+      const tip = gearTooltip(item);
+      this.tip.title.setPosition(tx, y + 48).setText(tip.title).setColor(RARITY_COLOR[item.rarity]);
+      this.tip.body.setPosition(tx, y + 72).setWordWrapWidth(w - (tx - x) - 24).setText([...tip.lines, ...(this.message ? ["", this.message] : [])]);
+    } else {
+      this.tip.title.setPosition(tx, y + 48).setText(sel?.kind === "slot" ? `${SLOT_LABEL[sel.slot]}: empty` : "").setColor("#8a8a96");
+      this.tip.body.setPosition(tx, y + 72).setText(this.message ? [this.message] : ["Gear drops from monsters. Pick it up, then equip it here."]);
+    }
+
+    // Comparison with what's worn in the slot this bag item would go to.
+    let worn: GearItem | undefined;
+    if (sel?.kind === "bag" && item) {
+      const base = content.itemBases.find((b) => b.id === item.base);
+      const eq = this.world().player.save.equipment;
+      if (base) worn = base.slot === "ring" ? (eq.ring1 ?? eq.ring2) : eq[base.slot as EquipSlot];
+    }
+    const by = y + 80 + this.tip.body.height;
+    if (worn) {
+      const tip = gearTooltip(worn);
+      this.tip.cmpTitle.setPosition(tx, by).setText(`Currently equipped: ${tip.title}`).setColor(RARITY_COLOR[worn.rarity]);
+      this.tip.cmpBody.setPosition(tx, by + 20).setWordWrapWidth(w - (tx - x) - 24).setText(tip.lines);
+    } else {
+      this.tip.cmpTitle.setText("");
+      this.tip.cmpBody.setText("");
+    }
+  }
+
   // ---------------------------------------------------------------- debug
 
   private debugRows(): Choice[] {
-    const save = this.world().player.save;
     const rows: Choice[] = [];
-    const weapon = content.weapons.find((x) => x.id === save.weapon);
-    rows.push({ label: `Weapon ‹ ${weapon?.name ?? save.weapon} ›   (←/→ to change)`, run: () => null });
+    const seed = () => (Date.now() ^ (Math.random() * 2 ** 31)) >>> 0;
+    for (const rarity of ["normal", "magic", "rare"] as const) {
+      rows.push({ label: `Give random ${rarity} item (item level ${this.world().monsterLevel})`, run: () => this.actions.command({ type: "debug_give_gear", opts: { rarity }, seed: seed() }) });
+    }
+    for (const u of content.uniques) rows.push({ label: `Give unique: ${u.name}`, run: () => this.actions.command({ type: "debug_give_gear", opts: { unique: u.id }, seed: seed() }) });
+    for (const b of content.itemBases.filter((x) => x.slot === "weapon")) {
+      rows.push({ label: `Give rare weapon: ${b.name}`, run: () => this.actions.command({ type: "debug_give_gear", opts: { base: b.id, rarity: "rare" }, seed: seed() }) });
+    }
     for (const s of content.skills) rows.push({ label: `Give skill gem: ${s.name}`, run: () => this.actions.command({ type: "debug_give", kind: "skill_gem", defId: s.id }) });
     for (const s of content.supports) rows.push({ label: `Give support gem: ${s.name}`, run: () => this.actions.command({ type: "debug_give", kind: "support_gem", defId: s.id }) });
     rows.push({
@@ -272,13 +389,7 @@ export class GameMenu {
     if (i.pressed("down")) this.row = (this.row + 1) % rows.length;
     if (i.pressed("up")) this.row = (this.row - 1 + rows.length) % rows.length;
     if (this.row !== rows.length - 1) this.confirmReset = false;
-    if (this.row === 0 && (i.pressed("left") || i.pressed("right"))) {
-      const ids = content.weapons.map((x) => x.id);
-      const at = ids.indexOf(this.world().player.save.weapon);
-      const next = ids[(at + (i.pressed("right") ? 1 : -1) + ids.length) % ids.length]!;
-      this.message = this.actions.command({ type: "debug_weapon", weapon: next }) ?? "";
-    }
-    if (i.pressed("confirm") && this.row > 0) {
+    if (i.pressed("confirm")) {
       const refused = rows[this.row]!.run();
       this.message = refused ? `Can't: ${refused}` : this.row < rows.length - 1 ? `Added: ${rows[this.row]!.label.replace(/^Give [a-z ]+: /, "")}` : "";
     }
@@ -300,12 +411,21 @@ export class GameMenu {
     this.left.setPosition(x + 16, y + 48);
     this.right.setPosition(x + 16 + Math.min(560, w * 0.56), y + 48).setWordWrapWidth(w - Math.min(560, w * 0.56) - 32);
     const close = `[${this.inputs.prompt("cancel")}] ${this.picker ? "back" : "close"}`;
+    const gearTab = this.tab === "gear";
+    this.left.setVisible(!gearTab);
+    this.right.setVisible(!gearTab);
+    for (const t of [...this.gearRows, this.tip.title, this.tip.body, this.tip.cmpTitle, this.tip.cmpBody]) t.setVisible(gearTab);
+    if (gearTab) {
+      this.renderGear(x, y, w);
+      this.footer.setText(`${pad ? "D-pad select   ✕ equip / take off" : "W/S select   Enter equip / take off"}   ${close}      Bag ${this.world().player.save.bag.length}/${content.gems.bagSize}`);
+      return;
+    }
 
     if (this.tab === "character") {
       this.left.setText(this.characterLines());
       this.right.setText("");
       this.footer.setText(close);
-    } else if (this.tab === "inventory") {
+    } else if (this.tab === "gems") {
       const { left, right } = this.inventoryLines();
       this.left.setText(left);
       this.right.setText(right);
@@ -315,7 +435,7 @@ export class GameMenu {
       const rows = this.debugRows();
       const first = Math.max(0, Math.min(this.row - 8, rows.length - 18));
       this.left.setText(rows.slice(first, first + 18).map((r, k) => `${first + k === this.row ? "▶" : " "} ${r.label}`));
-      this.right.setText(["DEBUG", "", "Spawns gems straight into your bag", "and switches weapons until gear drops.", "", this.message]);
+      this.right.setText(["DEBUG", "", "Spawns gems and gear straight into your bag", "(gear at the current zone's item level).", "", this.message]);
       this.footer.setText(`${pad ? "D-pad select   ✕ give" : "W/S select   Enter give"}   ${close}`);
     }
   }
@@ -333,7 +453,7 @@ export class GameMenu {
       ``,
       `Strength ${r(s.strength)}   Dexterity ${r(s.dexterity)}   Intelligence ${r(s.intelligence)}`,
       `Life ${r(p.maxLife)}   Mana ${r(p.maxMana)} (+${(s.mana_regen ?? 0).toFixed(1)}/s)`,
-      `Armour ${r(s.armour)}   Evasion ${r(s.evasion)}   Accuracy ${r(s.accuracy)}`,
+      `Armour ${r(s.armour)}   Evasion ${r(s.evasion)}   Accuracy ${r(s.accuracy)}   Move speed ${r(p.speed)}`,
       `Resist  fire ${r(s.fire_resistance)}%  cold ${r(s.cold_resistance)}%  lightning ${r(s.lightning_resistance)}%  chaos ${r(s.chaos_resistance)}%`,
       ``,
     ];

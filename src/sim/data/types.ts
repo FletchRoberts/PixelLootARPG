@@ -3,31 +3,66 @@
 
 export type Rarity = "normal" | "magic" | "rare" | "unique";
 export type AffixKind = "prefix" | "suffix";
+export type GearSlot = "weapon" | "helmet" | "body" | "gloves" | "boots" | "belt" | "amulet" | "ring";
+
+/** A modifier whose value is rolled once when the item drops (implicits, unique mods). */
+export interface RangedModDef {
+  stat: string;
+  kind: "flat" | "increased" | "more";
+  tags?: string[];
+  value: [number, number];
+}
 
 export interface ItemBase {
   id: string;
   name: string;
-  slot: string; // e.g. "helmet", "body", "weapon_1h"
-  tags: string[]; // affix pools filter on these
-  dropLevel: number;
-  implicits?: string[]; // affix ids
+  slot: GearSlot;
+  tags: string[]; // affix pools filter on these (e.g. "armour", "helmet", "jewellery", "weapon", "wand")
+  dropLevel: number; // minimum item level to drop
+  requires?: { level?: number; strength?: number; dexterity?: number; intelligence?: number };
+  implicits?: RangedModDef[]; // base armour/evasion and fixed base properties
+  weapon?: string; // weapons.json id: damage, speed and the weapon attack it grants
 }
 
 export interface AffixTier {
   tier: number; // 1 = best
   itemLevel: number; // minimum ilvl to roll this tier
   weight: number;
-  values: [number, number][]; // one [min, max] per stat
+  values: [number, number][]; // one [min, max] per mod
+}
+
+export interface AffixModDef {
+  stat: string;
+  kind: "flat" | "increased" | "more";
+  tags?: string[];
 }
 
 export interface Affix {
   id: string;
   kind: AffixKind;
   group: string; // only one affix per group on an item
-  stats: string[]; // stat ids, parallel to AffixTier.values
+  mods: AffixModDef[]; // parallel to AffixTier.values
   text: string; // display template, e.g. "+{0} to maximum Life"
-  tags: string[]; // which base tags can roll it
+  tags: string[]; // rolls on bases having any of these tags
   tiers: AffixTier[];
+}
+
+/** Hand-authored unique: fixed mods (rolled within ranges) and optional support grants. */
+export interface UniqueDef {
+  id: string;
+  name: string;
+  base: string;
+  weight: number;
+  mods: (RangedModDef & { text: string })[]; // text uses {0} for the rolled value
+  grants?: { support: string; tags?: string[]; text: string }[]; // support applied to every fitting skill (with the tags)
+  flavour?: string;
+}
+
+export interface GearRules {
+  rarityWeights: Record<Rarity, number>;
+  affixCount: { magic: Range; rare: Range };
+  maxPerKind: { magic: number; rare: number }; // max prefixes (and suffixes) per rarity
+  rareNames: { first: string[]; second: string[] };
 }
 
 export interface Currency {
@@ -197,8 +232,9 @@ export interface Biome {
 export interface DropEntry {
   weight: number;
   // skill_gem / support_gem: a specific gem if `ref` is set, otherwise any gem of that kind.
-  // table: roll another table (`ref`). item / currency: reserved for gear and currency.
-  kind: "nothing" | "table" | "skill_gem" | "support_gem" | "item" | "currency";
+  // table: roll another table (`ref`). currency: reserved.
+  // item: random gear (or base `ref`) with rolled rarity; unique: a random unique (or `ref`).
+  kind: "nothing" | "table" | "skill_gem" | "support_gem" | "item" | "unique" | "currency";
   ref?: string;
 }
 
