@@ -130,6 +130,11 @@ export interface CombatRulesDef {
   hitChance: { scale: number; evasionWeight: number; min: number; max: number };
   resistance: { defaultMax: number; hardMax: number; floor: number };
   critBonusBase: number;
+  ailments: {
+    chill: { duration: number; slow: number }; // any cold hit: slow % for duration s
+    freeze: { threshold: number; secondsPerPercent: number; min: number; max: number }; // cold hit ≥ threshold % of max life
+    ignite: { dpsPercentOfHit: number; duration: number }; // fire hit, chance from ignite_chance
+  };
 }
 
 export interface WeightedRef {

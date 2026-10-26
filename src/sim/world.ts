@@ -82,13 +82,26 @@ export interface PlayerState extends Actor {
   castLock: number; // seconds until the player can attack/cast again
   roll: { t: number; dir: Vec } | null; // active dodge roll
   rollCooldown: number;
+  pending: { t: number; skill: number; angle: number; left: number }[]; // Echo repeats waiting to fire
+  triggerCooldowns: number[]; // per compiled skill, for Cast on Kill
 }
+
+export interface Ailments {
+  chill: number; // seconds left
+  slow: number; // percent
+  freeze: number; // seconds left
+  ignite: number; // seconds left
+  igniteDps: number; // fire damage per second before resistance
+}
+
+export const NO_AILMENTS: Ailments = { chill: 0, slow: 0, freeze: 0, ignite: 0, igniteDps: 0 };
 
 export interface MonsterState extends Actor {
   contactCooldown: number;
   packId: number;
   awake: boolean;
   level: number;
+  ailments: Ailments;
 }
 
 export interface WorldState {
@@ -122,6 +135,7 @@ export interface PlayerInput {
 
 export type SimEvent =
   | { type: "swing"; actorId: number; angle: number; arc: number; range: number }
+  | { type: "area"; pos: Vec; radius: number; angle: number; arc: number; element: "physical" | "fire" | "cold" | "lightning" | "chaos" }
   | { type: "cast"; slot: number; skill: string }
   | { type: "no_mana"; slot: number }
   | { type: "dodge" }
@@ -181,6 +195,8 @@ export function createWorld(content: SimContent, seed: number, progress: Progres
       castLock: 0,
       roll: null,
       rollCooldown: 0,
+      pending: [],
+      triggerCooldowns: [],
     },
     monsters: [],
     projectiles: [],
@@ -219,7 +235,8 @@ function sanitizeLoadout(content: SimContent, l: Loadout): Loadout {
 /** Command: change weapon/skills/supports. Validates, then recompiles. */
 export function setLoadout(world: WorldState, content: SimContent, loadout: Loadout): void {
   world.player.loadout = sanitizeLoadout(content, loadout);
-  world.projectiles = []; // compiled indices change; drop in-flight projectiles
+  world.projectiles = []; // compiled indices change; drop in-flight projectiles and queued repeats
+  world.player.pending = [];
   recomputePlayer(world, content);
 }
 
@@ -258,7 +275,7 @@ export function step(world: WorldState, content: SimContent, input: PlayerInput,
   const ctx = combatContext(world, content, rng);
   updatePlayer(world, content, input, ctx, events, dt);
   stepProjectiles(world, ctx, events, dt);
-  reapDead(world, content, events);
+  reapDead(world, content, ctx, events);
   updateMonsters(world, content, rng, events, dt);
   if (world.status === "playing" && dist(world.player.pos, world.zone.exit) < EXIT_RADIUS * world.zone.tileSize) {
     world.status = "complete";
@@ -333,6 +350,7 @@ function combatContext(world: WorldState, content: SimContent, rng: Rng): SkillC
       m.life -= result.total;
       m.knock = add(m.knock, scale(dir, node.knockback));
       events.push({ type: "damage", targetId: m.id, amount: result.total, crit: hit.crit, pos: { ...m.pos } });
+      applyAilments(m, result.byType, node, rules, rng);
       return m.life <= 0;
     },
   };
@@ -343,6 +361,30 @@ export interface SkillSummary extends HitSummary {
   usesPerSecond: number;
   dps: number; // root delivery only, vs no defences
   cost: number;
+}
+
+/**
+ * Chill and freeze from cold damage, ignite from fire damage (docs/combat.md ailments).
+ * Freeze needs a cold hit worth at least `threshold` % of the target's max life.
+ */
+function applyAilments(m: MonsterState, dealt: Partial<Record<string, number>>, node: CompiledNode, rules: CombatRules, rng: Rng): void {
+  const a = rules.ailments;
+  const cold = dealt.cold ?? 0;
+  if (cold > 0) {
+    m.ailments.chill = Math.max(m.ailments.chill, a.chill.duration);
+    m.ailments.slow = Math.max(m.ailments.slow, a.chill.slow);
+    const percent = (cold / m.maxLife) * 100;
+    if (percent >= a.freeze.threshold) {
+      const seconds = Math.min(a.freeze.max, Math.max(a.freeze.min, percent * a.freeze.secondsPerPercent));
+      m.ailments.freeze = Math.max(m.ailments.freeze, seconds);
+    }
+  }
+  const fire = dealt.fire ?? 0;
+  if (fire > 0 && node.igniteChance > 0 && rng.next() * 100 < node.igniteChance * node.procCoefficient) {
+    // Stronger ignite replaces a weaker one; the duration refreshes.
+    m.ailments.igniteDps = Math.max(m.ailments.ignite > 0 ? m.ailments.igniteDps : 0, (fire * a.ignite.dpsPercentOfHit) / 100);
+    m.ailments.ignite = a.ignite.duration;
+  }
 }
 
 /** Sheet/tooltip numbers for a compiled skill's root delivery. */
@@ -365,6 +407,16 @@ function updatePlayer(world: WorldState, content: SimContent, input: PlayerInput
   p.mana = Math.min(p.maxMana, p.mana + (p.stats.mana_regen ?? 0) * dt);
   p.castLock = Math.max(0, p.castLock - dt);
   p.rollCooldown = Math.max(0, p.rollCooldown - dt);
+  p.triggerCooldowns = p.triggerCooldowns.map((t) => Math.max(0, t - dt));
+
+  // Echo: queued repeats fire from wherever the player is now, in the original direction.
+  for (const r of p.pending) r.t -= dt;
+  for (const r of p.pending.filter((r) => r.t <= 0)) {
+    useSkill(world, r.skill, p.pos, r.angle, ctx, events);
+    const repeat = p.compiled[r.skill]?.repeat;
+    if (r.left > 1 && repeat) p.pending.push({ t: repeat.delay, skill: r.skill, angle: r.angle, left: r.left - 1 });
+  }
+  p.pending = p.pending.filter((r) => r.t > 0);
 
   // Dodge roll: fixed-speed dash in the move direction (or facing), cancels casting.
   const move = len(input.move) > 1 ? normalize(input.move) : input.move;
@@ -396,7 +448,7 @@ function updatePlayer(world: WorldState, content: SimContent, input: PlayerInput
     for (let i = 0; i < SKILL_SLOTS; i++) {
       if (!input.skills?.[i]) continue;
       const skill = p.compiled[i + 1];
-      if (!skill) continue;
+      if (!skill || skill.trigger) continue; // triggered skills fire themselves
       if (p.mana < skill.cost) {
         events.push({ type: "no_mana", slot: i });
         continue;
@@ -405,7 +457,7 @@ function updatePlayer(world: WorldState, content: SimContent, input: PlayerInput
       p.facing = aimAngle;
       p.castLock = skill.interval;
       events.push({ type: "cast", slot: i, skill: skill.id });
-      useSkill(world, i + 1, p.pos, aimAngle, ctx, events);
+      castWithRepeats(world, i + 1, aimAngle, ctx, events);
       return;
     }
   }
@@ -415,11 +467,18 @@ function updatePlayer(world: WorldState, content: SimContent, input: PlayerInput
   if (!input.attack || p.castLock > 0) return;
   const weaponAttack = p.compiled[0]!;
   p.castLock = weaponAttack.interval;
-  useSkill(world, 0, p.pos, aimAngle, ctx, events);
+  castWithRepeats(world, 0, aimAngle, ctx, events);
 }
 
-/** Remove dead monsters, award XP, level up. */
-function reapDead(world: WorldState, content: SimContent, events: SimEvent[]): void {
+function castWithRepeats(world: WorldState, index: number, angle: number, ctx: SkillContext, events: SimEvent[]): void {
+  const p = world.player;
+  useSkill(world, index, p.pos, angle, ctx, events);
+  const repeat = p.compiled[index]?.repeat;
+  if (repeat) p.pending.push({ t: repeat.delay, skill: index, angle, left: repeat.count });
+}
+
+/** Remove dead monsters, award XP, level up, and fire Cast on Kill skills at the corpses. */
+function reapDead(world: WorldState, content: SimContent, ctx: SkillContext, events: SimEvent[]): void {
   const dead = world.monsters.filter((m) => m.life <= 0);
   if (dead.length === 0) return;
   const p = world.player;
@@ -436,6 +495,15 @@ function reapDead(world: WorldState, content: SimContent, events: SimEvent[]): v
     recomputePlayer(world, content);
     events.push({ type: "level_up", level: p.level });
   }
+
+  // Cast on Kill: after removal, so anything the triggered skill kills is reaped (with XP) next tick.
+  p.compiled.forEach((skill, index) => {
+    if (skill?.trigger?.on !== "kill" || (p.triggerCooldowns[index] ?? 0) > 0) return;
+    const at = dead[0]!.pos;
+    p.triggerCooldowns[index] = skill.trigger.cooldown;
+    events.push({ type: "cast", slot: index - 1, skill: skill.id });
+    useSkill(world, index, { ...at }, angleOf(sub(at, p.pos)), ctx, events);
+  });
 }
 
 function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events: SimEvent[], dt: number): void {
@@ -447,9 +515,24 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
   const untouchable = p.roll !== null && hero.dodge.invulnerable;
 
   for (const m of world.monsters) {
+    if (m.life <= 0) continue;
     const def = lookup(content.monsters, m.defId, "monster");
     const { tx, ty } = tileOf(zone, m.pos);
     const pathDist = distAt(field, zone, tx, ty);
+
+    // Ailments tick down; ignite burns through fire resistance (no armour, no evasion).
+    const ail = m.ailments;
+    if (ail.ignite > 0) {
+      const resist = Math.min(rules.resistance.defaultMax, def.resist?.fire ?? 0);
+      m.life -= ail.igniteDps * dt * (1 - resist / 100);
+      ail.ignite = Math.max(0, ail.ignite - dt);
+      if (m.life <= 0) continue; // reaped next tick
+    }
+    ail.chill = Math.max(0, ail.chill - dt);
+    if (ail.chill === 0) ail.slow = 0;
+    ail.freeze = Math.max(0, ail.freeze - dt);
+    const frozen = ail.freeze > 0;
+    const speed = frozen ? 0 : def.speed * (1 - ail.slow / 100);
 
     if (!m.awake) {
       if (pathDist <= def.aggroRange) wakePack(world, m.packId, events);
@@ -469,7 +552,7 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
     if (target) {
       const toT = sub(target, m.pos);
       const gap = target === p.pos ? len(toT) - (p.radius + m.radius) : len(toT);
-      if (gap > 0) m.pos = add(m.pos, scale(normalize(toT), Math.min(def.speed * dt, gap)));
+      if (gap > 0) m.pos = add(m.pos, scale(normalize(toT), Math.min(speed * dt, gap)));
     }
 
     // Separation from other awake monsters so packs spread instead of stacking.
@@ -482,6 +565,7 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
     applyKnockback(m, dt);
     m.pos = resolveWalls(zone, m.pos, m.radius);
 
+    if (frozen) continue; // frozen monsters can't attack
     m.contactCooldown = Math.max(0, m.contactCooldown - dt);
     if (untouchable || m.contactCooldown > 0 || dist(m.pos, p.pos) > p.radius + m.radius + 2) continue;
 
@@ -558,6 +642,7 @@ function spawnMonster(world: WorldState, content: SimContent, rng: Rng, center: 
     packId,
     awake: false,
     level,
+    ailments: { ...NO_AILMENTS },
   });
 }
 

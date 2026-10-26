@@ -1,7 +1,7 @@
 // Compile skill + supports + player modifiers into a flat tree of final numbers.
 // Recompiled when loadout, level or (later) gear changes; the runtime only reads it.
 
-import type { DamageRange } from "../combat/damage";
+import { DAMAGE_TYPES, type DamageRange, type DamageType } from "../combat/damage";
 import type { WeaponDef } from "../data/types";
 import { computeStat, type Modifier } from "../stats/stats";
 import type { CompiledNode, CompiledSkill, DeliveryDef, Scope, SkillDef, SupportDef, TriggerEvent } from "./types";
@@ -26,6 +26,16 @@ export function supportFits(support: SupportDef, skill: Pick<SkillDef, "tags" | 
   return support.requires.some((t) => tags.has(t));
 }
 
+function convert(r: DamageRange, to: DamageType): DamageRange {
+  let lo = 0;
+  let hi = 0;
+  for (const t of DAMAGE_TYPES) {
+    lo += r[t]?.[0] ?? 0;
+    hi += r[t]?.[1] ?? 0;
+  }
+  return { [to]: [lo, hi] };
+}
+
 function scaleRange(r: DamageRange, k: number): DamageRange {
   const out: DamageRange = {};
   for (const [t, v] of Object.entries(r) as [keyof DamageRange, [number, number]][]) out[t] = [v[0] * k, v[1] * k];
@@ -33,7 +43,7 @@ function scaleRange(r: DamageRange, k: number): DamageRange {
 }
 
 interface CompileInput {
-  skill: Pick<SkillDef, "id" | "name" | "tags" | "cost" | "castTime" | "critChance" | "root">;
+  skill: Pick<SkillDef, "id" | "name" | "tags" | "cost" | "castTime" | "critChance" | "root" | "mods">;
   supports: SupportDef[];
   playerMods: readonly Modifier[];
   weapon?: WeaponDef; // attacks take damage, speed and crit from the weapon
@@ -44,14 +54,16 @@ export function compileSkill({ skill, supports, playerMods, weapon }: CompileInp
   const isAttack = skill.tags.includes("attack");
   const nodes: CompiledNode[] = [];
 
+  const sources = [{ id: skill.id, mods: skill.mods }, ...fitting];
   const modsAt = (depth: number): Modifier[] => [
     ...playerMods,
-    ...fitting.flatMap((s) => (s.mods ?? []).filter((m) => inScope(m.scope, depth)).map(({ scope: _scope, ...m }) => ({ ...m, source: s.id }))),
+    ...sources.flatMap((s) => (s.mods ?? []).filter((m) => inScope(m.scope, depth)).map(({ scope: _scope, ...m }) => ({ ...m, source: s.id }))),
   ];
 
   function compile(def: DeliveryDef, depth: number, parent: { raw: DamageRange; eff: number; proc: number; tags: string[] } | null): number {
     const tags = [...new Set([...def.tags, ...(parent ? parent.tags.filter((t) => KIND_TAGS.includes(t)) : skill.tags.filter((t) => KIND_TAGS.includes(t)))])];
-    const raw = def.damage ?? parent?.raw ?? weapon?.damage ?? {};
+    const inherited = def.damage ?? parent?.raw ?? weapon?.damage ?? {};
+    const raw = def.convertTo ? convert(inherited, def.convertTo) : inherited;
     const eff = (parent?.eff ?? 1) * (def.damageEffectiveness ?? 1);
     const proc = (parent?.proc ?? 1) * (def.procCoefficient ?? 1);
     const mods = modsAt(depth);
@@ -67,18 +79,22 @@ export function compileSkill({ skill, supports, playerMods, weapon }: CompileInp
       effectiveness: eff,
       procCoefficient: proc,
       mods,
-      knockback: def.knockback ?? 0,
+      knockback: stat("knockback", def.knockback ?? 0),
       count,
       pattern: def.pattern ?? "spread",
       spread: (def.spreadDegrees ?? DEFAULT_SPREAD_PER_EXTRA * extra) * DEG,
       speed: stat("projectile_speed", def.speed ?? 0),
       range: stat("projectile_range", def.range ?? 0),
-      radius: def.radius ?? 0,
+      // Increased area scales the area, so the radius grows with its square root.
+      radius: def.kind === "area" ? (def.radius ?? 0) * Math.sqrt(stat("area_of_effect", 1)) : (def.radius ?? 0),
       pierce: Math.round(stat("pierce", def.pierce ?? 0)),
       chain: Math.round(stat("chain", def.chain ?? 0)),
       fork: Math.round(stat("fork", def.fork ?? 0)),
       arc: (def.arcDegrees ?? 0) * DEG,
       reach: def.reach ?? 0,
+      shape: def.shape ?? "circle",
+      lobbed: def.lobbed ?? false,
+      igniteChance: stat("ignite_chance", 0),
       on: {},
     };
     const index = nodes.push(node) - 1;
@@ -113,6 +129,8 @@ export function compileSkill({ skill, supports, playerMods, weapon }: CompileInp
     critChance: isAttack ? (weapon?.critChance ?? 0) : skill.critChance,
     nodes,
     supports: fitting.map((s) => s.id),
+    repeat: fitting.find((s) => s.repeat)?.repeat ?? null,
+    trigger: fitting.find((s) => s.trigger)?.trigger ?? null,
   };
 }
 

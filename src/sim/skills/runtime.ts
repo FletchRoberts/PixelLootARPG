@@ -1,4 +1,4 @@
-// Running compiled skills: melee strikes, projectiles (pierce → fork → chain → end),
+// Running compiled skills: melee strikes, area bursts, projectiles (pierce → fork → chain → end),
 // and triggers that spawn child deliveries. Plain data in world state.
 
 import { add, angleDiff, angleOf, dist, normalize, scale, sub, type Vec } from "../core/vec";
@@ -44,6 +44,7 @@ export function useSkill(world: WorldState, skillIndex: number, origin: Vec, ang
 function deliver(world: WorldState, si: number, ni: number, origin: Vec, angle: number, exclude: number[], ctx: SkillContext, events: SimEvent[]): void {
   const node = skillAt(world, si).nodes[ni]!;
   if (node.kind === "melee") meleeStrike(world, si, ni, origin, angle, ctx, events);
+  else if (node.kind === "area") areaStrike(world, si, ni, origin, angle, exclude, ctx, events);
   else spawnProjectiles(world, si, ni, origin, angle, exclude);
 }
 
@@ -93,6 +94,28 @@ function meleeStrike(world: WorldState, si: number, ni: number, origin: Vec, ang
   }
 }
 
+/** Instant burst: a circle around the origin, or a forward sector (cone) from it. Fires "end" once afterwards. */
+function areaStrike(world: WorldState, si: number, ni: number, origin: Vec, angle: number, exclude: number[], ctx: SkillContext, events: SimEvent[]): void {
+  const skill = skillAt(world, si);
+  const node = skill.nodes[ni]!;
+  const sector = node.shape === "sector";
+  const element = (Object.keys(node.base)[0] ?? "physical") as Extract<SimEvent, { type: "area" }>["element"];
+  events.push({ type: "area", pos: { ...origin }, radius: node.radius, angle, arc: sector ? node.arc : 0, element });
+  for (const m of [...world.monsters]) {
+    if (m.life <= 0 || exclude.includes(m.id)) continue;
+    const toM = sub(m.pos, origin);
+    const d = Math.hypot(toM.x, toM.y);
+    if (d > node.radius + m.radius) continue;
+    if (sector && d > m.radius && Math.abs(angleDiff(angleOf(toM), angle)) > node.arc / 2) continue;
+    if (!hasLineOfSight(world.zone, origin, m.pos)) continue; // explosions don't go through walls
+    const dir = d > 0.01 ? normalize(toM) : fromAngle(angle);
+    const killed = ctx.hit(m, skill, node, dir, events);
+    fire(world, si, node, "hit", m.pos, angleOf(dir), [m.id], ctx, events);
+    if (killed) fire(world, si, node, "kill", m.pos, angleOf(dir), [m.id], ctx, events);
+  }
+  fire(world, si, node, "end", origin, angle, exclude, ctx, events);
+}
+
 /** Move projectiles, resolve hits and endings. Projectiles spawned this tick start moving next tick. */
 export function stepProjectiles(world: WorldState, ctx: SkillContext, events: SimEvent[], dt: number): void {
   const active = world.projectiles;
@@ -112,7 +135,8 @@ export function stepProjectiles(world: WorldState, ctx: SkillContext, events: Si
     pr.pos = next;
     pr.travelled += node.speed * dt;
 
-    const target = world.monsters.find((m) => m.life > 0 && !pr.hit.includes(m.id) && dist(m.pos, pr.pos) < node.radius + m.radius);
+    // Lobbed projectiles sail over enemies and only land at full range.
+    const target = node.lobbed ? undefined : world.monsters.find((m) => m.life > 0 && !pr.hit.includes(m.id) && dist(m.pos, pr.pos) < node.radius + m.radius);
     if (target) {
       if (!onHit(pr, target, skill, node)) continue;
     }

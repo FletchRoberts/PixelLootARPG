@@ -1,7 +1,32 @@
 {
   "armourFactor": 10,
   "armourCap": 0.9,
-  "hitChance": { "scale": 1.25, "evasionWeight": 0.3, "min": 0.05, "max": 1 },
-  "resistance": { "defaultMax": 75, "hardMax": 90, "floor": -100 },
-  "critBonusBase": 100
+  "hitChance": {
+    "scale": 1.25,
+    "evasionWeight": 0.3,
+    "min": 0.05,
+    "max": 1
+  },
+  "resistance": {
+    "defaultMax": 75,
+    "hardMax": 90,
+    "floor": -100
+  },
+  "critBonusBase": 100,
+  "ailments": {
+    "chill": {
+      "duration": 2,
+      "slow": 30
+    },
+    "freeze": {
+      "threshold": 20,
+      "secondsPerPercent": 0.025,
+      "min": 0.3,
+      "max": 1.2
+    },
+    "ignite": {
+      "dpsPercentOfHit": 30,
+      "duration": 4
+    }
+  }
 }

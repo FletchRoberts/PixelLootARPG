@@ -26,6 +26,7 @@ function addMonster(w: WorldState, pos: { x: number; y: number }, awake = true):
     contactCooldown: 0,
     packId: 999,
     awake,
+    ailments: { chill: 0, slow: 0, freeze: 0, ignite: 0, igniteDps: 0 },
   };
   w.monsters.push(m);
   return m;

@@ -3,18 +3,252 @@
     "id": "frost_bolt",
     "name": "Frost Bolt",
     "attribute": "intelligence",
-    "tags": ["spell", "projectile", "cold"],
+    "tags": [
+      "spell",
+      "projectile",
+      "cold"
+    ],
     "cost": 6,
     "castTime": 0.45,
     "critChance": 6,
     "root": {
       "kind": "projectile",
-      "tags": ["spell", "projectile"],
-      "damage": { "cold": [10, 15] },
+      "tags": [
+        "spell",
+        "projectile"
+      ],
+      "damage": {
+        "cold": [
+          10,
+          15
+        ]
+      },
       "speed": 560,
       "range": 620,
       "radius": 9,
       "knockback": 60
+    }
+  },
+  {
+    "id": "fireball",
+    "name": "Fireball",
+    "attribute": "intelligence",
+    "tags": [
+      "spell",
+      "projectile",
+      "fire",
+      "area"
+    ],
+    "cost": 8,
+    "castTime": 0.55,
+    "critChance": 6,
+    "mods": [
+      {
+        "stat": "ignite_chance",
+        "kind": "flat",
+        "value": 30
+      }
+    ],
+    "root": {
+      "kind": "projectile",
+      "tags": [
+        "spell",
+        "projectile"
+      ],
+      "damage": {
+        "fire": [
+          12,
+          18
+        ]
+      },
+      "speed": 500,
+      "range": 600,
+      "radius": 10,
+      "knockback": 40,
+      "on": {
+        "end": [
+          {
+            "kind": "area",
+            "tags": [
+              "area",
+              "explosion"
+            ],
+            "shape": "circle",
+            "radius": 70,
+            "damageEffectiveness": 0.6,
+            "procCoefficient": 0.6,
+            "knockback": 120
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "earthsplitter",
+    "name": "Earthsplitter",
+    "attribute": "strength",
+    "tags": [
+      "attack",
+      "melee",
+      "area",
+      "slam"
+    ],
+    "cost": 7,
+    "castTime": 0,
+    "critChance": 0,
+    "mods": [
+      {
+        "stat": "damage",
+        "kind": "more",
+        "value": 40
+      },
+      {
+        "stat": "attack_speed",
+        "kind": "more",
+        "value": -25
+      }
+    ],
+    "root": {
+      "kind": "area",
+      "tags": [
+        "attack",
+        "melee",
+        "area",
+        "slam"
+      ],
+      "shape": "sector",
+      "radius": 230,
+      "arcDegrees": 40,
+      "knockback": 160
+    }
+  },
+  {
+    "id": "fanning_shot",
+    "name": "Fanning Shot",
+    "attribute": "dexterity",
+    "tags": [
+      "attack",
+      "projectile"
+    ],
+    "cost": 5,
+    "castTime": 0,
+    "critChance": 0,
+    "mods": [
+      {
+        "stat": "damage",
+        "kind": "more",
+        "value": -30
+      }
+    ],
+    "root": {
+      "kind": "projectile",
+      "tags": [
+        "attack",
+        "projectile"
+      ],
+      "count": 5,
+      "spreadDegrees": 50,
+      "speed": 720,
+      "range": 480,
+      "radius": 6,
+      "knockback": 60
+    }
+  },
+  {
+    "id": "ice_nova",
+    "name": "Ice Nova",
+    "attribute": "intelligence",
+    "tags": [
+      "spell",
+      "area",
+      "cold",
+      "nova"
+    ],
+    "cost": 10,
+    "castTime": 0.6,
+    "critChance": 6,
+    "root": {
+      "kind": "area",
+      "tags": [
+        "spell",
+        "area",
+        "nova"
+      ],
+      "shape": "circle",
+      "damage": {
+        "cold": [
+          14,
+          20
+        ]
+      },
+      "radius": 160,
+      "knockback": 90
+    }
+  },
+  {
+    "id": "magma_strike",
+    "name": "Magma Strike",
+    "attribute": "strength",
+    "tags": [
+      "attack",
+      "melee",
+      "fire",
+      "projectile",
+      "area"
+    ],
+    "cost": 7,
+    "castTime": 0,
+    "critChance": 0,
+    "mods": [
+      {
+        "stat": "ignite_chance",
+        "kind": "flat",
+        "value": 25
+      }
+    ],
+    "root": {
+      "kind": "melee",
+      "tags": [
+        "attack",
+        "melee"
+      ],
+      "arcDegrees": 100,
+      "reach": 72,
+      "knockback": 120,
+      "on": {
+        "hit": [
+          {
+            "kind": "projectile",
+            "tags": [
+              "projectile",
+              "magma"
+            ],
+            "convertTo": "fire",
+            "lobbed": true,
+            "count": 3,
+            "spreadDegrees": 70,
+            "speed": 380,
+            "range": 150,
+            "radius": 6,
+            "damageEffectiveness": 0.5,
+            "procCoefficient": 0.6,
+            "on": {
+              "end": [
+                {
+                  "kind": "area",
+                  "tags": [
+                    "area",
+                    "explosion"
+                  ],
+                  "shape": "circle",
+                  "radius": 55,
+                  "knockback": 60
+                }
+              ]
+            }
+          }
+        ]
+      }
     }
   }
 ]

@@ -1,10 +1,11 @@
 // Skill system data model (docs/skills.md). Skills are trees of deliveries; supports
 // change them through tag-scoped modifiers and generic trigger additions.
 
-import type { DamageRange } from "../combat/damage";
+import type { DamageRange, DamageType } from "../combat/damage";
 import type { Modifier } from "../stats/stats";
 
-export type DeliveryKind = "projectile" | "melee";
+export type DeliveryKind = "projectile" | "melee" | "area";
+export type AreaShape = "circle" | "sector";
 export type TriggerEvent = "hit" | "end" | "kill";
 export type Pattern = "spread" | "ring";
 export type Scope = "all" | "root" | "children";
@@ -15,7 +16,8 @@ export interface DeliveryDef {
   tags: string[];
   damage?: DamageRange; // omit to use the weapon's damage (attacks) or inherit the parent's (children)
   damageEffectiveness?: number; // multiplies damage relative to the parent (children)
-  procCoefficient?: number; // relative to the parent; scales trigger chances later
+  procCoefficient?: number; // relative to the parent; scales ailment/trigger chances
+  convertTo?: DamageType; // convert all inherited/base damage to this type (e.g. magma → fire)
   knockback?: number;
   // projectile
   count?: number;
@@ -27,9 +29,12 @@ export interface DeliveryDef {
   pierce?: number;
   chain?: number;
   fork?: number;
+  lobbed?: boolean; // flies over enemies; only "lands" (ends) at full range
   // melee
-  arcDegrees?: number;
+  arcDegrees?: number; // melee swing arc, or area sector width
   reach?: number; // px from the caster's edge
+  // area: instant burst centred on the origin; radius above is its size
+  shape?: AreaShape;
   on?: Partial<Record<TriggerEvent, DeliveryDef[]>>;
 }
 
@@ -41,6 +46,7 @@ export interface SkillDef {
   cost: number; // mana
   castTime: number; // seconds (spells); attacks use the weapon's speed
   critChance: number; // percent (spells); attacks use the weapon's
+  mods?: SupportModDef[]; // the skill's own modifiers (e.g. "40% more damage", "30% ignite chance")
   root: DeliveryDef;
 }
 
@@ -62,6 +68,8 @@ export interface SupportDef {
     on: TriggerEvent;
     spawn: DeliveryDef;
   };
+  repeat?: { count: number; delay: number }; // Echo: the whole cast repeats
+  trigger?: { on: "kill"; cooldown: number }; // Cast on Kill: the skill fires itself instead of on a button
 }
 
 /** The player's chosen skills and supports. Plain data; a command changes it. */
@@ -92,6 +100,9 @@ export interface CompiledNode {
   fork: number;
   arc: number; // radians
   reach: number;
+  shape: AreaShape;
+  lobbed: boolean;
+  igniteChance: number; // percent, before proc coefficient
   on: Partial<Record<TriggerEvent, number[]>>; // indices into CompiledSkill.nodes
 }
 
@@ -104,4 +115,6 @@ export interface CompiledSkill {
   critChance: number;
   nodes: CompiledNode[]; // nodes[0] is the root
   supports: string[];
+  repeat: { count: number; delay: number } | null;
+  trigger: { on: "kill"; cooldown: number } | null; // set: not cast by button
 }
