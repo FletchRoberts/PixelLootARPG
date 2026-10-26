@@ -181,7 +181,34 @@ tree, Reach nodes, mechanics, map mods, biomes) live in `src/data/*.json`.
   `affixes/weapon.json`) and add validation (unique ids, refs resolve, tiers
   ordered) as a script run by `typecheck`.
 
-### 3. Placeholder art: PixelGen
+### 3. Input goes through InputManager
+
+`src/client/input/InputManager.ts` is the only thing that reads keys, mouse or
+gamepad. Scenes ask it for `gameplay()` (the sim's `PlayerInput`) and
+`pressed(action)` for UI actions, and use `prompt(action)` for button hints so
+they show `E` or `✕` depending on the last-used device.
+
+- Keyboard + mouse and controller (browser "standard" mapping: DualSense,
+  Xbox, etc. in Chrome/Edge) are first-class. Every new UI screen must be
+  fully usable with a pad: navigate with `up/down/left/right` (D-pad or left
+  stick, auto-repeat), `confirm`/`cancel`, `tabPrev`/`tabNext`.
+- Pad gameplay: left stick move, right stick aim, R2 or □ attack. With the
+  right stick idle, aim assist soft-locks the nearest awake enemy, preferring
+  ones ahead (`src/client/input/aim.ts`).
+- Add new actions to `BINDINGS` in `InputManager.ts`; don't read raw input in
+  scenes.
+
+| Action | Keyboard | PlayStation pad |
+|--------|----------|-----------------|
+| move | WASD / arrows | left stick |
+| aim | mouse | right stick (else aim assist) |
+| attack | hold left click | hold R2 or □ |
+| confirm | E / Enter / Space (or click on overlays) | ✕ |
+| cancel | Esc | ○ |
+| inventory (reserved) | I | △ |
+| tab prev / next (reserved) | Q / Tab | L1 / R1 |
+
+### 4. Placeholder art: PixelGen
 
 `tools/pixel-forge.html` is a seeded procedural sprite generator exposing
 `window.PixelGen`. Use it for placeholder sprites until real assets exist.
@@ -215,6 +242,9 @@ src/
   client/
     main.ts               Phaser.Game config
     art/sprites.ts        loads PixelGen from tools/pixel-forge.html, makes textures
+    input/InputManager.ts keyboard/mouse + gamepad -> PlayerInput and UI actions
+    input/gamepad.ts      standard-mapping buttons, deadzones (pure, tested)
+    input/aim.ts          controller aim assist (pure, tested)
     scenes/BootScene.ts   builds placeholder textures + biome tilesets
     scenes/GameScene.ts   fixed-step loop, input -> sim, sim state -> tilemap/sprites/HUD/minimap
   sim/
@@ -257,6 +287,10 @@ tilesets per biome, minimap, exit portal in the end arena → "zone cleared" →
 next zone. Death retries the same zone seed.
 Measured: ~40 s pure walking with 18–24 segments; a bot run that kills its
 way through takes ~1:30 with 24–30 segments, so players should land at ~2–3 min.
+
+**Controller support (done):** DualSense/Xbox via the browser Gamepad API,
+twin-stick aim with aim assist, rumble on hits/death, prompts swap between
+keyboard and PlayStation glyphs, connect/disconnect toasts.
 
 Dev helpers: `?seed=123` in the URL pins the first zone; in dev builds
 `window.__game.world` exposes sim state for debugging/automated play.

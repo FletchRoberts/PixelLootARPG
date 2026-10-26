@@ -1,12 +1,14 @@
 import Phaser from "phaser";
 import { content } from "../../data";
 import { createWorld, DT, step, TICK_RATE, type Actor, type PlayerInput, type SimEvent, type WorldState } from "../../sim/world";
+import type { Vec } from "../../sim/core/vec";
 import { isFloor, type Zone } from "../../sim/zone/zone";
+import { InputManager } from "../input/InputManager";
 import { textureKey, TILE_SRC } from "./BootScene";
 
 const SPRITE_SCALE = 2.6; // sprite height relative to collision diameter
 const MAX_STEPS_PER_FRAME = 5; // avoid a spiral of death after a long hitch
-const OVERLAY_DELAY_MS = 600; // ignore the attack click that was held when the overlay appeared
+const OVERLAY_DELAY_MS = 600; // ignore the attack that was held when the overlay appeared
 const MINIMAP_MAX = 180; // px, longest side
 
 interface ActorView {
@@ -27,7 +29,11 @@ export class GameScene extends Phaser.Scene {
   private hudText!: Phaser.GameObjects.Text;
   private minimap!: { image: Phaser.GameObjects.Image; dots: Phaser.GameObjects.Graphics; scale: number };
   private overlayAt = 0;
-  private keys!: Record<"W" | "A" | "S" | "D" | "UP" | "LEFT" | "DOWN" | "RIGHT" | "R" | "E", Phaser.Input.Keyboard.Key>;
+  private overlayHint?: { text: Phaser.GameObjects.Text; make: () => string };
+  private inputs!: InputManager;
+  private aimMarker!: Phaser.GameObjects.Graphics;
+  private lastAim: Vec = { x: 0, y: 0 };
+  private knownPad: string | null = null;
 
   constructor() {
     super("Game");
@@ -55,8 +61,10 @@ export class GameScene extends Phaser.Scene {
       .setDepth(20_000);
     this.minimap = this.makeMinimap(zone);
 
-    this.keys = this.input.keyboard!.addKeys("W,A,S,D,UP,LEFT,DOWN,RIGHT,R,E") as typeof this.keys;
-    this.input.mouse?.disableContextMenu();
+    this.overlayHint = undefined;
+    this.aimMarker = this.add.graphics().setDepth(9_000);
+    this.inputs = new InputManager(this);
+    this.inputs.onChange = () => this.onInputChange();
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, zone.width * zone.tileSize, zone.height * zone.tileSize);
@@ -69,9 +77,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   override update(_time: number, deltaMs: number): void {
+    this.inputs.update(this.time.now);
     if (this.world.status !== "playing") {
       const ready = this.time.now - this.overlayAt > OVERLAY_DELAY_MS;
-      const pressed = this.keys.R.isDown || this.keys.E.isDown || this.input.activePointer.leftButtonDown();
+      const pressed = this.inputs.pressed("confirm") || this.input.activePointer.leftButtonDown();
       if (ready && pressed) {
         // Died: retry the same zone. Cleared: roll a new one.
         const seed = this.world.status === "dead" ? this.world.zone.seed : (Math.random() * 2 ** 32) >>> 0;
@@ -92,12 +101,34 @@ export class GameScene extends Phaser.Scene {
   }
 
   private readInput(): PlayerInput {
-    const k = this.keys;
-    const x = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0);
-    const y = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0);
+    const w = this.world;
     const pointer = this.input.activePointer;
-    const aim = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
-    return { move: { x, y }, aim: { x: aim.x, y: aim.y }, attack: pointer.leftButtonDown() };
+    const world = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
+    const input = this.inputs.gameplay(
+      { player: w.player.pos, facing: w.player.facing, enemies: w.monsters.filter((m) => m.awake).map((m) => m.pos) },
+      { x: world.x, y: world.y },
+      pointer.leftButtonDown(),
+    );
+    this.lastAim = input.aim;
+    return input;
+  }
+
+  private onInputChange(): void {
+    const pad = this.inputs.padId;
+    if (pad !== this.knownPad) {
+      this.toast(pad ? `Controller connected: ${shortPadName(pad)}` : "Controller disconnected");
+      this.knownPad = pad;
+    }
+    if (this.overlayHint) this.overlayHint.text.setText(this.overlayHint.make());
+  }
+
+  private toast(message: string): void {
+    const t = this.add
+      .text(this.scale.width / 2, 24, message, { fontFamily: "monospace", fontSize: "14px", color: "#e8e2d0", backgroundColor: "#000000aa", padding: { x: 8, y: 4 } })
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0)
+      .setDepth(40_000);
+    this.tweens.add({ targets: t, alpha: 0, delay: 2200, duration: 500, onComplete: () => t.destroy() });
   }
 
   /** Create views for actors. Removal happens through death events so they can animate out. */
@@ -125,7 +156,10 @@ export class GameScene extends Phaser.Scene {
         const isPlayer = e.targetId === this.world.player.id;
         const view = this.views.get(e.targetId);
         if (view) this.flash(view.sprite, isPlayer ? 0xff4040 : 0xffffff);
-        if (isPlayer) this.cameras.main.shake(90, 0.004);
+        if (isPlayer) {
+          this.cameras.main.shake(90, 0.004);
+          this.inputs.rumble(0.45, 0.25, 110);
+        }
         this.floatText(e.pos.x, e.pos.y - 20, String(e.amount), isPlayer ? "#ff6060" : "#ffffff");
         break;
       }
@@ -177,6 +211,20 @@ export class GameScene extends Phaser.Scene {
       `Kills ${w.kills}/${w.totalMonsters}   ${formatTime(w.tick / TICK_RATE)}`,
     ]);
     this.drawMinimapDots();
+    this.drawAimMarker();
+  }
+
+  /** Controller users can't see a cursor, so show which way the next swing goes. */
+  private drawAimMarker(): void {
+    const g = this.aimMarker.clear();
+    if (this.inputs.device !== "pad") return;
+    const p = this.world.player;
+    const a = Math.atan2(this.lastAim.y - p.pos.y, this.lastAim.x - p.pos.x);
+    const r = p.radius + 26;
+    const tip = { x: p.pos.x + Math.cos(a) * (r + 10), y: p.pos.y + Math.sin(a) * (r + 10) };
+    const l = { x: p.pos.x + Math.cos(a - 0.35) * r, y: p.pos.y + Math.sin(a - 0.35) * r };
+    const rr = { x: p.pos.x + Math.cos(a + 0.35) * r, y: p.pos.y + Math.sin(a + 0.35) * r };
+    g.fillStyle(0xe8e2d0, 0.75).fillTriangle(tip.x, tip.y, l.x, l.y, rr.x, rr.y);
   }
 
   private drawBar(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, frac: number, color: number): void {
@@ -289,14 +337,15 @@ export class GameScene extends Phaser.Scene {
   private onPlayerDied(): void {
     const view = this.views.get(this.world.player.id);
     if (view) this.tweens.add({ targets: view.sprite, angle: 90, alpha: 0.5, duration: 400 });
-    this.showOverlay("YOU DIED", "#c0302a", "press R or click to retry this zone");
+    this.inputs.rumble(1, 0.8, 400);
+    this.showOverlay("YOU DIED", "#c0302a", () => `press ${this.inputs.prompt("confirm")} to retry this zone`);
   }
 
   private onZoneComplete(): void {
-    this.showOverlay("ZONE CLEARED", "#6fd3ff", "press E or click for the next zone");
+    this.showOverlay("ZONE CLEARED", "#6fd3ff", () => `press ${this.inputs.prompt("confirm")} for the next zone`);
   }
 
-  private showOverlay(title: string, color: string, hint: string): void {
+  private showOverlay(title: string, color: string, hint: () => string): void {
     this.render();
     this.overlayAt = this.time.now;
     const w = this.world;
@@ -313,10 +362,16 @@ export class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     const sub = this.add
-      .text(width / 2, height / 2 + 48, hint, { fontFamily: "monospace", fontSize: "14px", color: "#8a8a96" })
+      .text(width / 2, height / 2 + 48, hint(), { fontFamily: "monospace", fontSize: "14px", color: "#8a8a96" })
       .setOrigin(0.5);
+    this.overlayHint = { text: sub, make: hint };
     this.add.container(0, 0, [shade, head, stats, sub]).setScrollFactor(0).setDepth(30_000);
   }
+}
+
+/** "DualSense Wireless Controller (STANDARD GAMEPAD Vendor: 054c Product: 0ce6)" -> "DualSense Wireless Controller" */
+function shortPadName(id: string): string {
+  return id.replace(/\s*\(.*\)\s*$/, "").trim() || "Gamepad";
 }
 
 function touchesFloor(zone: Zone, x: number, y: number): boolean {
