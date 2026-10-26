@@ -238,9 +238,9 @@ they show `E` or `✕` depending on the last-used device.
 | weapon attack | hold left click | hold R2 |
 | skill slots 1–4 | right click, Q, E, R | R1, □, △, L1 |
 | dodge roll | Space | ○ |
-| pickup (reserved for loot) | F | ✕ |
-| menu (Character/Skills tabs) | C | Options |
-| skills tab shortcut | I | touchpad click |
+| pickup | F | ✕ |
+| menu (Character/Inventory/Debug tabs) | C | Options |
+| inventory tab shortcut | I | touchpad click |
 | confirm (menus/overlays) | Enter / Space / click | ✕ |
 | cancel / back (menus) | Esc | ○ |
 | tab prev / next (menus) | Q / Tab | L1 / R1 |
@@ -283,7 +283,8 @@ src/
     input/InputManager.ts keyboard/mouse + gamepad -> PlayerInput and UI actions
     input/gamepad.ts      standard-mapping buttons, deadzones (pure, tested)
     input/aim.ts          controller aim assist (pure, tested)
-    ui/GameMenu.ts        pause menu: Character sheet + Skills (debug loadout editor)
+    ui/GameMenu.ts        pause menu: Character, Inventory (gems/sockets), Debug tabs
+    save/storage.ts       character save in localStorage (guarded)
     scenes/BootScene.ts   builds placeholder textures + biome tilesets
     scenes/GameScene.ts   fixed-step loop, input -> sim, sim state -> tilemap/sprites/HUD/minimap
   sim/
@@ -298,6 +299,11 @@ src/
     skills/compile.ts     skill + supports + player mods -> CompiledSkill (flat node tree)
     skills/runtime.ts     melee strikes, area bursts, projectiles (pierce→fork→chain→end), triggers, budget
     skills/describe.ts    human-readable skill breakdown for UI
+    items/types.ts        GemItem, GroundItem, CharacterSave, SocketTarget
+    items/save.ts         newCharacter, loadoutOf (save -> compiler loadout), death penalty
+    items/gems.ts         gem levels, XP, socket counts
+    items/drops.ts        weighted nestable drop tables
+    items/inventory.ts    equip / unequip / socket / unsocket rules
     world.test.ts         headless sim tests
     zone/generate.ts      linear zone generator (path, branches, arenas, packs)
     zone/zone.ts          Zone data, tile queries, circle-vs-wall collision
@@ -314,7 +320,9 @@ src/
     combat.json           armour/evasion/resistance/crit constants
     zone-gen.json         zone generator tuning (lengths, widths, packs, pools)
     biomes.json           tileset looks per biome (PixelGen floor/wall specs)
-    *.json                items/affixes/currencies/drop tables (empty)
+    drop-tables.json      weighted drop tables (gems for now)
+    gems.json             gem levels, sockets by level, bag size, pickup range
+    *.json                items/affixes/currencies (empty until gear)
     index.ts              typed content loader
 docs/
   combat.md               stats, damage and defence formulas
@@ -370,7 +378,32 @@ skill-level mods; ailments chill/freeze/ignite (rules in `combat.json`,
 Nova, Magma Strike; supports Echo (`repeat`), Cast on Kill (`trigger`: the
 skill casts itself at the corpse, its button is disabled), Added Cold,
 Concentrated, Knockback. Wave 1 of docs/skill-catalog.md is complete.
-Next (step 3): gems as items, socketing UI, skill bar from gems; then gear.
+
+
+**Step 3, gems as loot (done):** drop tables (`drop-tables.json`, nestable;
+the end-arena pack uses `zoneGen.endPackDropTable`), ground items picked up
+with ✕/F (`gems.pickupRange`), the **character save** (`CharacterSave`:
+level, XP, zones cleared, weapon, skill bar of skill gems with their own
+support sockets, weapon-attack sockets, 40-slot bag) persisted in
+localStorage (`src/client/save/storage.ts`) and passed between zones.
+Skill gems level from kill XP (`gems.json`: +damage per level, sockets
+2 → 5). Inventory changes go through `inventoryCommand()` (equip, unequip,
+socket, unsocket, debug give/weapon). Starting kit: Frost Bolt + 1 random
+support. Duplicate supports allowed. Death keeps everything and costs
+`progression.deathXpPenalty`% of the level's XP (never a level). Menu tabs:
+Character, Inventory (controller-first grid + picker), Debug.
+
+### Roadmap
+
+1. **Gear** (next): item bases, prefix/suffix affixes with tiers and item
+   level, rarities, weapons as drops (replacing the debug weapon switcher),
+   equipment slots, tooltips, gear modifiers feeding `computeStats()`.
+2. **Crafting currency** (the orb table above) acting on gear.
+3. **Art pass** (after gear exists, so slots and item types are known):
+   extend `tools/pixel-forge.html` with more weapon types, animation frames
+   (walk / attack / hit), and paper-doll gear appearance on the character;
+   make editing weapon/gear looks easy in the tool.
+4. Cairnstones + map mods, then the Reach, passive tree, map mechanics.
 
 **Controller support (done):** DualSense/Xbox via the browser Gamepad API,
 twin-stick aim with aim assist, rumble on hits/death, prompts swap between

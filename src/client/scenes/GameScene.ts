@@ -266,7 +266,7 @@ export class GameScene extends Phaser.Scene {
         this.toast("Bag is full");
         break;
       case "gem_level":
-        this.toast(`${itemName(e.gem)} reached level ${e.gem.level} (${e.gem.sockets?.length ?? 0} sockets)`);
+        this.toast(`${itemName({ ...e.gem, level: 1 })} reached level ${e.gem.level} (${e.gem.sockets?.length ?? 0} sockets)`);
         this.persist();
         break;
       case "drop":
@@ -391,6 +391,8 @@ export class GameScene extends Phaser.Scene {
         v = { icon, label };
         this.itemViews.set(g.id, v);
       }
+      if (!this.tweens.isTweening(v.icon)) v.icon.setPosition(g.pos.x, g.pos.y);
+      v.label.setPosition(g.pos.x, g.pos.y - 22);
       const hot = target?.id === g.id;
       v.label.setText(hot ? `[${this.inputs.prompt("pickup")}] ${itemName(g.item)}` : itemName(g.item)).setColor(hot ? "#ffffff" : GEM_LABEL);
       v.label.setBackgroundColor(hot ? "#1c5a54ee" : "#000000aa");

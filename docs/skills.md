@@ -1,6 +1,7 @@
 # Skills, supports and build-defining gear
 
-Status: **partly implemented**. Projectile and melee deliveries, hit/end/kill
+Status: **partly implemented**; gems are real items since step 3 (see
+`src/sim/items/`). Projectile and melee deliveries, hit/end/kill
 triggers, stat + structure supports, limits and weapon attacks are in
 `src/sim/skills/`. Areas, zones, status effects and the rest come in later
 waves. Pairs with `docs/combat.md` (the damage math).

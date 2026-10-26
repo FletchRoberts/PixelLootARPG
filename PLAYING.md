@@ -34,60 +34,48 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 | Weapon attack | Hold left click | Hold R2 |
 | Skill 1 / 2 / 3 / 4 | Right click / Q / E / R | R1 / □ / △ / L1 |
 | Dodge roll | Space | ○ |
-| Pick up (nothing drops yet) | F | ✕ |
-| Menu (Character + Skills tabs, pauses the game) | C | Options |
-| Straight to the Skills tab | I | Touchpad click |
+| **Pick up** the highlighted gem | F | ✕ |
+| Menu (Character / Inventory / Debug, pauses the game) | C | Options |
+| Straight to Inventory | I | Touchpad click (or Options → R1) |
 | Next zone / retry | Enter, Space or click | ✕ |
 
-**In the menu:** up/down to pick a row, left/right (or ✕ / Enter) to change it, L1/R1 (Q/Tab) to switch tabs, ○ / Esc to close.
+**In the menu:** D-pad / WASD to move, ✕ / Enter to choose, ○ / Esc to go back or close, L1 / R1 (Q / Tab) to switch tabs.
 
 Controller: plug it in, open the page, press any button. A "Controller connected" message appears.
 
 ## What to do
 
-1. **Hold R2 / left click to attack with your weapon.** Nothing attacks on its own. On controller you don't need to aim precisely: with the right stick untouched, aim assist turns your attacks and skills toward the nearest enemy you can see (preferring ones in front of you). Use the right stick when you want to aim yourself.
-2. **Skills:** you start with **Frost Bolt on Skill 1** (R1 / right click). Hold the button to keep casting toward where you aim. Each cast costs mana (blue bar). If you run dry you'll see "Not enough mana".
-3. **Build combos in the menu's Skills tab** (Options → R1, or touchpad / I). It's a debug editor until gems drop as loot:
-   - **Weapon:** Rusty Sword (melee swing), Short Bow (arrows) or Apprentice Wand (lightning bolts). The weapon decides what R2 / left click does.
-   - **Skills (pick any for each of the 4 buttons):**
-     - **Frost Bolt**: cold bolt that chills.
-     - **Fireball**: explodes on impact, can set enemies on fire.
-     - **Ice Nova**: ring of cold around you, freezes weaker enemies.
-     - **Earthsplitter**: long forward slam (uses your weapon's damage).
-     - **Fanning Shot**: fan of 5 arrows (weapon damage).
-     - **Magma Strike**: melee hit that lobs 3 magma balls which explode where they land.
-   - **Supports:** up to 4 per skill, *including your weapon attack*:
-     - **Volley** (+2 projectiles), **Pierce**, **Chain**, **Fork**, **Shatter** (burst into 5 shards).
-     - **Echo**: the skill repeats itself 0.3 s later for free.
-     - **Cast on Kill**: put it on a spell and that spell goes off by itself wherever you kill something. Its button then shows "on kill" and does nothing when pressed.
-     - **Added Cold**: adds cold damage (your sword starts chilling and freezing).
-     - **Concentrated**: smaller area, more damage.
-     - **Knockback**: send enemies flying.
-   - The right side of the panel spells out what your build does.
-   - Combos to try:
-     - Ice Nova + Cast on Kill, then fight with anything: chains of novas through a pack.
-     - Fireball + Volley + Echo: six fireballs per press.
-     - Magma Strike + Volley: 5 magma balls per enemy hit.
-     - Sword + Added Cold + Knockback: freeze and shove.
-4. **Dodge roll** (○ / Space) dashes you out of trouble. While rolling, enemies can't hurt you by touch.
-5. Follow the path. Packs sleep until you get close, then chase you. Kills give XP; level-ups add life, mana and attributes.
-6. Reach the glowing EXIT to clear the zone. Each cleared zone raises the monster level by 1. Your level and loadout carry over.
-7. If you die, confirm retries the same zone.
+1. **Your character is saved in the browser.** Refreshing or closing the page keeps your level, gems and bag. (Menu → Debug → Reset character starts over.)
+2. You start with **Frost Bolt** on Skill 1 (R1 / right click) and **one random support gem** in your bag.
+3. **Monsters drop gems.** They appear on the floor with a teal name; the closest one shows the pick-up button. Press **✕ / F** to pick it up. The end-of-zone pack drops the most. Gem colour = attribute: red Strength, green Dexterity, blue Intelligence.
+4. **Equip them in Menu → Inventory:**
+   - The top row is your **weapon attack** with 2 support sockets; below are your **4 skill buttons**.
+   - Move to a skill button and press ✕ to equip a skill gem from your bag.
+   - Move right onto a **socket** and press ✕ to put in a support. Only supports that fit that skill are offered. Choose "Remove" to take one out.
+   - The right side explains the selected gem and what the whole skill now does.
+5. **Skill gems level up** as you kill things while they're equipped: more damage, and more sockets (2 at first, then 3, 4 and 5). Supports socketed in a gem stay with it if you unequip it.
+6. Skills: Frost Bolt, Fireball, Ice Nova, Earthsplitter, Fanning Shot, Magma Strike. Supports: Volley, Pierce, Chain, Fork, Shatter, Echo, Cast on Kill, Added Cold, Concentrated, Knockback. (See the right side of the Inventory tab for what each does.)
+7. **Dying** keeps everything you picked up and costs 10% of your current level's XP (you never lose a level). You retry the same zone.
+8. Reach the glowing EXIT to clear the zone. Each cleared zone raises the monster level by 1.
+9. **Menu → Debug** can give you any gem, switch weapon (Sword / Bow / Wand) or reset the character. Handy for trying combos without farming.
 
 ## Reading the screen
 
 - Top left: life and mana bars, level, zone name and monster level, kills, timer, button hints.
 - Bottom: skill bar (button, skill, mana cost; dim when you can't afford it) and the XP bar.
 - Damage numbers: white = your hits, **yellow with "!" = critical**, red = damage you take, grey "evade" = dodged.
+- Gems on the floor: teal name; the one you'd pick up is highlighted with the button to press. Teal squares on the minimap.
 - Enemy status: **blue ring = chilled** (slowed), **solid icy disc = frozen** (can't move or attack), **flickering embers = burning**.
 - Menu → Character tab: attributes, defences, and damage/speed/DPS for your weapon attack and each skill.
 
 ## New in this version
 
-- **5 new skills:** Fireball, Ice Nova, Earthsplitter, Fanning Shot, Magma Strike.
-- **5 new supports:** Echo, Cast on Kill, Added Cold, Concentrated, Knockback.
-- **Explosions and cones** (area attacks), with walls blocking them.
-- **Chill, freeze and ignite**, shown on enemies as a blue ring, an icy disc and embers.
+- **Gems drop as loot.** Pick up with ✕ / F.
+- **Inventory**: equip skill gems on your buttons and socket supports into them (and into your weapon attack).
+- **Gem levels and sockets** grow as you play.
+- **Your character is saved** in the browser between sessions.
+- **Death** now costs 10% of a level's XP but keeps all items.
+- The old Skills editor moved to **Debug** (give gems, switch weapon, reset).
 
 ## Extras
 
