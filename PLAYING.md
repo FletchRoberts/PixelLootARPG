@@ -20,6 +20,11 @@ npm run dev
 ```
 Then open **http://localhost:5173** in Chrome or Edge. Stop with `Ctrl+C` (answer `Y`).
 
+**PowerShell says "running scripts is disabled on this system"?** You're in PowerShell, not Command Prompt (the prompt starts with `PS`). Either type `npm.cmd` instead of `npm` (`npm.cmd install`, `npm.cmd run dev`), or run this once and answer `Y`, after which plain `npm` works:
+```
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
 ## Controls
 
 | Action | Keyboard + mouse | PS5 controller |
