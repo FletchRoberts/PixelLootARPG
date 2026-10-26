@@ -1,7 +1,8 @@
 # Combat math: stats, damage and defences
 
-Status: **proposal**, the reference for Phase 3 (gear and loot). Nothing here
-is implemented yet except the placeholder melee/contact damage.
+Status: **implemented** for §1–6 except block, conversion, penetration sources
+and energy shield (`src/sim/stats/`, `src/sim/combat/damage.ts`). Constants
+are in `src/data/combat.json`.
 
 We copy Path of Exile 2's structure, simplified where PoE's complexity doesn't
 earn its keep yet, and keep every constant in data so we can tune it.

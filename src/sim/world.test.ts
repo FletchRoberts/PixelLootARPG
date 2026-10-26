@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { content } from "../data";
-import { createWorld, step, TICK_RATE, type MonsterState, type PlayerInput, type SimContent, type WorldState } from "./world";
+import { createWorld, NEW_PROGRESS, progressAfterClear, step, TICK_RATE, type MonsterState, type PlayerInput, type SimContent, type WorldState } from "./world";
+import { xpToNext } from "./stats/character";
 import { buildFlowField, nextStep } from "./zone/flowfield";
 import { isFloorAt, tileCenter, tileOf } from "./zone/zone";
 
-const idle = (aim = { x: 0, y: 0 }): PlayerInput => ({ move: { x: 0, y: 0 }, aim, attack: false });
+const idle = (aim = { x: 0, y: 0 }): PlayerInput => ({ move: { x: 0, y: 0 }, aim, attack: false, autoAttack: false });
 
 /** Same zones, but no monsters, so tests control exactly which monsters exist. */
 const quiet: SimContent = { ...content, zoneGen: { ...content.zoneGen, monsterPool: [] } };
@@ -12,6 +13,8 @@ const quiet: SimContent = { ...content, zoneGen: { ...content.zoneGen, monsterPo
 function addMonster(w: WorldState, pos: { x: number; y: number }, awake = true): MonsterState {
   const def = content.monsters[0]!;
   const m: MonsterState = {
+    evasionEntropy: 0.5,
+    level: w.monsterLevel,
     id: w.nextId++,
     defId: def.id,
     pos: { ...pos },
@@ -76,7 +79,7 @@ describe("world", () => {
     const w = createWorld(quiet, 1);
     addMonster(w, { x: w.player.pos.x + 40, y: w.player.pos.y });
     for (let i = 0; i < 600 && w.monsters.length > 0; i++) {
-      step(w, quiet, { move: { x: 0, y: 0 }, aim: w.monsters[0]!.pos, attack: true });
+      step(w, quiet, { ...idle(w.monsters[0]!.pos), attack: true });
     }
     expect(w.monsters).toHaveLength(0);
     expect(w.kills).toBe(1);
@@ -114,10 +117,65 @@ describe("world", () => {
     const run = () => {
       const w = createWorld(content, 42);
       for (let i = 0; i < 900; i++) {
-        step(w, content, { move: { x: Math.sin(i / 30), y: Math.cos(i / 45) }, aim: { x: 0, y: 0 }, attack: i % 3 === 0 });
+        step(w, content, { move: { x: Math.sin(i / 30), y: Math.cos(i / 45) }, aim: { x: 0, y: 0 }, attack: i % 3 === 0, autoAttack: true });
       }
       return JSON.stringify(w);
     };
     expect(run()).toBe(run());
+  });
+
+  it("auto attack swings at the nearest enemy in reach without pressing attack", () => {
+    const w = createWorld(quiet, 1);
+    const m = addMonster(w, { x: w.player.pos.x + 40, y: w.player.pos.y });
+    const ev = step(w, quiet, { ...idle({ x: w.player.pos.x - 100, y: w.player.pos.y }), autoAttack: true });
+    expect(ev.some((e) => e.type === "swing")).toBe(true);
+    expect(m.life).toBeLessThan(m.maxLife);
+  });
+
+  it("with auto attack off, nothing swings unless attack is held", () => {
+    const w = createWorld(quiet, 1);
+    addMonster(w, { x: w.player.pos.x + 40, y: w.player.pos.y });
+    for (let i = 0; i < 60; i++) expect(step(w, quiet, idle()).some((e) => e.type === "swing")).toBe(false);
+  });
+
+  it("kills grant XP and enough XP levels the player up with more life", () => {
+    const w = createWorld(quiet, 1);
+    const before = w.player.maxLife;
+    w.player.xp = xpToNext(1, content.progression) - 1;
+    addMonster(w, { x: w.player.pos.x + 40, y: w.player.pos.y });
+    let levelled = false;
+    for (let i = 0; i < 600 && w.monsters.length; i++) levelled ||= step(w, quiet, { ...idle(), autoAttack: true }).some((e) => e.type === "level_up");
+    expect(levelled).toBe(true);
+    expect(w.player.level).toBe(2);
+    expect(w.player.maxLife).toBeGreaterThan(before);
+  });
+
+  it("monster level rises with zones cleared and scales their life", () => {
+    const w1 = createWorld(content, 9);
+    const w5 = createWorld(content, 9, { ...NEW_PROGRESS, zonesCleared: 4 });
+    expect(w5.monsterLevel).toBe(5);
+    expect(w5.monsters[0]!.maxLife).toBeCloseTo(w1.monsters[0]!.maxLife * Math.pow(content.monsterScaling.life, 4));
+  });
+
+  it("armour reduces contact damage", () => {
+    const hurt = (armour: number) => {
+      const w = createWorld(quiet, 2);
+      w.player.stats.armour = armour;
+      addMonster(w, { x: w.player.pos.x + 30, y: w.player.pos.y });
+      for (let i = 0; i < 120; i++) step(w, quiet, idle());
+      return w.player.maxLife - w.player.life;
+    };
+    expect(hurt(200)).toBeLessThan(hurt(0) * 0.5);
+  });
+
+  it("level and XP carry into the next zone, which is one monster level higher", () => {
+    const w = createWorld(quiet, 4, { level: 3, xp: 50, zonesCleared: 2 });
+    expect(w.player.level).toBe(3);
+    expect(w.player.life).toBe(w.player.maxLife);
+    w.status = "complete";
+    const next = createWorld(quiet, 5, progressAfterClear(w));
+    expect(next.player.level).toBe(3);
+    expect(next.player.xp).toBe(50);
+    expect(next.monsterLevel).toBe(4);
   });
 });

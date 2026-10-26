@@ -1,0 +1,15 @@
+{
+  "maxLevel": 100,
+  "xpToNext": { "base": 150, "growth": 1.25 },
+  "perLevel": [
+    { "stat": "life", "kind": "flat", "value": 8 },
+    { "stat": "mana", "kind": "flat", "value": 4 },
+    { "stat": "accuracy", "kind": "flat", "value": 4 },
+    { "stat": "evasion", "kind": "flat", "value": 3 },
+    { "stat": "strength", "kind": "flat", "value": 1 },
+    { "stat": "dexterity", "kind": "flat", "value": 1 },
+    { "stat": "intelligence", "kind": "flat", "value": 1 }
+  ],
+  "passivePointsPerLevel": 1,
+  "xpPenalty": { "freeLevels": 3, "perLevel": 0.2, "min": 0.1 }
+}

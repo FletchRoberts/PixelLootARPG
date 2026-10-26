@@ -38,6 +38,7 @@ export const PS_GLYPH: Partial<Record<PadButton, string>> = {
   l2: "L2",
   r2: "R2",
   options: "OPTIONS",
+  create: "CREATE",
   touchpad: "TOUCHPAD",
 };
 

@@ -282,14 +282,22 @@ src/
     core/rng.ts           seeded RNG (serializable state) with weighted pick
     core/vec.ts           plain-object 2D vector helpers
     data/types.ts         content schemas
-    world.ts              zone sim: createWorld(seed) / step() -> SimEvent[]
+    world.ts              zone sim: createWorld(seed, progress) / step() -> SimEvent[]
+    stats/stats.ts        stat ids, flat/increased/more modifiers, computeStats()
+    stats/character.ts    player stats from base + levels + attributes; XP, levels, monster scaling
+    combat/damage.ts      hit pipeline: rollHit / applyHit / expectedHit (docs/combat.md)
     world.test.ts         headless sim tests
     zone/generate.ts      linear zone generator (path, branches, arenas, packs)
     zone/zone.ts          Zone data, tile queries, circle-vs-wall collision
     zone/flowfield.ts     BFS distance field; monsters path along it
   data/
-    characters.json       player characters (stats, melee attack, sprite)
-    monsters.json         monsters (stats, contact damage, sprite)
+    characters.json       player characters (base stats, attributes, starting weapon, sprite)
+    weapons.json          weapon bases and the auto attack each grants
+    monsters.json         monsters (life, typed damage, accuracy/evasion/armour, xp, sprite)
+    progression.json      XP curve, per-level gains, XP penalty
+    attributes.json       per-point Str/Dex/Int bonuses
+    monster-scaling.json  per-level monster growth rates
+    combat.json           armour/evasion/resistance/crit constants
     zone-gen.json         zone generator tuning (lengths, widths, packs, pools)
     biomes.json           tileset looks per biome (PixelGen floor/wall specs)
     *.json                items/affixes/currencies/drop tables (empty)
@@ -322,6 +330,13 @@ tilesets per biome, minimap, exit portal in the end arena → "zone cleared" →
 next zone. Death retries the same zone seed.
 Measured: ~40 s pure walking with 18–24 segments; a bot run that kills its
 way through takes ~1:30 with 24–30 segments, so players should land at ~2–3 min.
+
+**Step 1, stats & combat core (done):** modifiers + `computeStats()`,
+PoE2-style hit pipeline (armour, entropy evasion, resistances, crits),
+levels/XP carried between zones, Str/Dex/Int with small bonuses, mana pool +
+regen (no spenders yet), monster level = 1 + zones cleared with per-level
+scaling, sword auto attack (toggle T / Create), character sheet (C / Options).
+Next: step 2, the wave-1 skill engine (docs/skill-catalog.md §7).
 
 **Controller support (done):** DualSense/Xbox via the browser Gamepad API,
 twin-stick aim with aim assist, rumble on hits/death, prompts swap between

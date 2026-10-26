@@ -1,0 +1,15 @@
+{
+  "strength": [
+    { "stat": "life", "kind": "flat", "value": 0.5 },
+    { "stat": "damage", "kind": "increased", "value": 0.2, "tags": ["melee", "physical"] }
+  ],
+  "dexterity": [
+    { "stat": "accuracy", "kind": "flat", "value": 2 },
+    { "stat": "evasion", "kind": "increased", "value": 0.4 },
+    { "stat": "attack_speed", "kind": "increased", "value": 0.1 }
+  ],
+  "intelligence": [
+    { "stat": "mana", "kind": "flat", "value": 0.5 },
+    { "stat": "damage", "kind": "increased", "value": 0.2, "tags": ["elemental"] }
+  ]
+}

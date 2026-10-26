@@ -2,10 +2,20 @@
   {
     "id": "hero",
     "name": "Wanderer",
-    "life": 100,
     "speed": 220,
     "radius": 14,
-    "attack": { "damage": [8, 13], "range": 72, "arcDegrees": 110, "cooldown": 0.35, "knockback": 260 },
+    "base": {
+      "life": 95,
+      "mana": 35,
+      "mana_regen": 2,
+      "accuracy": 80,
+      "evasion": 0,
+      "armour": 0,
+      "strength": 10,
+      "dexterity": 10,
+      "intelligence": 10
+    },
+    "startingWeapon": "rusty_sword",
     "sprite": { "type": "hero", "seed": "wanderer-0" }
   }
 ]

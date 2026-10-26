@@ -46,11 +46,20 @@ export interface SpriteSpec {
   size?: number; // source pixels, default 32
 }
 
+export type Range = [number, number];
+export type DamageTypeId = "physical" | "fire" | "cold" | "lightning" | "chaos";
+export type ElementId = "fire" | "cold" | "lightning" | "chaos";
+
 export interface Monster {
   id: string;
   name: string;
-  life: number;
-  damage: number; // contact damage per hit
+  life: number; // at level 1; scaled by monster-scaling.json
+  damage: Partial<Record<DamageTypeId, Range>>; // contact hit at level 1
+  accuracy: number;
+  evasion: number;
+  armour: number;
+  resist?: Partial<Record<ElementId, number>>;
+  xp: number; // at level 1
   speed: number; // px/s
   radius: number; // px, collision circle
   contactCooldown: number; // seconds between contact hits on the same target
@@ -59,25 +68,62 @@ export interface Monster {
   sprite?: SpriteSpec;
 }
 
-export interface MeleeAttack {
-  damage: [number, number];
-  range: number; // px from the attacker's edge
-  arcDegrees: number;
-  cooldown: number; // seconds
-  knockback: number; // px/s impulse
+/** Inline modifier in data files (same shape as sim/stats Modifier). */
+export interface ModifierDef {
+  stat: string;
+  kind: "flat" | "increased" | "more";
+  value: number;
+  tags?: string[];
+}
+
+/** A weapon base and the auto attack it grants. */
+export interface WeaponDef {
+  id: string;
+  name: string;
+  type: string; // sword, bow, wand, …
+  autoAttack: {
+    delivery: "melee";
+    tags: string[];
+    damage: Partial<Record<DamageTypeId, Range>>;
+    attacksPerSecond: number;
+    critChance: number; // percent
+    range: number; // px from the attacker's edge
+    arcDegrees: number;
+    knockback: number; // px/s impulse
+  };
 }
 
 export interface Character {
   id: string;
   name: string;
-  life: number;
   speed: number;
   radius: number;
-  attack: MeleeAttack;
+  base: Record<string, number>; // stat id -> base value at level 1 (life, mana, strength, …)
+  startingWeapon: string;
   sprite?: SpriteSpec;
 }
 
-export type Range = [number, number];
+export interface Progression {
+  maxLevel: number;
+  xpToNext: { base: number; growth: number }; // xp for level L→L+1 = base × growth^(L-1)
+  perLevel: ModifierDef[]; // granted once per level above 1
+  passivePointsPerLevel: number;
+  xpPenalty: { freeLevels: number; perLevel: number; min: number }; // when levels differ a lot
+}
+
+/** Small bonuses per attribute point (docs/skills.md). */
+export type AttributeBonuses = Record<"strength" | "dexterity" | "intelligence", ModifierDef[]>;
+
+/** Per-level exponential growth for monsters: value × rate^(level-1). */
+export type MonsterScaling = Record<"life" | "damage" | "accuracy" | "evasion" | "armour" | "xp", number>;
+
+export interface CombatRulesDef {
+  armourFactor: number;
+  armourCap: number;
+  hitChance: { scale: number; evasionWeight: number; min: number; max: number };
+  resistance: { defaultMax: number; hardMax: number; floor: number };
+  critBonusBase: number;
+}
 
 export interface WeightedRef {
   id: string;

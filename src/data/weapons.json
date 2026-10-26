@@ -1,0 +1,17 @@
+[
+  {
+    "id": "rusty_sword",
+    "name": "Rusty Sword",
+    "type": "sword",
+    "autoAttack": {
+      "delivery": "melee",
+      "tags": ["attack", "melee"],
+      "damage": { "physical": [8, 13] },
+      "attacksPerSecond": 2.8,
+      "critChance": 5,
+      "range": 72,
+      "arcDegrees": 110,
+      "knockback": 260
+    }
+  }
+]

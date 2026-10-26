@@ -1,6 +1,20 @@
 import Phaser from "phaser";
 import { content } from "../../data";
-import { createWorld, DT, step, TICK_RATE, type Actor, type PlayerInput, type SimEvent, type WorldState } from "../../sim/world";
+import {
+  createWorld,
+  DT,
+  NEW_PROGRESS,
+  progressAfterClear,
+  step,
+  TICK_RATE,
+  weaponSummary,
+  type Actor,
+  type PlayerInput,
+  type Progress,
+  type SimEvent,
+  type WorldState,
+} from "../../sim/world";
+import { xpToNext } from "../../sim/stats/character";
 import type { Vec } from "../../sim/core/vec";
 import { isFloor, type Zone } from "../../sim/zone/zone";
 import { InputManager } from "../input/InputManager";
@@ -17,6 +31,7 @@ interface ActorView {
 
 interface SceneData {
   seed?: number;
+  progress?: Progress; // level/xp/zones cleared at the start of this zone
 }
 
 /** Renders the sim and feeds it input. Owns no game rules. */
@@ -34,6 +49,8 @@ export class GameScene extends Phaser.Scene {
   private aimMarker!: Phaser.GameObjects.Graphics;
   private lastAim: Vec = { x: 0, y: 0 };
   private knownPad: string | null = null;
+  private startProgress: Progress = NEW_PROGRESS;
+  private sheet!: Phaser.GameObjects.Text;
 
   constructor() {
     super("Game");
@@ -43,7 +60,8 @@ export class GameScene extends Phaser.Scene {
     // ?seed=123 in the URL pins the first zone, handy for reproducing layouts.
     const urlSeed = Number(new URLSearchParams(location.search).get("seed"));
     const seed = data.seed ?? (Number.isFinite(urlSeed) && urlSeed > 0 ? urlSeed : (Math.random() * 2 ** 32) >>> 0);
-    this.world = createWorld(content, seed);
+    this.startProgress = data.progress ?? NEW_PROGRESS;
+    this.world = createWorld(content, seed, this.startProgress);
     this.accumulator = 0;
     this.views.clear();
 
@@ -60,6 +78,11 @@ export class GameScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(20_000);
     this.minimap = this.makeMinimap(zone);
+    this.sheet = this.add
+      .text(16, 150, "", { fontFamily: "monospace", fontSize: "13px", color: "#d8d8e0", backgroundColor: "#0b0b10dd", padding: { x: 10, y: 8 }, lineSpacing: 3 })
+      .setScrollFactor(0)
+      .setDepth(25_000)
+      .setVisible(false);
 
     this.overlayHint = undefined;
     this.aimMarker = this.add.graphics().setDepth(9_000);
@@ -82,12 +105,21 @@ export class GameScene extends Phaser.Scene {
       const ready = this.time.now - this.overlayAt > OVERLAY_DELAY_MS;
       const pressed = this.inputs.pressed("confirm") || this.input.activePointer.leftButtonDown();
       if (ready && pressed) {
-        // Died: retry the same zone. Cleared: roll a new one.
-        const seed = this.world.status === "dead" ? this.world.zone.seed : (Math.random() * 2 ** 32) >>> 0;
-        this.scene.restart({ seed } satisfies SceneData);
+        // Died: retry the same zone from where you entered it. Cleared: roll a new, harder one.
+        const next: SceneData =
+          this.world.status === "dead"
+            ? { seed: this.world.zone.seed, progress: this.startProgress }
+            : { seed: (Math.random() * 2 ** 32) >>> 0, progress: progressAfterClear(this.world) };
+        this.scene.restart(next);
       }
       return;
     }
+
+    if (this.inputs.pressed("toggleAuto")) {
+      const on = this.inputs.toggleAutoAttack();
+      this.toast(`Auto attack ${on ? "ON" : "OFF"}`);
+    }
+    if (this.inputs.pressed("character")) this.sheet.setVisible(!this.sheet.visible);
 
     this.accumulator += Math.min(deltaMs / 1000, DT * MAX_STEPS_PER_FRAME);
     const input = this.readInput();
@@ -160,9 +192,19 @@ export class GameScene extends Phaser.Scene {
           this.cameras.main.shake(90, 0.004);
           this.inputs.rumble(0.45, 0.25, 110);
         }
-        this.floatText(e.pos.x, e.pos.y - 20, String(e.amount), isPlayer ? "#ff6060" : "#ffffff");
+        const shown = String(Math.max(1, Math.round(e.amount)));
+        if (e.crit) this.floatText(e.pos.x, e.pos.y - 24, `${shown}!`, isPlayer ? "#ff3030" : "#ffd84a", 20);
+        else this.floatText(e.pos.x, e.pos.y - 20, shown, isPlayer ? "#ff6060" : "#ffffff");
         break;
       }
+      case "evade":
+        this.floatText(e.pos.x, e.pos.y - 20, "evade", "#9aa0b0", 12);
+        break;
+      case "level_up":
+        this.onLevelUp(e.level);
+        break;
+      case "xp":
+        break;
       case "death": {
         const view = this.views.get(e.actorId);
         this.views.delete(e.actorId);
@@ -203,13 +245,20 @@ export class GameScene extends Phaser.Scene {
 
     const p = w.player;
     const biome = content.biomes.find((b) => b.id === w.zone.biome)!;
+    const need = xpToNext(p.level, content.progression);
     this.hud.clear();
     this.drawBar(this.hud, 16, 16, 240, 18, p.life / p.maxLife, 0xc0302a);
-    this.hudText.setText([
-      `HP ${Math.ceil(p.life)}/${p.maxLife}`,
-      `${biome.name}`,
+    this.drawBar(this.hud, 16, 38, 240, 10, p.mana / Math.max(1, p.maxMana), 0x3a6fd8, 0x141a3a);
+    // XP bar along the bottom edge.
+    const { width, height } = this.scale;
+    this.drawBar(this.hud, 16, height - 14, width - 32, 6, Number.isFinite(need) ? p.xp / need : 1, 0xd8b04a, 0x2a2414);
+    this.hudText.setPosition(16, 54).setText([
+      `HP ${Math.ceil(p.life)}/${Math.round(p.maxLife)}   MP ${Math.floor(p.mana)}/${Math.round(p.maxMana)}`,
+      `Level ${p.level}   ${biome.name} (monster lvl ${w.monsterLevel})`,
       `Kills ${w.kills}/${w.totalMonsters}   ${formatTime(w.tick / TICK_RATE)}`,
+      `Auto attack ${this.inputs.autoAttack ? "ON" : "OFF"} [${this.inputs.prompt("toggleAuto")}]   Character [${this.inputs.prompt("character")}]`,
     ]);
+    if (this.sheet.visible) this.sheet.setText(this.sheetLines());
     this.drawMinimapDots();
     this.drawAimMarker();
   }
@@ -227,9 +276,47 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(0xe8e2d0, 0.75).fillTriangle(tip.x, tip.y, l.x, l.y, rr.x, rr.y);
   }
 
-  private drawBar(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, frac: number, color: number): void {
+  /** Character sheet: numbers come from the sim's own stat/damage functions. */
+  private sheetLines(): string[] {
+    const w = this.world;
+    const p = w.player;
+    const s = p.stats;
+    const wpn = weaponSummary(w, content);
+    const need = xpToNext(p.level, content.progression);
+    const r = (n: number | undefined) => Math.round(n ?? 0);
+    const range = Object.entries(wpn.ranges)
+      .map(([t, [lo, hi]]) => `${r(lo)}-${r(hi)} ${t}`)
+      .join(", ");
+    const points = (p.level - 1) * content.progression.passivePointsPerLevel;
+    return [
+      `CHARACTER                    [${this.inputs.prompt("character")}] close`,
+      `Level ${p.level}   XP ${r(p.xp)} / ${Number.isFinite(need) ? need : "max"}`,
+      `Passive points ${points} (tree coming later)`,
+      ``,
+      `Strength ${r(s.strength)}  Dexterity ${r(s.dexterity)}  Intelligence ${r(s.intelligence)}`,
+      `Life ${r(p.maxLife)}   Mana ${r(p.maxMana)} (+${(s.mana_regen ?? 0).toFixed(1)}/s)`,
+      ``,
+      `Armour ${r(s.armour)}   Evasion ${r(s.evasion)}   Accuracy ${r(s.accuracy)}`,
+      `Resist  fire ${r(s.fire_resistance)}%  cold ${r(s.cold_resistance)}%  lightning ${r(s.lightning_resistance)}%  chaos ${r(s.chaos_resistance)}%`,
+      ``,
+      `${wpn.name} (auto attack)`,
+      `  ${range}`,
+      `  ${wpn.attacksPerSecond.toFixed(2)} attacks/s   crit ${wpn.critChance.toFixed(1)}% (+${r(wpn.critBonus)}%)`,
+      `  DPS ${wpn.dps.toFixed(1)}`,
+    ];
+  }
+
+  private onLevelUp(level: number): void {
+    const p = this.world.player;
+    this.toast(`Level ${level}!`);
+    const ring = this.add.circle(p.pos.x, p.pos.y, p.radius * 2, 0xffd84a, 0).setStrokeStyle(4, 0xffd84a, 1).setDepth(p.pos.y + 2);
+    this.tweens.add({ targets: ring, scale: 3, alpha: 0, duration: 600, onComplete: () => ring.destroy() });
+    this.floatText(p.pos.x, p.pos.y - 40, "LEVEL UP", "#ffd84a", 18);
+  }
+
+  private drawBar(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, frac: number, color: number, back = 0x3a1414): void {
     g.fillStyle(0x000000, 0.7).fillRect(x - 1, y - 1, w + 2, h + 2);
-    g.fillStyle(0x3a1414, 1).fillRect(x, y, w, h);
+    g.fillStyle(back, 1).fillRect(x, y, w, h);
     g.fillStyle(color, 1).fillRect(x, y, w * Phaser.Math.Clamp(frac, 0, 1), h);
   }
 
@@ -326,9 +413,9 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(70, () => sprite.active && sprite.clearTint());
   }
 
-  private floatText(x: number, y: number, text: string, color: string): void {
+  private floatText(x: number, y: number, text: string, color: string, size = 14): void {
     const t = this.add
-      .text(x, y, text, { fontFamily: "monospace", fontSize: "14px", color, stroke: "#000", strokeThickness: 3 })
+      .text(x, y, text, { fontFamily: "monospace", fontSize: `${size}px`, color, stroke: "#000", strokeThickness: 3 })
       .setOrigin(0.5)
       .setDepth(15_000);
     this.tweens.add({ targets: t, y: y - 28, alpha: 0, duration: 600, onComplete: () => t.destroy() });

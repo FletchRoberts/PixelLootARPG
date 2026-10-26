@@ -12,7 +12,18 @@ import { isActive, isDown, leftStick, pickGamepad, PS_GLYPH, rightStick, snapsho
 
 export type Device = "kbm" | "pad";
 
-export type Action = "confirm" | "cancel" | "inventory" | "up" | "down" | "left" | "right" | "tabPrev" | "tabNext";
+export type Action =
+  | "confirm"
+  | "cancel"
+  | "inventory"
+  | "character"
+  | "toggleAuto"
+  | "up"
+  | "down"
+  | "left"
+  | "right"
+  | "tabPrev"
+  | "tabNext";
 
 interface Binding {
   keys: string[]; // Phaser key names
@@ -26,6 +37,8 @@ const BINDINGS: Record<Action, Binding> = {
   confirm: { keys: ["E", "ENTER", "SPACE"], pad: ["cross"], label: "E" },
   cancel: { keys: ["ESC"], pad: ["circle"], label: "Esc" },
   inventory: { keys: ["I"], pad: ["triangle"], label: "I" },
+  character: { keys: ["C"], pad: ["options"], label: "C" },
+  toggleAuto: { keys: ["T"], pad: ["create"], label: "T" },
   up: { keys: ["W", "UP"], pad: ["up"], stick: "up", repeat: true, label: "W" },
   down: { keys: ["S", "DOWN"], pad: ["down"], stick: "down", repeat: true, label: "S" },
   left: { keys: ["A", "LEFT"], pad: ["left"], stick: "left", repeat: true, label: "A" },
@@ -39,6 +52,7 @@ const MOVE_KEYS = { up: ["W", "UP"], down: ["S", "DOWN"], left: ["A", "LEFT"], r
 const REPEAT_DELAY_MS = 350;
 const REPEAT_RATE_MS = 110;
 const STICK_MENU_THRESHOLD = 0.6;
+const AUTO_ATTACK_KEY = "arpg.autoAttack";
 
 export interface AimTargets {
   player: Vec;
@@ -48,6 +62,8 @@ export interface AimTargets {
 
 export class InputManager {
   device: Device = "kbm";
+  /** Player setting, remembered in this browser. */
+  autoAttack = loadAutoAttack();
   padId: string | null = null;
   /** Called when the active device changes or a pad connects/disconnects. */
   onChange?: () => void;
@@ -81,6 +97,12 @@ export class InputManager {
 
     this.fired.clear();
     for (const action of Object.keys(BINDINGS) as Action[]) {
+      // JustDown also catches a tap that went down and up between two frames.
+      const tapped = BINDINGS[action].keys.some((n) => {
+        const key = this.keys.get(n);
+        return !!key && Phaser.Input.Keyboard.JustDown(key);
+      });
+      if (tapped && !this.held.has(action)) this.fired.add(action);
       const down = this.actionDown(action);
       const state = this.held.get(action);
       if (!down) {
@@ -114,12 +136,22 @@ export class InputManager {
     if (this.device === "pad" && this.pad) {
       const move = leftStick(this.pad);
       const aim = padAim({ ...targets, move, rightStick: rightStick(this.pad) });
-      return { move, aim, attack: ATTACK_PAD.some((b) => isDown(this.pad!, b)) };
+      return { move, aim, attack: ATTACK_PAD.some((b) => isDown(this.pad!, b)), autoAttack: this.autoAttack };
     }
     const k = (names: string[]) => names.some((n) => this.keys.get(n)?.isDown);
     const x = (k(MOVE_KEYS.right) ? 1 : 0) - (k(MOVE_KEYS.left) ? 1 : 0);
     const y = (k(MOVE_KEYS.down) ? 1 : 0) - (k(MOVE_KEYS.up) ? 1 : 0);
-    return { move: { x, y }, aim: pointerWorld, attack: mouseAttack };
+    return { move: { x, y }, aim: pointerWorld, attack: mouseAttack, autoAttack: this.autoAttack };
+  }
+
+  toggleAutoAttack(): boolean {
+    this.autoAttack = !this.autoAttack;
+    try {
+      localStorage.setItem(AUTO_ATTACK_KEY, String(this.autoAttack));
+    } catch {
+      // Storage unavailable (private mode etc.): setting just won't persist.
+    }
+    return this.autoAttack;
   }
 
   /** Rumble the pad if the browser supports it (Chrome/Edge do for DualSense and Xbox pads). */
@@ -147,5 +179,13 @@ export class InputManager {
     if (this.device === d) return;
     this.device = d;
     this.onChange?.();
+  }
+}
+
+function loadAutoAttack(): boolean {
+  try {
+    return localStorage.getItem(AUTO_ATTACK_KEY) !== "false";
+  } catch {
+    return true;
   }
 }
