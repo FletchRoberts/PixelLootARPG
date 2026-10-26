@@ -13,6 +13,7 @@ npm install
 npm run dev        # dev server on http://localhost:5173
 npm run typecheck  # app + sim-only tsc + import boundary check
 npm run build      # typecheck, then production build to dist/
+npm test           # headless sim tests (vitest)
 ```
 
 Commit after each working step. Run `npm run typecheck` before committing.
@@ -196,12 +197,20 @@ scripts/
 src/
   client/
     main.ts               Phaser.Game config
-    scenes/BootScene.ts   blank boot scene
+    art/sprites.ts        PixelGen adapter + built-in fallback generator
+    scenes/BootScene.ts   builds placeholder textures for all content
+    scenes/GameScene.ts   fixed-step loop, input -> sim, sim state -> sprites/HUD
   sim/
-    core/rng.ts           seeded RNG with weighted pick
+    core/rng.ts           seeded RNG (serializable state) with weighted pick
+    core/vec.ts           plain-object 2D vector helpers
     data/types.ts         content schemas
+    world.ts              test-room sim: createWorld() / step() -> SimEvent[]
+    world.test.ts         headless sim tests
   data/
-    *.json                content (empty for now)
+    characters.json       player characters (stats, melee attack, sprite)
+    monsters.json         monsters (stats, contact damage, sprite)
+    test-room.json        temporary arena + spawn settings
+    *.json                items/affixes/currencies/drop tables (empty)
     index.ts              typed content loader
 tools/
   pixel-forge.html        PixelGen placeholder sprite generator
@@ -212,4 +221,16 @@ tools/
 - TypeScript strict mode, `noUncheckedIndexedAccess` on.
 - IDs: `snake_case` strings (`life_flat`, `iron_helmet`, `rift`).
 - Keep sim functions pure where practical; easy to unit-test headless.
-- Status: **scaffold only**. No gameplay yet.
+- Sim → client communication is via the returned `SimEvent[]` (swing, damage,
+  death, …) plus reading state. The client never mutates sim state.
+
+## Status
+
+**Phase 1 (done):** single test room. WASD movement, hold left click to melee
+toward the mouse, one chasing monster type (`husk`) with contact damage,
+health bars, death screen, restart (R / click).
+
+PixelGen note: `tools/pixel-forge.html` is not in the repo yet, so sprites come
+from the fallback in `src/client/art/sprites.ts` (the console says which
+source is used). `fromPixelGen()` there guesses at the API; pin it to the real
+call once the file is added.
