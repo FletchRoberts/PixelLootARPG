@@ -76,7 +76,7 @@ export interface ModifierDef {
   tags?: string[];
 }
 
-/** A weapon base and the auto attack it grants (an attack skill using the weapon's damage). */
+/** A weapon base and the attack it grants (an attack skill using the weapon's damage, used with R2 / left click). */
 export interface WeaponDef {
   id: string;
   name: string;
@@ -84,7 +84,7 @@ export interface WeaponDef {
   damage: Partial<Record<DamageTypeId, Range>>;
   attacksPerSecond: number;
   critChance: number; // percent
-  autoAttack: {
+  attack: {
     name: string;
     tags: string[]; // skill tags, e.g. ["attack", "melee", "physical"]
     root: import("../skills/types").DeliveryDef;

@@ -6,7 +6,7 @@
     "damage": { "physical": [8, 13] },
     "attacksPerSecond": 2.8,
     "critChance": 5,
-    "autoAttack": {
+    "attack": {
       "name": "Slash",
       "tags": ["attack", "melee"],
       "root": { "kind": "melee", "tags": ["attack", "melee"], "arcDegrees": 110, "reach": 72, "knockback": 260 }
@@ -19,7 +19,7 @@
     "damage": { "physical": [7, 12] },
     "attacksPerSecond": 1.9,
     "critChance": 5,
-    "autoAttack": {
+    "attack": {
       "name": "Shoot",
       "tags": ["attack", "projectile", "bow"],
       "root": { "kind": "projectile", "tags": ["attack", "projectile", "bow"], "speed": 760, "range": 540, "radius": 6, "knockback": 80 }
@@ -32,7 +32,7 @@
     "damage": { "lightning": [5, 11] },
     "attacksPerSecond": 1.8,
     "critChance": 7,
-    "autoAttack": {
+    "attack": {
       "name": "Spark Bolt",
       "tags": ["attack", "projectile", "wand"],
       "root": { "kind": "projectile", "tags": ["attack", "projectile", "wand"], "speed": 640, "range": 480, "radius": 7, "knockback": 40 }

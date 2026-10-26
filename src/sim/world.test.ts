@@ -5,7 +5,7 @@ import { xpToNext } from "./stats/character";
 import { buildFlowField, nextStep } from "./zone/flowfield";
 import { isFloorAt, tileCenter, tileOf } from "./zone/zone";
 
-const idle = (aim = { x: 0, y: 0 }): PlayerInput => ({ move: { x: 0, y: 0 }, aim, attack: false, autoAttack: false });
+const idle = (aim = { x: 0, y: 0 }): PlayerInput => ({ move: { x: 0, y: 0 }, aim, attack: false });
 
 /** Same zones, but no monsters, so tests control exactly which monsters exist. */
 const quiet: SimContent = { ...content, zoneGen: { ...content.zoneGen, monsterPool: [] } };
@@ -117,25 +117,19 @@ describe("world", () => {
     const run = () => {
       const w = createWorld(content, 42);
       for (let i = 0; i < 900; i++) {
-        step(w, content, { move: { x: Math.sin(i / 30), y: Math.cos(i / 45) }, aim: { x: 0, y: 0 }, attack: i % 3 === 0, autoAttack: true });
+        step(w, content, { move: { x: Math.sin(i / 30), y: Math.cos(i / 45) }, aim: { x: 0, y: 0 }, attack: i % 3 === 0 });
       }
       return JSON.stringify(w);
     };
     expect(run()).toBe(run());
   });
 
-  it("auto attack swings at the nearest enemy in reach without pressing attack", () => {
+  it("the weapon only attacks while attack is held, even with an enemy in reach", () => {
     const w = createWorld(quiet, 1);
     const m = addMonster(w, { x: w.player.pos.x + 40, y: w.player.pos.y });
-    const ev = step(w, quiet, { ...idle({ x: w.player.pos.x - 100, y: w.player.pos.y }), autoAttack: true });
-    expect(ev.some((e) => e.type === "swing")).toBe(true);
+    for (let i = 0; i < 60; i++) expect(step(w, quiet, idle(m.pos)).some((e) => e.type === "swing")).toBe(false);
+    expect(step(w, quiet, { ...idle(m.pos), attack: true }).some((e) => e.type === "swing")).toBe(true);
     expect(m.life).toBeLessThan(m.maxLife);
-  });
-
-  it("with auto attack off, nothing swings unless attack is held", () => {
-    const w = createWorld(quiet, 1);
-    addMonster(w, { x: w.player.pos.x + 40, y: w.player.pos.y });
-    for (let i = 0; i < 60; i++) expect(step(w, quiet, idle()).some((e) => e.type === "swing")).toBe(false);
   });
 
   it("kills grant XP and enough XP levels the player up with more life", () => {
@@ -144,7 +138,7 @@ describe("world", () => {
     w.player.xp = xpToNext(1, content.progression) - 1;
     addMonster(w, { x: w.player.pos.x + 40, y: w.player.pos.y });
     let levelled = false;
-    for (let i = 0; i < 600 && w.monsters.length; i++) levelled ||= step(w, quiet, { ...idle(), autoAttack: true }).some((e) => e.type === "level_up");
+    for (let i = 0; i < 600 && w.monsters.length; i++) levelled ||= step(w, quiet, { ...idle(w.monsters[0]!.pos), attack: true }).some((e) => e.type === "level_up");
     expect(levelled).toBe(true);
     expect(w.player.level).toBe(2);
     expect(w.player.maxLife).toBeGreaterThan(before);

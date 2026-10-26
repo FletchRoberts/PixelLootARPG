@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { content } from "../../data";
 import { createWorld, progressAfterClear, setLoadout, step, TICK_RATE, type PlayerInput, type SimContent, type WorldState } from "../world";
 import { hasLineOfSight } from "../zone/zone";
-import { autoAttackSkill, compileSkill, MAX_DEPTH, supportFits } from "./compile";
+import { weaponAttackSkill, compileSkill, MAX_DEPTH, supportFits } from "./compile";
 import { MAX_PROJECTILES } from "./runtime";
 import type { Loadout, SupportDef } from "./types";
 
@@ -54,14 +54,14 @@ describe("compileSkill", () => {
   });
 
   it("supports that don't fit the skill are ignored", () => {
-    expect(supportFits(sup("volley")[0]!, autoAttackSkill(sword))).toBe(false);
-    const c = compileSkill({ skill: autoAttackSkill(sword), supports: sup("volley"), playerMods: [], weapon: sword });
+    expect(supportFits(sup("volley")[0]!, weaponAttackSkill(sword))).toBe(false);
+    const c = compileSkill({ skill: weaponAttackSkill(sword), supports: sup("volley"), playerMods: [], weapon: sword });
     expect(c.supports).toEqual([]);
     expect(c.nodes[0]!.count).toBe(1);
   });
 
-  it("weapon auto attacks use weapon damage and speed", () => {
-    const c = compileSkill({ skill: autoAttackSkill(wand), supports: sup("volley"), playerMods: [], weapon: wand });
+  it("weapon attacks use weapon damage and speed", () => {
+    const c = compileSkill({ skill: weaponAttackSkill(wand), supports: sup("volley"), playerMods: [], weapon: wand });
     expect(c.isAttack).toBe(true);
     expect(c.nodes[0]!.base.lightning).toEqual([5, 11]);
     expect(c.interval).toBeCloseTo(1 / wand.attacksPerSecond);
@@ -71,7 +71,7 @@ describe("compileSkill", () => {
 
 // ---- runtime ----
 
-const idle = (aim = { x: 0, y: 0 }): PlayerInput => ({ move: { x: 0, y: 0 }, aim, attack: false, autoAttack: false });
+const idle = (aim = { x: 0, y: 0 }): PlayerInput => ({ move: { x: 0, y: 0 }, aim, attack: false });
 
 /** Player standing in the open end arena, 3 tiles from the exit (which would end the zone). */
 function arena(c: SimContent = quiet, loadout?: Partial<Loadout>): WorldState {
@@ -170,10 +170,12 @@ describe("skill runtime", () => {
     }
   });
 
-  it("wand auto attack shoots the nearest monster in line of sight", () => {
+  it("wand attack shoots a bolt toward the aim point while attack is held", () => {
     const w = arena(quiet, { weapon: "apprentice_wand" });
     const m = addMonster(w, w.player.pos.x + 250, w.player.pos.y);
-    step(w, quiet, { ...idle(), autoAttack: true });
+    step(w, quiet, idle(m.pos));
+    expect(w.projectiles).toHaveLength(0);
+    step(w, quiet, { ...idle(m.pos), attack: true });
     expect(w.projectiles).toHaveLength(1);
     runFor(w, quiet, 0.6);
     expect(m.life).toBeLessThan(m.maxLife);

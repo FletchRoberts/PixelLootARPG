@@ -17,7 +17,7 @@ import {
 } from "../../sim/world";
 import { xpToNext } from "../../sim/stats/character";
 import type { Vec } from "../../sim/core/vec";
-import { isFloor, type Zone } from "../../sim/zone/zone";
+import { hasLineOfSight, isFloor, type Zone } from "../../sim/zone/zone";
 import { InputManager } from "../input/InputManager";
 import { GameMenu } from "../ui/GameMenu";
 import { textureKey, TILE_SRC } from "./BootScene";
@@ -123,10 +123,6 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.inputs.pressed("toggleAuto")) {
-      const on = this.inputs.toggleAutoAttack();
-      this.toast(`Auto attack ${on ? "ON" : "OFF"}`);
-    }
     // The menu pauses the game while open.
     if (this.menu.open) {
       this.menu.update();
@@ -155,7 +151,12 @@ export class GameScene extends Phaser.Scene {
     const pointer = this.input.activePointer;
     const world = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
     const input = this.inputs.gameplay(
-      { player: w.player.pos, facing: w.player.facing, enemies: w.monsters.filter((m) => m.awake).map((m) => m.pos) },
+      {
+        player: w.player.pos,
+        facing: w.player.facing,
+        // Aim assist considers any living enemy you can see (sleeping ones too), never through walls.
+        enemies: w.monsters.filter((m) => m.life > 0 && hasLineOfSight(w.zone, w.player.pos, m.pos)).map((m) => m.pos),
+      },
       { x: world.x, y: world.y },
       { left: pointer.leftButtonDown(), right: pointer.rightButtonDown() },
     );
@@ -287,7 +288,7 @@ export class GameScene extends Phaser.Scene {
       `HP ${Math.ceil(p.life)}/${Math.round(p.maxLife)}   MP ${Math.floor(p.mana)}/${Math.round(p.maxMana)}`,
       `Level ${p.level}   ${biome.name} (monster lvl ${w.monsterLevel})`,
       `Kills ${w.kills}/${w.totalMonsters}   ${formatTime(w.tick / TICK_RATE)}`,
-      `Auto attack ${this.inputs.autoAttack ? "ON" : "OFF"} [${this.inputs.prompt("toggleAuto")}]   Menu [${this.inputs.prompt("character")}]   Skills [${this.inputs.prompt("inventory")}]`,
+      `Attack [${this.inputs.device === "pad" ? "R2" : "LMB"}]   Dodge [${this.inputs.prompt("dodge")}]   Menu [${this.inputs.prompt("character")}]   Skills [${this.inputs.prompt("inventory")}]`,
     ]);
     const player = this.views.get(p.id)?.sprite;
     if (player && w.status === "playing") player.setAlpha(p.roll ? 0.55 : 1);

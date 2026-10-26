@@ -67,7 +67,7 @@ export interface SupportDef {
 /** The player's chosen skills and supports. Plain data; a command changes it. */
 export interface Loadout {
   weapon: string;
-  autoSupports: string[];
+  attackSupports: string[];
   slots: { skill: string | null; supports: string[] }[];
 }
 
@@ -96,7 +96,7 @@ export interface CompiledNode {
 }
 
 export interface CompiledSkill {
-  id: string; // skill id, or "auto:<weapon>"
+  id: string; // skill id, or "weapon:<weapon id>"
   name: string;
   isAttack: boolean;
   cost: number;

@@ -1,6 +1,6 @@
 # Skill catalog
 
-Status: **design catalog**. The full menu of skills, supports, auto attacks
+Status: **design catalog**. The full menu of skills, supports, weapon attacks
 and skill-changing gear we intend to build, using the engine in
 `docs/skills.md`. Names are ours; the "From" column credits the inspiration.
 Numbers come later, in data.
@@ -18,13 +18,13 @@ WoL = Wizard of Legend.
 
 ---
 
-## 1. Auto attacks (one per weapon type)
+## 1. Weapon attacks (one per weapon type)
 
-Always on: fires at the nearest enemy in range at the weapon's speed, and
-takes supports like any skill. The weapon decides the auto attack, so
-swapping weapons changes how the character plays.
+Used with R2 / left click (no auto-attacking; aim assist on controller).
+Takes supports like any skill. The weapon decides the attack, so swapping
+weapons changes how the character plays.
 
-| Weapon | Auto attack | Delivery / tags | From |
+| Weapon | Attack | Delivery / tags | From |
 |---|---|---|---|
 | Sword | **Slash**: 120° arc in front | melee, physical | PoE2 default attack |
 | Axe | **Cleave**: wide 180° arc, slower, heavier | melee, area, physical | PoE Cleave |
@@ -265,10 +265,10 @@ tags. Common on gear and the passive tree.
 |---|---|---|
 | **Prism of Seven** | wand | Projectiles split into 3, one per element |
 | **Orrery Band** | ring | All projectiles orbit you once before firing |
-| **The Patient Blade** | sword | Every 5th auto attack casts the linked spell in that gem |
+| **The Patient Blade** | sword | Every 5th weapon attack casts the linked spell in that gem |
 | **Glacier Heart** | body | Shatter shards are always crits; frozen enemies shatter into shards |
 | **Echo Chamber** | helmet | Echo also applies to triggered skills |
-| **Bloodstone Seal** | amulet | Supports on your auto attack also apply to Heralds |
+| **Bloodstone Seal** | amulet | Supports on your weapon attack also apply to Heralds |
 | **Living Ember** | gloves | Ignite counts as chill for reactions |
 | **Ironroot Plate** | body | Armour also reduces elemental hits at half value |
 | **Wanderer's Compass** | boots | Projectiles home, but lose 20% speed |
@@ -315,7 +315,7 @@ engine wave should cover enough to make most of the catalog possible.
 
 ### Suggested first playable set (engine wave 1)
 
-| Auto attacks | Skills | Supports |
+| Weapon attacks | Skills | Supports |
 |---|---|---|
 | Slash (sword), Shoot (bow), Spark Bolt (wand) | Frost Bolt, Fireball, Earthsplitter, Fanning Shot, Ice Nova, Magma Strike | Volley, Pierce, Chain, Fork, Shatter, Echo, Cast on Kill, Added Cold, Concentrated, Knockback |
 

@@ -1,7 +1,7 @@
 # Skills, supports and build-defining gear
 
 Status: **partly implemented**. Projectile and melee deliveries, hit/end/kill
-triggers, stat + structure supports, limits and auto attacks are in
+triggers, stat + structure supports, limits and weapon attacks are in
 `src/sim/skills/`. Areas, zones, status effects and the rest come in later
 waves. Pairs with `docs/combat.md` (the damage math).
 
@@ -122,18 +122,17 @@ a support could add projectiles to the main bolt only (`root`).
   or a choice of one (to decide during tuning).
 - Levels also gate gem levels and gear (level requirement).
 
-## Auto attack (the base game)
+## Weapon attack
 
-Every character has a **basic attack** that fires automatically at the
-nearest enemy in range, using the weapon's damage, speed and range. A bow
-auto-fires arrows, a sword auto-swings, a wand auto-shoots bolts.
-**It takes supports like any skill**, so a Volley + Shatter auto attack is
-already a build. Active skills sit on buttons: keyboard LMB/RMB/Q/E/R/F,
-controller □/△/○/R1/R2/L1.
+Every weapon grants a **weapon attack** using the weapon's damage, speed and
+range: a sword swings, a bow fires arrows, a wand shoots bolts. It is used
+by holding **R2 / left click**. **It takes supports like any skill**, so a
+Fork + Chain wand attack is already a build. Skills sit on R1/□/△/L1
+(keyboard: right click/Q/E/R).
 
-**Decided:** auto attack is in. It can still be switched off in options for
-players who want full manual control; it then works like a normal skill on
-the attack button. Per-weapon auto attacks are listed in `skill-catalog.md`.
+**Decided:** no auto-attacking (it was tried and removed). On controller,
+**aim assist** points attacks and skills at the nearest visible enemy when
+the right stick is idle. Per-weapon attacks are listed in `skill-catalog.md`.
 
 ## Gear that changes skills
 
@@ -148,7 +147,7 @@ is "a support you wear" with a scope.
   - "Your projectiles orbit you before firing" (wand)
   - "Shatter shards are always critical hits"
   - "Supports in this gem also apply to the skills it triggers"
-  - "Every 5th auto attack casts your linked spell" (WoW proc / PoE2 combo)
+  - "Every 5th weapon attack casts your linked spell" (WoW proc / PoE2 combo)
   - "Chill also counts as burning" (elemental reaction enabler)
   - "Armour also reduces elemental hits at half value" (defensive identity)
 - **Evolutions** (Vampire Survivors): specific gem + specific legendary or
@@ -200,7 +199,7 @@ is "a support you wear" with a scope.
    Rebuild the current sword swing on top of it.
 2. **Skill engine:** deliveries, triggers, compile/cast/step, limits.
    Prove it with **Frost Bolt + Volley + Shatter + Chain** and the
-   auto attack, with a debug panel to swap supports live.
+   weapon attack, with a debug panel to swap supports live.
 3. **Gems as items**, socketing UI (controller-first), skill bar.
 4. **Gear:** bases, affixes, rarities, drops, inventory, tooltips.
 5. **Legendaries and evolutions** on top of 2–4.

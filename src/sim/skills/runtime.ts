@@ -178,21 +178,3 @@ function nearestChainTarget(world: WorldState, from: Vec, exclude: number[]): Mo
   }
   return best;
 }
-
-/** Nearest living monster the auto attack can reach: melee reach, or projectile range with line of sight. */
-export function autoTarget(world: WorldState, node: CompiledNode): MonsterState | null {
-  const p = world.player;
-  let best: MonsterState | null = null;
-  let bestD = Infinity;
-  for (const m of world.monsters) {
-    if (m.life <= 0) continue;
-    const d = dist(m.pos, p.pos) - m.radius;
-    const inReach = node.kind === "melee" ? d <= p.radius + node.reach : d <= node.range * 0.85 && hasLineOfSight(world.zone, p.pos, m.pos);
-    if (inReach && d < bestD) {
-      best = m;
-      bestD = d;
-    }
-  }
-  return best;
-}
-

@@ -4,7 +4,7 @@
 import Phaser from "phaser";
 import { content } from "../../data";
 import { describeSkill } from "../../sim/skills/describe";
-import { autoAttackSkill, supportFits } from "../../sim/skills/compile";
+import { weaponAttackSkill, supportFits } from "../../sim/skills/compile";
 import type { Loadout } from "../../sim/skills/types";
 import { xpToNext } from "../../sim/stats/character";
 import { skillSummary, SKILL_SLOTS, type WorldState } from "../../sim/world";
@@ -123,7 +123,7 @@ export class GameMenu {
 
   private rows(): Row[] {
     const l = this.world().player.loadout;
-    const clone = (): Loadout => ({ weapon: l.weapon, autoSupports: [...l.autoSupports], slots: l.slots.map((s) => ({ skill: s.skill, supports: [...s.supports] })) });
+    const clone = (): Loadout => ({ weapon: l.weapon, attackSupports: [...l.attackSupports], slots: l.slots.map((s) => ({ skill: s.skill, supports: [...s.supports] })) });
     const weaponName = (id: string) => content.weapons.find((w) => w.id === id)?.name ?? id;
     const skillName = (id: string) => (id === NONE ? "—" : (content.skills.find((s) => s.id === id)?.name ?? id));
     const supportName = (id: string) => (id === NONE ? "—" : (content.supports.find((s) => s.id === id)?.name ?? id));
@@ -134,11 +134,11 @@ export class GameMenu {
       options: content.weapons.map((w) => w.id),
       current: l.weapon,
       names: weaponName,
-      apply: (id) => ({ ...clone(), weapon: id, autoSupports: [] }),
+      apply: (id) => ({ ...clone(), weapon: id, attackSupports: [] }),
       describe: 0,
     });
     const weapon = content.weapons.find((w) => w.id === l.weapon)!;
-    this.socketRows(rows, "  Auto support", autoAttackSkill(weapon), l.autoSupports, supportName, 0, (supports) => ({ ...clone(), autoSupports: supports }));
+    this.socketRows(rows, "  Attack support", weaponAttackSkill(weapon), l.attackSupports, supportName, 0, (supports) => ({ ...clone(), attackSupports: supports }));
 
     for (let s = 0; s < SKILL_SLOTS; s++) {
       const slot = l.slots[s]!;
@@ -217,7 +217,7 @@ export class GameMenu {
       const range = Object.entries(sum.ranges)
         .map(([t, [lo, hi]]) => `${r(lo)}-${r(hi)} ${t}`)
         .join(", ");
-      const slot = i === 0 ? "Auto attack" : `Skill ${i} [${this.inputs.skillPrompt(i - 1)}]`;
+      const slot = i === 0 ? "Weapon attack" : `Skill ${i} [${this.inputs.skillPrompt(i - 1)}]`;
       lines.push(`${slot}: ${sum.name}`);
       lines.push(`   ${range}  ·  ${sum.usesPerSecond.toFixed(2)}/s  ·  crit ${sum.critChance.toFixed(1)}%  ·  DPS ${sum.dps.toFixed(1)}${sum.cost ? `  ·  ${sum.cost.toFixed(1)} mana` : ""}`);
     }

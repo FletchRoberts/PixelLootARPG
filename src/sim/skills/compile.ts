@@ -116,15 +116,15 @@ export function compileSkill({ skill, supports, playerMods, weapon }: CompileInp
   };
 }
 
-/** The weapon's auto attack as a skill definition. */
-export function autoAttackSkill(weapon: WeaponDef): CompileInput["skill"] {
+/** The weapon's attack as a skill definition. */
+export function weaponAttackSkill(weapon: WeaponDef): CompileInput["skill"] {
   return {
-    id: `auto:${weapon.id}`,
-    name: weapon.autoAttack.name,
-    tags: weapon.autoAttack.tags,
+    id: `weapon:${weapon.id}`,
+    name: weapon.attack.name,
+    tags: weapon.attack.tags,
     cost: 0,
     castTime: 0,
     critChance: weapon.critChance,
-    root: weapon.autoAttack.root,
+    root: weapon.attack.root,
   };
 }

@@ -17,7 +17,6 @@ export type Action =
   | "cancel"
   | "inventory"
   | "character"
-  | "toggleAuto"
   | "dodge"
   | "pickup"
   | "up"
@@ -42,7 +41,6 @@ const BINDINGS: Record<Action, Binding> = {
   pickup: { keys: ["F"], pad: ["cross"], label: "F" },
   inventory: { keys: ["I"], pad: ["touchpad"], label: "I" }, // skills/loadout panel for now
   character: { keys: ["C"], pad: ["options"], label: "C" },
-  toggleAuto: { keys: ["T"], pad: ["create"], label: "T" },
   up: { keys: ["W", "UP"], pad: ["up"], stick: "up", repeat: true, label: "W" },
   down: { keys: ["S", "DOWN"], pad: ["down"], stick: "down", repeat: true, label: "S" },
   left: { keys: ["A", "LEFT"], pad: ["left"], stick: "left", repeat: true, label: "A" },
@@ -60,7 +58,6 @@ const MOVE_KEYS = { up: ["W", "UP"], down: ["S", "DOWN"], left: ["A", "LEFT"], r
 const REPEAT_DELAY_MS = 350;
 const REPEAT_RATE_MS = 110;
 const STICK_MENU_THRESHOLD = 0.6;
-const AUTO_ATTACK_KEY = "arpg.autoAttack";
 
 export interface AimTargets {
   player: Vec;
@@ -70,8 +67,6 @@ export interface AimTargets {
 
 export class InputManager {
   device: Device = "kbm";
-  /** Player setting, remembered in this browser. */
-  autoAttack = loadAutoAttack();
   padId: string | null = null;
   /** Called when the active device changes or a pad connects/disconnects. */
   onChange?: () => void;
@@ -152,29 +147,19 @@ export class InputManager {
       const move = leftStick(pad);
       const aim = padAim({ ...targets, move, rightStick: rightStick(pad) });
       const skills = SKILL_PAD.map((b) => isDown(pad, b));
-      return { move, aim, attack: ATTACK_PAD.some((b) => isDown(pad, b)), autoAttack: this.autoAttack, skills, dodge, pickup };
+      return { move, aim, attack: ATTACK_PAD.some((b) => isDown(pad, b)), skills, dodge, pickup };
     }
     const k = (names: string[]) => names.some((n) => this.keys.get(n)?.isDown);
     const x = (k(MOVE_KEYS.right) ? 1 : 0) - (k(MOVE_KEYS.left) ? 1 : 0);
     const y = (k(MOVE_KEYS.down) ? 1 : 0) - (k(MOVE_KEYS.up) ? 1 : 0);
     const skills = SKILL_KEYS.map((key) => (key ? k([key]) : mouse.right));
-    return { move: { x, y }, aim: pointerWorld, attack: mouse.left, autoAttack: this.autoAttack, skills, dodge, pickup };
+    return { move: { x, y }, aim: pointerWorld, attack: mouse.left, skills, dodge, pickup };
   }
 
   /** Button prompt for skill slot i (0-based) on the current device. */
   skillPrompt(i: number): string {
     if (this.device === "pad") return PS_GLYPH[SKILL_PAD[i]!] ?? SKILL_PAD[i]!;
     return SKILL_KEYS[i] ?? "RMB";
-  }
-
-  toggleAutoAttack(): boolean {
-    this.autoAttack = !this.autoAttack;
-    try {
-      localStorage.setItem(AUTO_ATTACK_KEY, String(this.autoAttack));
-    } catch {
-      // Storage unavailable (private mode etc.): setting just won't persist.
-    }
-    return this.autoAttack;
   }
 
   /** Rumble the pad if the browser supports it (Chrome/Edge do for DualSense and Xbox pads). */
@@ -202,13 +187,5 @@ export class InputManager {
     if (this.device === d) return;
     this.device = d;
     this.onChange?.();
-  }
-}
-
-function loadAutoAttack(): boolean {
-  try {
-    return localStorage.getItem(AUTO_ATTACK_KEY) !== "false";
-  } catch {
-    return true;
   }
 }

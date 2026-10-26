@@ -30,9 +30,8 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 | Action | Keyboard + mouse | PS5 controller |
 |---|---|---|
 | Move | WASD / arrows | Left stick |
-| Aim | Mouse | Right stick (else aim assist picks the nearest enemy) |
-| Auto attack on/off | T | Create (left of touchpad) |
-| Manual attack (aims where you point) | Hold left click | Hold R2 |
+| Aim | Mouse | Right stick (leave it alone and aim assist targets the nearest enemy) |
+| Weapon attack | Hold left click | Hold R2 |
 | Skill 1 / 2 / 3 / 4 | Right click / Q / E / R | R1 / □ / △ / L1 |
 | Dodge roll | Space | ○ |
 | Pick up (nothing drops yet) | F | ✕ |
@@ -46,14 +45,14 @@ Controller: plug it in, open the page, press any button. A "Controller connected
 
 ## What to do
 
-1. **Auto attack is on by default.** Walk up to enemies and your weapon attacks the nearest one it can reach by itself.
+1. **Hold R2 / left click to attack with your weapon.** Nothing attacks on its own. On controller you don't need to aim precisely: with the right stick untouched, aim assist turns your attacks and skills toward the nearest enemy you can see (preferring ones in front of you). Use the right stick when you want to aim yourself.
 2. **Skills:** you start with **Frost Bolt on Skill 1** (R1 / right click). Hold the button to keep casting toward where you aim. Each cast costs mana (blue bar). If you run dry you'll see "Not enough mana".
 3. **Build combos in the menu's Skills tab** (Options → R1, or touchpad / I). It's a debug editor until gems drop as loot:
-   - **Weapon:** Rusty Sword (melee swing), Short Bow (arrows) or Apprentice Wand (lightning bolts). The weapon decides your auto attack.
+   - **Weapon:** Rusty Sword (melee swing), Short Bow (arrows) or Apprentice Wand (lightning bolts). The weapon decides what R2 / left click does.
    - **Skill 1–4:** pick a skill for each button (only Frost Bolt exists so far).
-   - **Supports:** up to 4 per skill, *including your auto attack*: **Volley** (+2 projectiles), **Pierce** (goes through 2 enemies), **Chain** (bounces to another enemy), **Fork** (splits in two on hit), **Shatter** (bursts into 5 shards when it ends).
+   - **Supports:** up to 4 per skill, *including your weapon attack*: **Volley** (+2 projectiles), **Pierce** (goes through 2 enemies), **Chain** (bounces to another enemy), **Fork** (splits in two on hit), **Shatter** (bursts into 5 shards when it ends).
    - The right side of the panel spells out what your build does, e.g. "3 × projectile … on end → 7 × projectile (ring) [21 total]".
-   - Try: Frost Bolt + Volley + Shatter, or Wand auto attack + Fork + Chain, or Bow + Pierce + Shatter. More supports = higher mana cost.
+   - Try: Frost Bolt + Volley + Shatter, or Wand attack + Fork + Chain, or Bow + Pierce + Shatter. More supports = higher mana cost.
 4. **Dodge roll** (○ / Space) dashes you out of trouble. While rolling, enemies can't hurt you by touch.
 5. Follow the path. Packs sleep until you get close, then chase you. Kills give XP; level-ups add life, mana and attributes.
 6. Reach the glowing EXIT to clear the zone. Each cleared zone raises the monster level by 1. Your level and loadout carry over.
@@ -61,18 +60,15 @@ Controller: plug it in, open the page, press any button. A "Controller connected
 
 ## Reading the screen
 
-- Top left: life and mana bars, level, zone name and monster level, kills, timer, auto attack state.
+- Top left: life and mana bars, level, zone name and monster level, kills, timer, button hints.
 - Bottom: skill bar (button, skill, mana cost; dim when you can't afford it) and the XP bar.
 - Damage numbers: white = your hits, **yellow with "!" = critical**, red = damage you take, grey "evade" = dodged.
-- Menu → Character tab: attributes, defences, and damage/speed/DPS for your auto attack and each skill.
+- Menu → Character tab: attributes, defences, and damage/speed/DPS for your weapon attack and each skill.
 
 ## New in this version
 
-- **Skill system**: Frost Bolt and five supports that combine (Volley, Pierce, Chain, Fork, Shatter).
-- **Bow and Wand** weapons with ranged auto attacks; supports work on auto attacks too.
-- **Dodge roll** on ○ / Space.
-- **Pause menu** with Character and Skills tabs; 4-slot skill bar.
-- Mana regenerates faster (5/s) so you can experiment.
+- **Auto attack removed.** Your weapon attacks only while you hold R2 / left click. The T / Create toggle is gone.
+- **Aim assist kept and improved:** it now also targets sleeping enemies, and never aims at enemies behind walls.
 
 ## Extras
 

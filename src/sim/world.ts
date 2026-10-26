@@ -1,5 +1,5 @@
 // Zone simulation: one player, sleeping monster packs along a generated linear zone,
-// stat-driven combat (docs/combat.md), skills + supports (docs/skills.md), auto attack,
+// stat-driven combat (docs/combat.md), skills + supports (docs/skills.md), weapon attack,
 // dodge roll, XP and levels, and an exit at the end.
 // Pure and headless: state is plain data, advanced by step() with fixed dt.
 
@@ -17,8 +17,8 @@ import type {
   WeaponDef,
   ZoneGenConfig,
 } from "./data/types";
-import { autoAttackSkill, compileSkill } from "./skills/compile";
-import { autoTarget, stepProjectiles, useSkill, type ProjectileState, type SkillContext } from "./skills/runtime";
+import { weaponAttackSkill, compileSkill } from "./skills/compile";
+import { stepProjectiles, useSkill, type ProjectileState, type SkillContext } from "./skills/runtime";
 import type { CompiledNode, CompiledSkill, Loadout, SkillDef, SupportDef } from "./skills/types";
 import { gainXp, monsterScale, playerModifiers, playerStats, xpForKill } from "./stats/character";
 import type { StatBlock } from "./stats/stats";
@@ -78,7 +78,7 @@ export interface PlayerState extends Actor {
   maxMana: number;
   stats: StatBlock; // global (untagged) stats, recomputed when level/gear changes
   loadout: Loadout;
-  compiled: (CompiledSkill | null)[]; // [0] = auto attack, [1..SKILL_SLOTS] = skill slots
+  compiled: (CompiledSkill | null)[]; // [0] = weapon attack, [1..SKILL_SLOTS] = skill slots
   castLock: number; // seconds until the player can attack/cast again
   roll: { t: number; dir: Vec } | null; // active dodge roll
   rollCooldown: number;
@@ -107,14 +107,14 @@ export interface WorldState {
 }
 
 /**
- * Player intent for one tick. `aim` is a world-space point. `attack` = manual auto attack toward aim;
+ * Player intent for one tick. `aim` is a world-space point (the client applies aim assist).
+ * `attack` = weapon attack held, toward aim;
  * `skills[i]` = skill slot i held; `dodge` = dodge pressed this tick; `pickup` reserved for loot.
  */
 export interface PlayerInput {
   move: Vec;
   aim: Vec;
   attack: boolean;
-  autoAttack: boolean;
   skills?: boolean[];
   dodge?: boolean;
   pickup?: boolean;
@@ -147,7 +147,7 @@ function lookup<T extends { id: string }>(list: T[], id: string, what: string): 
 export function defaultLoadout(content: SimContent, character: Character): Loadout {
   const slots = Array.from({ length: SKILL_SLOTS }, () => ({ skill: null as string | null, supports: [] as string[] }));
   if (content.skills.some((s) => s.id === "frost_bolt")) slots[0]!.skill = "frost_bolt";
-  return { weapon: character.startingWeapon, autoSupports: [], slots };
+  return { weapon: character.startingWeapon, attackSupports: [], slots };
 }
 
 export function createWorld(content: SimContent, seed: number, progress: Progress = NEW_PROGRESS, characterId = "hero"): WorldState {
@@ -213,7 +213,7 @@ function sanitizeLoadout(content: SimContent, l: Loadout): Loadout {
     const skill = slot?.skill && content.skills.some((s) => s.id === slot.skill) ? slot.skill : null;
     return { skill, supports: skill ? (slot?.supports ?? []).filter(known) : [] };
   });
-  return { weapon, autoSupports: l.autoSupports.filter(known), slots };
+  return { weapon, attackSupports: l.attackSupports.filter(known), slots };
 }
 
 /** Command: change weapon/skills/supports. Validates, then recompiles. */
@@ -240,7 +240,7 @@ export function recomputePlayer(world: WorldState, content: SimContent): void {
   const weapon = lookup(content.weapons, p.loadout.weapon, "weapon");
   const supportsOf = (ids: string[]) => ids.map((id) => lookup(content.supports, id, "support"));
   p.compiled = [
-    compileSkill({ skill: autoAttackSkill(weapon), supports: supportsOf(p.loadout.autoSupports), playerMods: mods, weapon }),
+    compileSkill({ skill: weaponAttackSkill(weapon), supports: supportsOf(p.loadout.attackSupports), playerMods: mods, weapon }),
     ...p.loadout.slots.map((slot) =>
       slot.skill
         ? compileSkill({ skill: lookup(content.skills, slot.skill, "skill"), supports: supportsOf(slot.supports), playerMods: mods, weapon })
@@ -391,7 +391,7 @@ function updatePlayer(world: WorldState, content: SimContent, input: PlayerInput
 
   const aimAngle = dist(input.aim, p.pos) > 1 ? angleOf(sub(input.aim, p.pos)) : p.facing;
 
-  // Skill slots take priority over the auto attack.
+  // Skill slots take priority over the weapon attack.
   if (p.castLock === 0) {
     for (let i = 0; i < SKILL_SLOTS; i++) {
       if (!input.skills?.[i]) continue;
@@ -410,24 +410,12 @@ function updatePlayer(world: WorldState, content: SimContent, input: PlayerInput
     }
   }
 
-  // Manual attack aims where the player points; auto attack picks the nearest enemy it can reach.
-  const auto = p.compiled[0]!;
-  let swingAt: number | null = null;
-  if (input.attack) {
-    p.facing = aimAngle;
-    swingAt = aimAngle;
-  } else {
-    const target = input.autoAttack ? autoTarget(world, auto.nodes[0]!) : null;
-    if (target) {
-      p.facing = angleOf(sub(target.pos, p.pos));
-      swingAt = p.facing;
-    } else if (dist(input.aim, p.pos) > 1) {
-      p.facing = aimAngle;
-    }
-  }
-  if (swingAt === null || p.castLock > 0) return;
-  p.castLock = auto.interval;
-  useSkill(world, 0, p.pos, swingAt, ctx, events);
+  // Weapon attack while held, toward the aim point; otherwise just face where the player aims.
+  if (dist(input.aim, p.pos) > 1) p.facing = aimAngle;
+  if (!input.attack || p.castLock > 0) return;
+  const weaponAttack = p.compiled[0]!;
+  p.castLock = weaponAttack.interval;
+  useSkill(world, 0, p.pos, aimAngle, ctx, events);
 }
 
 /** Remove dead monsters, award XP, level up. */

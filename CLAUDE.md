@@ -133,10 +133,10 @@ orbit, summon) with **triggers** (on hit/kill/expire/crit) that spawn child
 deliveries; supports and gear change skills only through tag-scoped stat
 modifiers or generic structure changes, never skill-specific code; chain
 reactions are bounded by depth (3), proc coefficient, damage effectiveness
-and an entity budget. Every character has an **auto attack** that takes
-supports. Characters have **levels** and **Str/Dex/Int** (requirements +
+and an entity budget. Every weapon grants a **weapon attack** (R2 / left
+click, no auto-attacking; aim assist on pad) that takes supports. Characters have **levels** and **Str/Dex/Int** (requirements +
 small bonuses). Legendaries change skill structure. The full menu of
-skills, supports, auto attacks, legendaries, evolutions and the engine
+skills, supports, weapon attacks, legendaries, evolutions and the engine
 build waves is in **`docs/skill-catalog.md`**.
 
 ### Crafting currency
@@ -222,9 +222,10 @@ they show `E` or `✕` depending on the last-used device.
   Xbox, etc. in Chrome/Edge) are first-class. Every new UI screen must be
   fully usable with a pad: navigate with `up/down/left/right` (D-pad or left
   stick, auto-repeat), `confirm`/`cancel`, `tabPrev`/`tabNext`.
-- Pad gameplay: left stick move, right stick aim, R2 manual attack, skills on
-  R1/□/△/L1, ○ dodge roll, ✕ pickup. With the right stick idle, aim assist
-  soft-locks the nearest awake enemy, preferring ones ahead
+- Pad gameplay: left stick move, right stick aim, R2 weapon attack, skills on
+  R1/□/△/L1, ○ dodge roll, ✕ pickup. There is no auto attack. With the
+  right stick idle, aim assist soft-locks the nearest living enemy in line of
+  sight (asleep or awake), preferring ones ahead
   (`src/client/input/aim.ts`). Menus pause the game; inside menus ○ = back,
   ✕ = confirm, L1/R1 = tabs, D-pad = navigate.
 - Add new actions to `BINDINGS` in `InputManager.ts`; don't read raw input in
@@ -234,8 +235,7 @@ they show `E` or `✕` depending on the last-used device.
 |--------|----------|-----------------|
 | move | WASD / arrows | left stick |
 | aim | mouse | right stick (else aim assist) |
-| auto attack on/off | T | Create |
-| manual attack | hold left click | hold R2 |
+| weapon attack | hold left click | hold R2 |
 | skill slots 1–4 | right click, Q, E, R | R1, □, △, L1 |
 | dodge roll | Space | ○ |
 | pickup (reserved for loot) | F | ✕ |
@@ -304,7 +304,7 @@ src/
     zone/flowfield.ts     BFS distance field; monsters path along it
   data/
     characters.json       player characters (base stats, attributes, starting weapon, sprite)
-    weapons.json          weapon bases and the auto attack each grants (a DeliveryDef)
+    weapons.json          weapon bases and the attack each grants (a DeliveryDef)
     skills.json           active skill gems
     supports.json         support gems (tag-scoped mods and/or trigger additions)
     monsters.json         monsters (life, typed damage, accuracy/evasion/armour, xp, sprite)
@@ -318,7 +318,7 @@ src/
     index.ts              typed content loader
 docs/
   combat.md               stats, damage and defence formulas
-  skills.md               skill/support/trigger system, gems, attributes, auto attack
+  skills.md               skill/support/trigger system, gems, attributes, weapon attack
   skill-catalog.md        full skill/support/legendary list with inspirations + build waves
 tools/
   pixel-forge.html        PixelGen placeholder sprite generator
@@ -348,16 +348,19 @@ way through takes ~1:30 with 24–30 segments, so players should land at ~2–3 
 **Step 1, stats & combat core (done):** modifiers + `computeStats()`,
 PoE2-style hit pipeline (armour, entropy evasion, resistances, crits),
 levels/XP carried between zones, Str/Dex/Int with small bonuses, mana pool +
-regen (no spenders yet), monster level = 1 + zones cleared with per-level
-scaling, sword auto attack (toggle T / Create), character sheet (C / Options).
+regen, monster level = 1 + zones cleared with per-level scaling, character
+sheet (C / Options).
 
 
 **Step 2, push 1 (done):** skill engine (compile → cast → step; melee and
 projectile deliveries; hit/end/kill triggers; depth 3, 400-projectile
-budget), Frost Bolt, supports Volley/Pierce/Chain/Fork/Shatter, weapon-based
-auto attacks (Sword melee, Bow and Wand projectiles) that take supports,
+budget), Frost Bolt, supports Volley/Pierce/Chain/Fork/Shatter, weapon
+attacks (Sword melee, Bow and Wand projectiles) that take supports,
 dodge roll (○/Space, invulnerable to contact while rolling), 4 skill slots
 with mana costs, skill bar, pause menu with a debug loadout editor.
+**Auto attack removed** at the user's request: the weapon attacks only while
+R2 / left click is held; aim assist stays.
+
 Next: push 2, the rest of wave 1 (Fireball, Earthsplitter, Fanning Shot, Ice
 Nova, Magma Strike; Echo, Cast on Kill, Added Cold, Concentrated, Knockback;
 area delivery; chill/freeze/ignite).
