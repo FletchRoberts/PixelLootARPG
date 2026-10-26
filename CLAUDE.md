@@ -118,6 +118,19 @@ then defender evasion (entropy) → armour `A / (A + 10 × hit)` → resistances
 (75% cap) → other reductions → life. Monsters use the same pipeline. All
 constants live in data.
 
+### Skills and supports
+
+PoE-style skill gems with support gems, built for Noita/Vampire Survivors-
+style chain reactions. Documented in **`docs/skills.md`**. Key rules:
+a skill is a tree of **deliveries** (projectile, melee, area, chain, zone,
+orbit, summon) with **triggers** (on hit/kill/expire/crit) that spawn child
+deliveries; supports and gear change skills only through tag-scoped stat
+modifiers or generic structure changes, never skill-specific code; chain
+reactions are bounded by depth (3), proc coefficient, damage effectiveness
+and an entity budget. Every character has an **auto attack** that takes
+supports. Characters have **levels** and **Str/Dex/Int** (requirements +
+small bonuses). Legendaries change skill structure.
+
 ### Crafting currency
 
 Orb-style consumables that modify items. Our names (working, tweak freely):
@@ -273,7 +286,8 @@ src/
     *.json                items/affixes/currencies/drop tables (empty)
     index.ts              typed content loader
 docs/
-  combat.md               stats, damage and defence formulas (Phase 3 reference)
+  combat.md               stats, damage and defence formulas
+  skills.md               skill/support/trigger system, gems, attributes, auto attack
 tools/
   pixel-forge.html        PixelGen placeholder sprite generator
 ```

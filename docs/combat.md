@@ -117,13 +117,16 @@ still need respect.
   rares get much more life, several mods and better drops. Each mod is just
   a modifier list in data.
 
-## 6. Player base stats (proposal)
+## 6. Player base stats
 
 - Life 100 at level 1. Life, armour, evasion, accuracy and resistances come
   mainly from gear and passives.
 - Base crit bonus +100%, max resistances 75%, base accuracy and evasion
   small, so unequipped characters feel weak.
-- Open questions (below): attributes, mana, energy shield, levels.
+- **Decided:** character levels with XP; **Strength / Dexterity /
+  Intelligence** gate gear and gems and give small bonuses; mana arrives
+  with the skill system; evasion uses entropy. Details in `docs/skills.md`.
+- Still open: energy shield (planned with Intelligence, timing TBD).
 
 ## 7. Implementation plan (Phase 3)
 
