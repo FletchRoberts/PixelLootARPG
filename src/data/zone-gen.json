@@ -1,0 +1,41 @@
+{
+  "tileSize": 48,
+  "margin": 4,
+  "mainPath": {
+    "segments": [24, 30],
+    "segmentLength": [7, 11],
+    "halfWidth": [1.8, 3.0],
+    "maxTurnDegrees": 40,
+    "maxHeadingDegrees": 65,
+    "clearingChance": 0.3,
+    "clearingRadius": [3.0, 4.5]
+  },
+  "branches": {
+    "chance": 0.35,
+    "segments": [2, 3],
+    "segmentLength": [5, 8],
+    "halfWidth": [1.3, 1.8],
+    "angleDegrees": [65, 110],
+    "maxTurnDegrees": 30,
+    "endRadius": [2.2, 3.2]
+  },
+  "gap": 2.5,
+  "edgeRoughness": 0.6,
+  "startRadius": 3.5,
+  "endRadius": 7,
+  "packs": {
+    "spacing": [11, 16],
+    "size": [3, 6],
+    "spread": 1.6,
+    "safeStartDistance": 14,
+    "branchChance": 0.7,
+    "branchSize": [3, 5],
+    "endSize": [9, 13]
+  },
+  "monsterPool": [{ "id": "husk", "weight": 1 }],
+  "biomes": [
+    { "id": "crypt", "weight": 1 },
+    { "id": "cavern", "weight": 1 },
+    { "id": "mire", "weight": 1 }
+  ]
+}

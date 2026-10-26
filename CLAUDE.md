@@ -38,6 +38,15 @@ Commit after each working step. Run `npm run typecheck` before committing.
   not for exploration.
 - Generated from a seed by the sim. Same seed + same Cairnstone mods = same
   layout. Tilesets/biomes are data-driven.
+- Implementation (`src/sim/zone/generate.ts`): main path is a chain of
+  capsule segments whose heading drifts within ±`maxHeadingDegrees` of a
+  random overall direction (so it winds but never doubles back); non-adjacent
+  corridors keep a `gap` of solid tiles. Branches leave interior nodes at
+  65–110° and end in a small clearing (`branchEnds`, future reward spots).
+  The layout is rasterized to a tile grid, smoothed, and flood-filled from
+  the start so every floor tile is reachable. Packs are placed every
+  `spacing` tiles along the path, at most branch ends, plus a big end-arena
+  pack. Tune it all in `src/data/zone-gen.json`.
 - Zone generation outputs an abstract layout (graph of path segments, branch
   stubs, spawn points, mechanic slots, boss/exit room) that the client turns
   into tiles. The sim never deals with tiles-as-sprites.
@@ -206,18 +215,22 @@ src/
   client/
     main.ts               Phaser.Game config
     art/sprites.ts        loads PixelGen from tools/pixel-forge.html, makes textures
-    scenes/BootScene.ts   builds placeholder textures for all content
-    scenes/GameScene.ts   fixed-step loop, input -> sim, sim state -> sprites/HUD
+    scenes/BootScene.ts   builds placeholder textures + biome tilesets
+    scenes/GameScene.ts   fixed-step loop, input -> sim, sim state -> tilemap/sprites/HUD/minimap
   sim/
     core/rng.ts           seeded RNG (serializable state) with weighted pick
     core/vec.ts           plain-object 2D vector helpers
     data/types.ts         content schemas
-    world.ts              test-room sim: createWorld() / step() -> SimEvent[]
+    world.ts              zone sim: createWorld(seed) / step() -> SimEvent[]
     world.test.ts         headless sim tests
+    zone/generate.ts      linear zone generator (path, branches, arenas, packs)
+    zone/zone.ts          Zone data, tile queries, circle-vs-wall collision
+    zone/flowfield.ts     BFS distance field; monsters path along it
   data/
     characters.json       player characters (stats, melee attack, sprite)
     monsters.json         monsters (stats, contact damage, sprite)
-    test-room.json        temporary arena + spawn settings
+    zone-gen.json         zone generator tuning (lengths, widths, packs, pools)
+    biomes.json           tileset looks per biome (PixelGen floor/wall specs)
     *.json                items/affixes/currencies/drop tables (empty)
     index.ts              typed content loader
 tools/
@@ -234,7 +247,16 @@ tools/
 
 ## Status
 
-**Phase 1 (done):** single test room. WASD movement, hold left click to melee
-toward the mouse, one chasing monster type (`husk`) with contact damage,
-health bars, death screen, restart (R / click).
+**Phase 1 (done):** WASD movement, hold left click to melee toward the mouse,
+chasing monster (`husk`) with contact damage, health bars, death + restart.
 
+**Phase 2 (done):** generated linear zones replace the test room. Walls with
+collision, monsters asleep in packs until you're within `aggroRange` tiles of
+walking distance (the whole pack wakes), flow-field pathing, PixelGen
+tilesets per biome, minimap, exit portal in the end arena → "zone cleared" →
+next zone. Death retries the same zone seed.
+Measured: ~40 s pure walking with 18–24 segments; a bot run that kills its
+way through takes ~1:30 with 24–30 segments, so players should land at ~2–3 min.
+
+Dev helpers: `?seed=123` in the URL pins the first zone; in dev builds
+`window.__game.world` exposes sim state for debugging/automated play.

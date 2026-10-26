@@ -54,6 +54,7 @@ export interface Monster {
   speed: number; // px/s
   radius: number; // px, collision circle
   contactCooldown: number; // seconds between contact hits on the same target
+  aggroRange: number; // tiles of walking distance at which it wakes up
   dropTable: string;
   sprite?: SpriteSpec;
 }
@@ -76,16 +77,60 @@ export interface Character {
   sprite?: SpriteSpec;
 }
 
-/** Temporary single-room arena used until zone generation exists. */
-export interface TestRoom {
+export type Range = [number, number];
+
+export interface WeightedRef {
   id: string;
-  width: number;
-  height: number;
-  monster: string;
-  initialMonsters: number;
-  maxMonsters: number;
-  spawnInterval: number;
-  minSpawnDistance: number;
+  weight: number;
+}
+
+/** Tuning for the zone generator. Distances are in tiles. */
+export interface ZoneGenConfig {
+  tileSize: number; // px per tile
+  margin: number; // solid tiles around the layout
+  mainPath: {
+    segments: Range;
+    segmentLength: Range;
+    halfWidth: Range;
+    maxTurnDegrees: number; // heading change per segment
+    maxHeadingDegrees: number; // max deviation from the zone's overall direction
+    clearingChance: number;
+    clearingRadius: Range;
+  };
+  branches: {
+    chance: number; // per eligible main-path node
+    segments: Range;
+    segmentLength: Range;
+    halfWidth: Range;
+    angleDegrees: Range; // off the main heading
+    maxTurnDegrees: number;
+    endRadius: Range;
+  };
+  gap: number; // min solid tiles between non-adjacent corridors
+  edgeRoughness: number;
+  startRadius: number;
+  endRadius: number;
+  packs: {
+    spacing: Range; // tiles of main path between packs
+    size: Range;
+    spread: number; // radius of a pack, tiles
+    safeStartDistance: number;
+    branchChance: number;
+    branchSize: Range;
+    endSize: Range;
+  };
+  monsterPool: WeightedRef[];
+  biomes: WeightedRef[];
+}
+
+/** Visual set for a zone. Client-only; the sim just picks one by id. */
+export interface Biome {
+  id: string;
+  name: string;
+  floor: SpriteSpec;
+  wall: SpriteSpec;
+  variants: number; // seeds per tile kind, for variety
+  void: string; // colour outside walls
 }
 
 export interface DropEntry {

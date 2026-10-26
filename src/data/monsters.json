@@ -7,6 +7,7 @@
     "speed": 115,
     "radius": 13,
     "contactCooldown": 0.6,
+    "aggroRange": 9,
     "dropTable": "",
     "sprite": { "type": "monster", "seed": "husk-1", "theme": "earth" }
   }
