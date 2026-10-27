@@ -2,25 +2,73 @@
   {
     "id": "crypt",
     "name": "Sunken Crypt",
-    "floor": { "type": "floor", "seed": "crypt-floor", "theme": "shadow", "size": 16 },
-    "wall": { "type": "wall", "seed": "crypt-wall", "theme": "shadow", "size": 16 },
+    "floor": {
+      "type": "floor",
+      "seed": "crypt-floor",
+      "theme": "shadow",
+      "size": 16
+    },
+    "wall": {
+      "type": "wall",
+      "seed": "crypt-wall",
+      "theme": "shadow",
+      "size": 16
+    },
     "variants": 4,
     "void": "#07060b"
   },
   {
     "id": "cavern",
     "name": "Ochre Cavern",
-    "floor": { "type": "floor", "seed": "cavern-floor", "theme": "earth", "size": 16 },
-    "wall": { "type": "wall", "seed": "cavern-wall", "theme": "earth", "size": 16 },
+    "floor": {
+      "type": "floor",
+      "seed": "cavern-floor",
+      "theme": "earth",
+      "size": 16
+    },
+    "wall": {
+      "type": "wall",
+      "seed": "cavern-wall",
+      "theme": "earth",
+      "size": 16
+    },
     "variants": 4,
     "void": "#0b0805"
   },
   {
     "id": "mire",
     "name": "Rotting Mire",
-    "floor": { "type": "floor", "seed": "mire-floor", "theme": "poison", "size": 16 },
-    "wall": { "type": "wall", "seed": "mire-wall", "theme": "poison", "size": 16 },
+    "floor": {
+      "type": "floor",
+      "seed": "mire-floor",
+      "theme": "poison",
+      "size": 16
+    },
+    "wall": {
+      "type": "wall",
+      "seed": "mire-wall",
+      "theme": "poison",
+      "size": 16
+    },
     "variants": 4,
     "void": "#050906"
+  },
+  {
+    "id": "hideout",
+    "name": "Hideout",
+    "floor": {
+      "type": "floor",
+      "seed": "hideout-floor",
+      "theme": "gold",
+      "size": 16
+    },
+    "wall": {
+      "type": "wall",
+      "seed": "hideout-wall",
+      "theme": "earth",
+      "size": 16
+    },
+    "variants": 4,
+    "void": "#0a0806"
   }
 ]

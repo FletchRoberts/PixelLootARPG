@@ -67,6 +67,18 @@ export interface GearRules {
   bagSize: number; // gear bag slots (gems have their own bag; currency stacks without limit)
 }
 
+/** The hideout (src/data/hideout.json): a small safe room between maps. Positions are in tiles. */
+export interface HideoutDef {
+  name: string;
+  biome: string;
+  width: number; // tiles, including the solid border
+  height: number;
+  start: [number, number];
+  interactRange: number; // px
+  stations: { id: "map_device" | "stash" | "bench"; name: string; pos: [number, number] }[];
+  stashSize: { gear: number; gems: number; stones: number };
+}
+
 /** Cairnstone rules (src/data/cairnstones.json). Map mods live in map-mods.json (Affix shape). */
 export interface CairnstoneRules {
   bagSize: number;

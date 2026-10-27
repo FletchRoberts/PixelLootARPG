@@ -1,4 +1,4 @@
-// Map Device: shown between maps. Pick a Cairnstone to open (it's consumed), or run the free
+// Map Device: the hideout station that opens maps. Pick a Cairnstone to open (it's consumed), or run the free
 // map (no stone: a bit below your best level, random lowest-tier mods). Salvage stones here;
 // Options opens the menu to craft them (Currency tab). Fully usable with a pad.
 
@@ -6,7 +6,7 @@ import Phaser from "phaser";
 import { content } from "../../data";
 import { mapModLines, rewardLine, stoneName } from "../../sim/items/cairnstone";
 import { salvageYield } from "../../sim/items/crafting";
-import type { CairnstoneItem } from "../../sim/items/types";
+import type { CairnstoneItem, MapRun } from "../../sim/items/types";
 import type { InventoryCommand, WorldState } from "../../sim/world";
 import type { InputManager } from "../input/InputManager";
 import { currencyName, RARITY_COLOR } from "./items";
@@ -21,6 +21,8 @@ export interface MapDeviceActions {
   /** Start the chosen map: null = this world's free map, else a stone from the stone bag. */
   open(stoneIndex: number | null): void;
   openMenu(): void;
+  /** The free map you'd get right now (same seed the Map Device will open with). */
+  freeMap(): MapRun;
 }
 
 export class MapDevice {
@@ -82,6 +84,7 @@ export class MapDevice {
     const i = this.inputs;
     const entries = this.entries();
     if (this.scene.time.now - this.shownAt < INPUT_DELAY_MS) return this.render();
+    if (i.pressed("cancel")) return this.hide();
     if (i.pressed("character") || i.pressed("inventory")) return this.actions.openMenu();
     if (i.pressed("down") || i.pressed("up")) {
       this.row = (this.row + (i.pressed("down") ? 1 : -1) + entries.length) % entries.length;
@@ -128,7 +131,7 @@ export class MapDevice {
       t.setPosition(x + 16, y + 48 + k * 19);
       if (e === undefined) return t.setText("");
       const mark = idx === this.row ? "▶ " : "  ";
-      if (e === null) return t.setText(`${mark}Run without a Cairnstone (level ${this.world().map.level})`).setColor("#a8a8b8");
+      if (e === null) return t.setText(`${mark}Run without a Cairnstone (level ${this.actions.freeMap().level})`).setColor("#a8a8b8");
       const s = save.stoneBag[e]!;
       t.setText(`${mark}Lv ${String(s.level).padStart(2)}  ${stoneName(content, s)}${s.corrupted ? "  (corrupted)" : ""}`).setColor(RARITY_COLOR[s.rarity]);
     });
@@ -138,7 +141,7 @@ export class MapDevice {
     const pick = entries[this.row] ?? null;
     let lines: string[];
     if (pick === null) {
-      const m = this.world().map;
+      const m = this.actions.freeMap();
       this.title.setText(m.name).setColor("#a8a8b8");
       lines = [
         `Level ${m.level}: free maps run ${content.cairnstones.freeMap.levelsBelowBest} below your best map level (${save.bestMapLevel}).`,
@@ -169,6 +172,6 @@ export class MapDevice {
     const pad = this.inputs.device === "pad";
     this.footer
       .setPosition(x + 16, y + h - 26)
-      .setText(`${pad ? "D-pad select   ✕ open map   □ salvage stone   Options craft (menu)" : "W/S select   Enter open map   X salvage stone   C craft (menu)"}`);
+      .setText(`${pad ? "D-pad select   ✕ open map   □ salvage stone   Options craft   ○ close" : "W/S select   Enter open map   X salvage stone   C craft   Esc close"}`);
   }
 }

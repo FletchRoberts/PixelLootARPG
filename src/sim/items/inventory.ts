@@ -4,7 +4,7 @@
 
 import { supportFits, weaponAttackSkill } from "../skills/compile";
 import type { SkillDef, SupportDef } from "../skills/types";
-import type { CairnstoneRules, Currency, GearRules, GemRules, ItemBase, WeaponDef } from "../data/types";
+import type { CairnstoneRules, Currency, GearRules, GemRules, HideoutDef, ItemBase, WeaponDef } from "../data/types";
 import { addCurrency } from "./crafting";
 import { requirementProblem, slotAccepts, slotFor } from "./gear";
 import { raiseGemLevel } from "./gems";
@@ -16,6 +16,7 @@ export interface InventoryContent {
   gear: GearRules;
   currencies: Currency[];
   cairnstones: CairnstoneRules;
+  hideout: HideoutDef;
   skills: SkillDef[];
   supports: SupportDef[];
   weapons: WeaponDef[];
@@ -177,5 +178,27 @@ export function unsocket(save: CharacterSave, target: SocketTarget, socket: numb
   if (!sockets || !gem) return "socket is empty";
   if (!addToBag(save, gem, content)) return "gem bag is full";
   sockets[socket] = null;
+  return null;
+}
+
+// ---------------------------------------------------------------- stash
+
+export type StashTab = "gear" | "gems" | "stones";
+
+const bagFor = (save: CharacterSave, tab: StashTab) => (tab === "gear" ? save.gearBag : tab === "gems" ? save.gemBag : save.stoneBag) as Item[];
+const bagSize = (tab: StashTab, c: InventoryContent) => (tab === "gear" ? c.gear.bagSize : tab === "gems" ? c.gems.bagSize : c.cairnstones.bagSize);
+
+/** Move a bag item into the hideout stash (or back out with `take`). */
+export function moveStash(save: CharacterSave, tab: StashTab, index: number, take: boolean, content: InventoryContent): string | null {
+  const bag = bagFor(save, tab);
+  const stash = save.stash[tab] as Item[];
+  const from = take ? stash : bag;
+  const to = take ? bag : stash;
+  const item = from[index];
+  if (!item) return "nothing there";
+  const room = take ? bagSize(tab, content) : content.hideout.stashSize[tab];
+  if (to.length >= room) return take ? "bag is full" : "stash tab is full";
+  from.splice(index, 1);
+  to.push(item);
   return null;
 }

@@ -25,6 +25,13 @@ export interface Zone {
   branchEnds: Vec[]; // dead-end clearings, world px (future reward spots)
   packs: PackSpawn[];
   pathLength: number; // tiles along the main path
+  stations?: Station[]; // hideout only: things to walk up to and use
+}
+
+export interface Station {
+  id: "map_device" | "stash" | "bench";
+  name: string;
+  pos: Vec; // world px
 }
 
 export function isFloor(zone: Zone, tx: number, ty: number): boolean {

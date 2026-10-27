@@ -9,6 +9,7 @@ import { Rng } from "./core/rng";
 import { add, angleOf, dist, len, normalize, scale, sub, type Vec } from "./core/vec";
 import type {
   CairnstoneRules,
+  HideoutDef,
   CraftingRules,
   Currency,
   AttributeBonuses,
@@ -33,16 +34,17 @@ import type { CompiledNode, CompiledSkill, Loadout, SkillDef, SupportDef } from 
 import { rollDrops, type DropResult } from "./items/drops";
 import { makeGem } from "./items/gems";
 import { equipmentGrants, equipmentModifiers, rollGear, type RollOptions } from "./items/gear";
-import { mapStats, plainMap, rollCairnstone, stoneMap } from "./items/cairnstone";
+import { freeMap, mapStats, plainMap, rollCairnstone, stoneMap } from "./items/cairnstone";
+import { hideoutZone } from "./zone/hideout";
 import { addCurrency, applyCurrency, salvage, salvageBulk, type BulkSalvage, type CraftTarget } from "./items/crafting";
-import { addToBag, bagOf, equipGear, equipSkill, levelSkillGem, socketSupport, unequipGear, unequipSkill, unsocket } from "./items/inventory";
+import { addToBag, bagOf, moveStash, type StashTab, equipGear, equipSkill, levelSkillGem, socketSupport, unequipGear, unequipSkill, unsocket } from "./items/inventory";
 import { applyDeathPenalty, loadoutOf, newCharacter } from "./items/save";
 import type { CairnstoneItem, CharacterSave, EquipSlot, GemItem, GroundItem, Item, MapRun, SocketTarget } from "./items/types";
 import { gainXp, monsterScale, playerModifiers, playerStats, xpForKill } from "./stats/character";
 import { computeStat, type StatBlock } from "./stats/stats";
 import { buildFlowField, distAt, nextStep, UNREACHED, type FlowField } from "./zone/flowfield";
 import { generateZone } from "./zone/generate";
-import { hasLineOfSight, isFloorAt, resolveWalls, tileCenter, tileOf, type Zone } from "./zone/zone";
+import { hasLineOfSight, isFloorAt, resolveWalls, tileCenter, tileOf, type Station, type Zone } from "./zone/zone";
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
@@ -76,6 +78,7 @@ export interface SimContent {
   crafting: CraftingRules;
   cairnstones: CairnstoneRules;
   mapMods: Affix[];
+  hideout: HideoutDef;
 }
 
 export interface Actor {
@@ -176,7 +179,8 @@ export type SimEvent =
   | { type: "bag_full"; bag: "gear" | "gems" | "currency" | "stones" }
   | { type: "wake"; packId: number }
   | { type: "player_died" }
-  | { type: "zone_complete"; reward: CairnstoneItem | null };
+  | { type: "zone_complete"; reward: CairnstoneItem | null }
+  | { type: "interact"; station: Station["id"] };
 
 // Derived, non-serialized cache: flow field toward the player's current tile.
 const flowCache = new WeakMap<WorldState, FlowField>();
@@ -194,7 +198,7 @@ function lookup<T extends { id: string }>(list: T[], id: string, what: string): 
 export function createWorld(content: SimContent, seed: number, save: CharacterSave = newCharacter(content, seed), map?: MapRun): WorldState {
   const run: MapRun = clone(map ?? save.currentMap ?? plainMap(seed, 1));
   seed = run.seed;
-  const zone = generateZone(content.zoneGen, seed);
+  const zone = run.hideout ? hideoutZone(content.hideout, content.zoneGen.tileSize) : generateZone(content.zoneGen, seed);
   const hero = lookup(content.characters, save.characterId, "character");
   const rng = new Rng((seed ^ 0x9e3779b9) >>> 0);
   const own: CharacterSave = clone(save); // the world mutates its own copy
@@ -303,7 +307,8 @@ export type InventoryCommand =
   | { type: "salvage_bulk"; what: BulkSalvage }
   | { type: "debug_give_currency"; currency: string; count: number }
   | { type: "debug_give_stone"; level: number; rarity: CairnstoneItem["rarity"]; seed: number }
-  | { type: "open_map"; stoneIndex: number | null; seed: number };
+  | { type: "open_map"; stoneIndex: number | null; seed: number }
+  | { type: "stash"; tab: StashTab; index: number; take: boolean };
 
 /** Change equipped gems. Returns null on success or why it was refused. */
 export function inventoryCommand(world: WorldState, content: SimContent, cmd: InventoryCommand): string | null {
@@ -359,12 +364,15 @@ export function inventoryCommand(world: WorldState, content: SimContent, cmd: In
       addCurrency(save, cmd.currency, cmd.count, content);
       result = null;
       break;
+    case "stash":
+      result = moveStash(save, cmd.tab, cmd.index, cmd.take, content);
+      break;
     case "debug_give_stone":
       result = addToBag(save, rollCairnstone(content, new Rng(cmd.seed), cmd.level, save.nextUid++, { rarity: cmd.rarity, exact: true }), content) ? null : "Cairnstone bag is full";
       break;
     case "open_map": {
-      // Use a stone (consumed now) or this world's map (the free map shown behind the Map Device).
-      if (cmd.stoneIndex === null) save.currentMap = clone(world.map);
+      // Use a stone (consumed now) or run a free map (the same seed gives the same free map).
+      if (cmd.stoneIndex === null) save.currentMap = freeMap(content, save, cmd.seed);
       else {
         const stone = save.stoneBag[cmd.stoneIndex];
         if (!stone) {
@@ -441,7 +449,7 @@ export function step(world: WorldState, content: SimContent, input: PlayerInput,
   stepProjectiles(world, ctx, events, dt);
   reapDead(world, content, ctx, rng, events);
   updateMonsters(world, content, rng, events, dt);
-  if (world.status === "playing" && dist(world.player.pos, world.zone.exit) < EXIT_RADIUS * world.zone.tileSize) {
+  if (world.status === "playing" && !world.map.hideout && dist(world.player.pos, world.zone.exit) < EXIT_RADIUS * world.zone.tileSize) {
     world.status = "complete";
     // Every cleared map pays out a Cairnstone (bag limit ignored: it's the guaranteed one).
     const reward = rollCairnstone(content, rng, world.map.level, world.player.save.nextUid++);
@@ -697,9 +705,28 @@ export function nearestPickup(world: WorldState, content: SimContent): GroundIte
   return best;
 }
 
+/** The hideout station the player is close enough to use, if any. */
+export function nearestStation(world: WorldState, content: SimContent): Station | null {
+  let best: Station | null = null;
+  let bestD = content.hideout.interactRange;
+  for (const s of world.zone.stations ?? []) {
+    const d = dist(s.pos, world.player.pos);
+    if (d <= bestD) {
+      best = s;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
 function pickUpNearest(world: WorldState, content: SimContent, events: SimEvent[]): void {
   const g = nearestPickup(world, content);
-  if (!g) return;
+  if (!g) {
+    // Nothing to pick up: the same button uses a hideout station.
+    const s = nearestStation(world, content);
+    if (s) events.push({ type: "interact", station: s.id });
+    return;
+  }
   if (!addToBag(world.player.save, g.item, content)) {
     events.push({ type: "bag_full", bag: bagOf(g.item) });
     return;

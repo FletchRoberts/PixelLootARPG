@@ -44,6 +44,13 @@ Chrome/Edge and a PS5 controller over USB.
   not for exploration.
 - Generated from a seed by the sim. Same seed + same Cairnstone mods = same
   layout. Tilesets/biomes are data-driven.
+- **Layouts** (`zone-gen.json` `layouts`, one weighted pick per seed, each
+  overriding generator settings): *Winding Path* (narrow corridor, ~240
+  tiles), *Wide Expanse* (6–8 very wide segments, ~17 tiles across, rock
+  pillars, packs spread across the width), *Broken Halls* (corridor with
+  1–2-node halls that widen to 9–13 tiles). Overlap checks between path
+  segments are by path distance, so wide corridors work. Packs and branch
+  ends are snapped to floor after pillars are placed.
 - Implementation (`src/sim/zone/generate.ts`): main path is a chain of
   capsule segments whose heading drifts within ±`maxHeadingDegrees` of a
   random overall direction (so it winds but never doubles back); non-adjacent
@@ -285,8 +292,9 @@ src/
     input/InputManager.ts keyboard/mouse + gamepad -> PlayerInput and UI actions
     input/gamepad.ts      standard-mapping buttons, deadzones (pure, tested)
     input/aim.ts          controller aim assist (pure, tested)
-    ui/GameMenu.ts        pause menu: Character, Gear, Gems (sockets), Currency, Debug tabs
-    ui/MapDevice.ts       between maps: pick a Cairnstone or the free map, salvage stones
+    ui/GameMenu.ts        pause menu: Character, Gear, Gems (sockets), Stones, Currency, Debug tabs
+    ui/MapDevice.ts       hideout station: pick a Cairnstone or the free map, salvage stones
+    ui/Stash.ts           hideout station: bag ⇄ stash per tab (gear, gems, stones)
     ui/items.ts           item names, rarity colours, icon keys, gear tooltips
     save/storage.ts       character save in localStorage (guarded)
     scenes/BootScene.ts   builds placeholder textures + biome tilesets
@@ -316,6 +324,7 @@ src/
     zone/generate.ts      linear zone generator (path, branches, arenas, packs)
     zone/zone.ts          Zone data, tile queries, circle-vs-wall collision
     zone/flowfield.ts     BFS distance field; monsters path along it
+    zone/hideout.ts       the hideout room (Zone with stations, no packs) and its MapRun
   data/
     characters.json       player characters (base stats, attributes, starting weapon, sprite)
     weapons.json          weapon bases and the attack each grants (a DeliveryDef)
@@ -326,7 +335,7 @@ src/
     attributes.json       per-point Str/Dex/Int bonuses
     monster-scaling.json  per-level monster growth rates
     combat.json           armour/evasion/resistance/crit constants
-    zone-gen.json         zone generator tuning (lengths, widths, packs, pools)
+    zone-gen.json         zone generator tuning (lengths, widths, packs, pools) + layouts (map shapes)
     biomes.json           tileset looks per biome (PixelGen floor/wall specs)
     drop-tables.json      weighted drop tables (gems, gear, currency, Cairnstones)
     gems.json             gem levels, sockets by level, bag size, pickup range
@@ -338,6 +347,7 @@ src/
     crafting.json         salvage yields per rarity / gem kind / stone, Void Pearl outcomes
     cairnstones.json      stone bag size, rarity weights, level-up chance, free map rules, maxDeaths
     map-mods.json         map mods (affix format, tiers gated by stone level; danger + reward stats)
+    hideout.json          hideout room size, station positions, interact range, stash sizes
     index.ts              typed content loader
 docs/
   combat.md               stats, damage and defence formulas
@@ -475,6 +485,16 @@ level they had reached. Client: Map Device between maps (✕ open, □/X
 salvage, Options → Currency tab to craft stones), HUD shows map name, mods
 and rewards. `zonesCleared` is now just a counter.
 
+**Hideout + stash + map shapes (done):** between maps you're in the
+**hideout** (`hideout.json`, `src/sim/zone/hideout.ts`): a safe room with no
+monsters and three **stations** used with ✕ (`interact` event,
+`nearestStation`): Map Device (opens maps; the free map preview uses the
+same seed it opens with), Stash (`save.stash` gear/gems/stones, 120 each,
+`stash` command), Crafting Bench (menu Currency tab). Clearing a map returns
+to the hideout; on death ✕ retries, ○ abandons the map and returns. Save v5
+adds `stash`. Menu gained a **Stones** tab (craft stones with any usable
+currency, repeatable; salvage). Map **layouts** (see Zones).
+
 ### Balance & feel backlog (revisit after gear)
 
 - Cast on Kill chains: cooldown (0.3 s) and damage penalty feel; whether
@@ -515,8 +535,14 @@ and rewards. `zonesCleared` is now just a counter.
    extend `tools/pixel-forge.html` with more weapon types, animation frames
    (walk / attack / hit), and paper-doll gear appearance on the character;
    make editing weapon/gear looks easy in the tool.
-4. ~~Cairnstones + map mods~~ (done), then the Reach, passive tree, map
-   mechanics (free maps should also roll low-tier events then).
+4. ~~Cairnstones + map mods~~ (done), ~~hideout + stash~~ (done).
+5. **Monsters (next):** more enemy types (ranged attackers, casters with
+   abilities), bosses (end arena), and **monster rarity**: magic/rare/unique
+   packs with monster mods that make them tougher and drop better loot. With
+   that, lower the base gear drop rate and make currency drops better, so rare
+   monsters and map mods matter more.
+6. The Reach, passive tree, map mechanics (free maps should also roll
+   low-tier events then).
 
 **Controller support (done):** DualSense/Xbox via the browser Gamepad API,
 twin-stick aim with aim assist, rumble on hits/death, prompts swap between

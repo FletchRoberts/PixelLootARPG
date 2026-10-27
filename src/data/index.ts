@@ -6,6 +6,7 @@ import type {
   CairnstoneRules,
   CombatRulesDef,
   CraftingRules,
+  HideoutDef,
   Currency,
   DropTable,
   GearRules,
@@ -40,6 +41,7 @@ import gear from "./gear.json";
 import crafting from "./crafting.json";
 import cairnstones from "./cairnstones.json";
 import mapMods from "./map-mods.json";
+import hideout from "./hideout.json";
 
 export const content = {
   itemBases: itemBases as ItemBase[],
@@ -63,6 +65,7 @@ export const content = {
   crafting: crafting as CraftingRules,
   cairnstones: cairnstones as CairnstoneRules,
   mapMods: mapMods as Affix[],
+  hideout: hideout as HideoutDef,
 };
 
 export type Content = typeof content;

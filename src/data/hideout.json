@@ -1,0 +1,42 @@
+{
+  "name": "Hideout",
+  "biome": "hideout",
+  "width": 23,
+  "height": 15,
+  "interactRange": 80,
+  "stations": [
+    {
+      "id": "map_device",
+      "name": "Map Device",
+      "pos": [
+        11.5,
+        3.5
+      ]
+    },
+    {
+      "id": "stash",
+      "name": "Stash",
+      "pos": [
+        4.5,
+        7.5
+      ]
+    },
+    {
+      "id": "bench",
+      "name": "Crafting Bench",
+      "pos": [
+        18.5,
+        7.5
+      ]
+    }
+  ],
+  "start": [
+    11.5,
+    10.5
+  ],
+  "stashSize": {
+    "gear": 120,
+    "gems": 120,
+    "stones": 120
+  }
+}

@@ -65,6 +65,7 @@ export interface MapRun {
   free: boolean; // opened without a Cairnstone
   deaths: number;
   maxDeaths?: number; // undefined = unlimited retries (a limit may come later)
+  hideout?: boolean; // the safe room between maps: no monsters, no exit
 }
 
 export type Item = GemItem | GearItem | CurrencyItem | CairnstoneItem;
@@ -84,7 +85,7 @@ export type SocketTarget = { kind: "skill"; slot: number } | { kind: "attack" };
 
 /** Everything that persists between zones and browser sessions. */
 export interface CharacterSave {
-  version: 4;
+  version: 5;
   characterId: string;
   level: number;
   xp: number;
@@ -99,5 +100,6 @@ export interface CharacterSave {
   stoneBag: CairnstoneItem[]; // Cairnstones (cairnstones.bagSize)
   bestMapLevel: number; // highest map level cleared (free maps run a bit below it)
   currentMap?: MapRun; // the map in progress, if any
+  stash: { gear: GearItem[]; gems: GemItem[]; stones: CairnstoneItem[] }; // hideout storage
   nextUid: number;
 }

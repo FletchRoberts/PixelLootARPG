@@ -163,7 +163,7 @@ describe("gear drops and saves", () => {
     const { gearBag: _g, gemBag, currency: _c, ...rest } = newCharacter(content, 1);
     const v1 = { ...rest, version: 1, equipment: undefined, weapon: "short_bow", bag: gemBag };
     const save = migrateSave(JSON.parse(JSON.stringify(v1)), content)!;
-    expect(save.version).toBe(4);
+    expect(save.version).toBe(5);
     expect(save.equipment.weapon?.base).toBe("short_bow");
     expect(save.gemBag).toHaveLength(1);
     expect(migrateSave({ nonsense: true }, content)).toBeNull();
