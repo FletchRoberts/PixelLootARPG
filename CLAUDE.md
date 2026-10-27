@@ -246,8 +246,9 @@ they show `E` or `✕` depending on the last-used device.
 | weapon attack | hold left click | hold R2 |
 | skill slots 1–4 | right click, Q, E, R | R1, □, △, L1 |
 | dodge roll | Space | ○ |
-| pickup | F | ✕ |
-| menu (Character/Gear/Gems/Currency/Debug tabs) | C | Options |
+| pickup / use station or portal | F | ✕ |
+| open portal to hideout (maps) | T | D-pad ↑ |
+| menu (Character/Gear/Gems/Stones/Currency/Debug tabs) | C | Options |
 | salvage (Gear tab) | X | □ |
 | gear tab shortcut | I | touchpad click |
 | confirm (menus/overlays) | Enter / Space / click | ✕ |
@@ -325,12 +326,17 @@ src/
     zone/zone.ts          Zone data, tile queries, circle-vs-wall collision
     zone/flowfield.ts     BFS distance field; monsters path along it
     zone/hideout.ts       the hideout room (Zone with stations, no packs) and its MapRun
+    monsters/attacks.ts   monster attacks: projectiles, telegraphed slams/novas, summons; hits on the player
+    monsters/rarity.ts    pack rarity (magic / rare / Legendary), monster mods, applyRarity
   data/
     characters.json       player characters (base stats, attributes, starting weapon, sprite)
     weapons.json          weapon bases and the attack each grants (a DeliveryDef)
     skills.json           active skill gems
     supports.json         support gems (tag-scoped mods and/or trigger additions)
-    monsters.json         monsters (life, typed damage, accuracy/evasion/armour, xp, sprite)
+    monsters.json         monsters + bosses (life, damage, defences, attacks, keepDistance, packSize, boss, enrage, sprite)
+    monster-mods.json     monster mods (summed stats, granted attacks, on-death attacks)
+    monster-rarity.json   pack rarity weights and per-rarity life/damage/XP/loot multipliers
+    bosses.json           Titan chance, boss escort, boss rarity weights and multipliers
     progression.json      XP curve, per-level gains, XP penalty
     attributes.json       per-point Str/Dex/Int bonuses
     monster-scaling.json  per-level monster growth rates
@@ -495,6 +501,34 @@ to the hideout; on death ✕ retries, ○ abandons the map and returns. Save v5
 adds `stash`. Menu gained a **Stones** tab (craft stones with any usable
 currency, repeatable; salvage). Map **layouts** (see Zones).
 
+**Monsters, rarity, bosses, portal (done):**
+- **Portal:** T / D-pad ↑ opens a portal (`world.portal`) a step ahead; ✕ on it
+  goes home with the map world kept in memory (`SceneData.suspended`); the
+  hideout gets a portal back (`hideoutRun(def, true)`), and `rejoinMap()`
+  continues the same map with the character as it is now. A refresh while
+  home restarts the open map from scratch (it's still `save.currentMap`).
+- **Monster attacks** (`src/sim/monsters/attacks.ts`, `Monster.attacks`):
+  projectile (fan / 360° ring), slam (warning circle at the player's spot),
+  nova (around itself), summon; all with a windup (yellow ring on the
+  monster), all avoidable by dodge roll, all through `hitPlayer()`. Ranged
+  monsters back off to `keepDistance`. Frozen monsters lose their cast.
+- **New enemies:** Bone Archer, Ember Acolyte (fire), Frost Acolyte (cold
+  fan), Bloated Brute (slam), Skitterling (fast, evasive, big swarms).
+  Packs are mostly one kind (`STRAY_CHANCE` mixes others in).
+- **Monster rarity** (`monster-rarity.json`, `src/sim/monsters/rarity.ts`):
+  packs roll normal / magic (shared 1–2 mods) / rare (named leader, 3–4 mods,
+  magic minions) / Legendary (`unique`, 4–5 mods). Rarity multiplies life,
+  damage, XP, drop rolls and item rarity; rare/Legendary roll bonus tables.
+  13 monster mods in `monster-mods.json` (stats, granted attack, on-death
+  attack). Client: coloured ring underfoot, name/mod label, coloured bar.
+- **Bosses** (`monsters.json` `boss`, `bosses.json`): the end arena holds a
+  **Warden** (3 kinds; rolls normal/magic/rare with milder multipliers) or,
+  at `titanChance`% (8), a **Titan** (2 kinds; enrage below 50% life). The
+  exit is **sealed** until the boss dies (`world.bossId`, `boss_defeated`).
+  Boss bar along the top. An empty monster pool means no boss (tests).
+- **Loot rebalance:** trash drops ~12% (gear 4%, currency 4% ×1–2, gems
+  3.5%, stones 0.5%); rare/Legendary monsters and bosses carry the loot.
+
 ### Balance & feel backlog (revisit after gear)
 
 - Cast on Kill chains: cooldown (0.3 s) and damage penalty feel; whether
@@ -516,7 +550,10 @@ currency, repeatable; salvage). Map **layouts** (see Zones).
   monster mods) so accuracy and the accuracy affix earn their place. Player
   evasion already works against monster accuracy.
 - Gem drop rates now need duplicates for levelling: tune skill gem weights.
-- Currency drop rate (8% of trash, 12% end pack ×1–3), per-currency weights,
+- Monster/boss numbers are first guesses: rarity multipliers, boss life
+  (Wardens 330–480 × level scaling, Titans 1250–1500), Titan chance 8%,
+  enrage, attack damage/cooldowns; loot from rare packs and bosses.
+- Currency drop rate (now 4% of trash ×1–2, more from rare/boss tables), per-currency weights,
   salvage yields; whether Void Pearl outcomes are too swingy.
 - Cairnstone economy: drop rate (2% trash, 6% end pack + 1 guaranteed),
   level-up chance (30%), free map level (best − 1), stone bag 60. Map mod
@@ -536,11 +573,9 @@ currency, repeatable; salvage). Map **layouts** (see Zones).
    (walk / attack / hit), and paper-doll gear appearance on the character;
    make editing weapon/gear looks easy in the tool.
 4. ~~Cairnstones + map mods~~ (done), ~~hideout + stash~~ (done).
-5. **Monsters (next):** more enemy types (ranged attackers, casters with
-   abilities), bosses (end arena), and **monster rarity**: magic/rare/unique
-   packs with monster mods that make them tougher and drop better loot. With
-   that, lower the base gear drop rate and make currency drops better, so rare
-   monsters and map mods matter more.
+5. ~~Monsters: enemy types, rarity, bosses, loot rebalance~~ (done). Next
+   candidates: map mods that affect monster rarity / boss (e.g. "+1 rare
+   pack", "Titan guaranteed"), more boss abilities (charges, phases).
 6. The Reach, passive tree, map mechanics (free maps should also roll
    low-tier events then).
 

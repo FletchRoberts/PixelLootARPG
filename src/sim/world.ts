@@ -8,6 +8,7 @@ import { clone } from "./core/clone";
 import { Rng } from "./core/rng";
 import { add, angleOf, dist, len, normalize, scale, sub, type Vec } from "./core/vec";
 import type {
+  BossRules,
   CairnstoneRules,
   HideoutDef,
   MonsterModDef,
@@ -102,6 +103,7 @@ export interface SimContent {
   hideout: HideoutDef;
   monsterMods: MonsterModDef[];
   monsterRarity: MonsterRarityRules;
+  bosses: BossRules;
 }
 
 export interface Actor {
@@ -156,7 +158,8 @@ export interface MonsterState extends Actor {
   rarity: MonsterRarity;
   mods: string[]; // monster-mods.json ids
   mstats: Record<string, number>; // its mods' stats summed
-  name?: string; // rare / Legendary leaders
+  name?: string; // rare / Legendary leaders, bosses
+  enraged?: boolean; // bosses below their enrage threshold
   cooldowns: number[]; // per attack (def attacks first, then attacks from mods)
   cast: { attack: number; t: number } | null; // winding up an attack (stands still)
   summoned?: number; // summons made so far
@@ -178,6 +181,7 @@ export interface WorldState {
   telegraphs: Telegraph[]; // slams / novas winding up
   groundItems: GroundItem[];
   portal: Vec | null; // map: portal to the hideout; hideout: portal back to the open map
+  bossId: number | null; // the map's boss; the exit stays sealed while it lives
   nextId: number;
   kills: number;
   totalMonsters: number;
@@ -217,7 +221,9 @@ export type SimEvent =
   | { type: "zone_complete"; reward: CairnstoneItem | null }
   | { type: "interact"; station: Station["id"] | "portal" }
   | { type: "portal_opened" }
-  | { type: "monster_cast"; actorId: number; attack: string; windup: number };
+  | { type: "monster_cast"; actorId: number; attack: string; windup: number }
+  | { type: "boss_defeated"; name: string; titan: boolean }
+  | { type: "boss_enraged"; name: string };
 
 // Derived, non-serialized cache: flow field toward the player's current tile.
 const flowCache = new WeakMap<WorldState, FlowField>();
@@ -280,6 +286,7 @@ export function createWorld(content: SimContent, seed: number, save: CharacterSa
     enemyShots: [],
     telegraphs: [],
     groundItems: [],
+    bossId: null,
     portal: run.hideout && run.portalBack ? add(zone.start, { x: 0, y: -zone.tileSize * 2.4 }) : null,
     nextId: 2,
     kills: 0,
@@ -289,7 +296,7 @@ export function createWorld(content: SimContent, seed: number, save: CharacterSa
   world.player.life = world.player.maxLife;
   world.player.mana = world.player.maxMana;
   zone.packs.forEach((pack, packId) => {
-    const table = pack.kind === "end" ? content.zoneGen.endPackDropTable : undefined;
+    if (pack.kind === "end") return spawnBoss(world, content, rng, pack.pos, packId);
     // A pack is mostly one kind of monster (swarms come bigger), with the odd stray mixed in.
     const kind = rng.weighted(content.zoneGen.monsterPool)?.id;
     const kindDef = content.monsters.find((d) => d.id === kind);
@@ -302,7 +309,7 @@ export function createWorld(content: SimContent, seed: number, save: CharacterSa
     for (let i = 0; i < size; i++) {
       const id = rng.next() < STRAY_CHANCE ? rng.weighted(content.zoneGen.monsterPool)?.id : kind;
       if (!id) continue;
-      const m = spawnMonster(world, content, rng, id, pack.pos, content.zoneGen.packs.spread, packId, table);
+      const m = spawnMonster(world, content, rng, id, pack.pos, content.zoneGen.packs.spread, packId);
       const def = lookup(content.monsters, id, "monster");
       if (rarity === "normal") continue;
       if (rarity === "magic" || i > 0) applyRarity(content, m, rules.minions[rarity] ?? "magic", shared, def.attacks, rng);
@@ -529,7 +536,8 @@ export function step(world: WorldState, content: SimContent, input: PlayerInput,
   updateMonsters(world, content, rng, events, dt);
   if (world.status === "playing") stepEnemyShots(world, content, rng, events, dt);
   if (world.status === "playing") stepTelegraphs(world, content, rng, events, dt);
-  if (world.status === "playing" && !world.map.hideout && dist(world.player.pos, world.zone.exit) < EXIT_RADIUS * world.zone.tileSize) {
+  const sealed = world.bossId !== null && world.monsters.some((m) => m.id === world.bossId);
+  if (world.status === "playing" && !world.map.hideout && !sealed && dist(world.player.pos, world.zone.exit) < EXIT_RADIUS * world.zone.tileSize) {
     world.status = "complete";
     // Every cleared map pays out a Cairnstone (bag limit ignored: it's the guaranteed one).
     const reward = rollCairnstone(content, rng, world.map.level, world.player.save.nextUid++);
@@ -826,13 +834,15 @@ function pickUpNearest(world: WorldState, content: SimContent, events: SimEvent[
  * (the fraction as a chance); rare and Legendary monsters also roll their bonus table.
  */
 function mapDrops(world: WorldState, content: SimContent, m: MonsterState, rng: Rng): DropResult[] {
+  const boss = lookup(content.monsters, m.defId, "monster").boss;
   const r = content.monsterRarity.rarities[m.rarity];
-  const quantity = r.dropRolls * (1 + (world.mapStats.item_quantity ?? 0) / 100);
+  const rolls = boss && m.rarity !== "unique" ? content.bosses.rarity[m.rarity].dropRolls : r.dropRolls;
+  const quantity = rolls * (1 + (world.mapStats.item_quantity ?? 0) / 100);
   let times = Math.floor(quantity);
   if (quantity > times && rng.next() < quantity - times) times++;
   const out: DropResult[] = [];
   for (let i = 0; i < times; i++) out.push(...rollDrops(content, m.dropTable, rng, m.level));
-  if (r.bonusTable) out.push(...rollDrops(content, r.bonusTable, rng, m.level));
+  if (r.bonusTable && !boss) out.push(...rollDrops(content, r.bonusTable, rng, m.level));
   return out;
 }
 
@@ -855,7 +865,8 @@ function reapDead(world: WorldState, content: SimContent, ctx: SkillContext, rng
   for (const m of dead) {
     events.push({ type: "death", actorId: m.id, pos: { ...m.pos } });
     const def = lookup(content.monsters, m.defId, "monster");
-    xp += xpForKill(def.xp, m.level, p.level, content.progression, content.monsterScaling) * content.monsterRarity.rarities[m.rarity].xp;
+    xp += xpForKill(def.xp, m.level, p.level, content.progression, content.monsterScaling) * (def.boss ? 1 : content.monsterRarity.rarities[m.rarity].xp);
+    if (m.id === world.bossId) events.push({ type: "boss_defeated", name: m.name ?? def.name, titan: def.boss === "titan" });
     // Volatile and friends: their death attack lands where they fell, after a warning.
     for (const a of deathAttacks(content, m)) telegraph(world, content, m, def, a, m.pos);
     for (const drop of mapDrops(world, content, m, rng)) {
@@ -923,6 +934,13 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
     const frozen = ail.freeze > 0;
     const speed = frozen ? 0 : def.speed * (1 + (world.mapStats.monster_speed ?? 0) / 100) * (1 + (m.mstats.speed ?? 0) / 100) * (1 - ail.slow / 100);
     if (m.mstats.regen) m.life = Math.min(m.maxLife, m.life + (m.maxLife * m.mstats.regen * dt) / 100);
+    // Enrage: below a share of life, a boss gains extra stats (faster, hits harder, attacks more often).
+    if (def.enrage && !m.enraged && m.life < m.maxLife * def.enrage.below) {
+      m.enraged = true;
+      for (const [k, v] of Object.entries(def.enrage.stats)) m.mstats[k] = (m.mstats[k] ?? 0) + v;
+      m.damageMult *= 1 + (def.enrage.stats.damage ?? 0) / 100;
+      events.push({ type: "boss_enraged", name: m.name ?? def.name });
+    }
 
     if (!m.awake) {
       if (pathDist <= def.aggroRange) wakePack(world, m.packId, events);
@@ -1001,6 +1019,28 @@ function wakePack(world: WorldState, packId: number, events: SimEvent[]): void {
     }
   }
   if (woke) events.push({ type: "wake", packId });
+}
+
+/**
+ * The end arena: a Warden (or, at `titanChance`%, a Titan) with a small escort. Wardens roll a
+ * rarity with monster mods; the exit stays sealed until the boss dies.
+ */
+function spawnBoss(world: WorldState, content: SimContent, rng: Rng, at: Vec, packId: number): void {
+  if (content.zoneGen.monsterPool.length === 0) return; // an empty monster pool means an empty zone
+  const titan = rng.next() * 100 < content.bosses.titanChance;
+  const pool = content.monsters.filter((d) => d.boss === (titan ? "titan" : "warden"));
+  const def = pool[Math.floor(rng.next() * pool.length)];
+  if (!def) return;
+  const boss = spawnMonster(world, content, rng, def.id, at, 0, packId);
+  boss.name = def.name;
+  const rules = content.bosses;
+  const rarity = titan ? "normal" : (rng.weighted(Object.entries(rules.rarityWeights).map(([id, weight]) => ({ id: id as "normal" | "magic" | "rare", weight })))?.id ?? "normal");
+  const r = rules.rarity[rarity];
+  applyRarity(content, boss, rarity, rollMonsterMods(content, rng, rng.int(r.mods[0], r.mods[1])), def.attacks, rng, r);
+  world.bossId = boss.id;
+  const escort = rng.int(rules.escort[0], rules.escort[1]);
+  const kind = rng.weighted(content.zoneGen.monsterPool)?.id;
+  for (let i = 0; i < escort && kind; i++) spawnMonster(world, content, rng, kind, at, content.zoneGen.packs.spread * 1.5, packId);
 }
 
 function spawnMonster(world: WorldState, content: SimContent, rng: Rng, monsterId: string, center: Vec, spreadTiles: number, packId: number, dropTable?: string): MonsterState {

@@ -231,5 +231,445 @@
       "theme": "poison",
       "size": 24
     }
+  },
+  {
+    "id": "hollow_warden",
+    "name": "The Hollow Warden",
+    "boss": "warden",
+    "life": 420,
+    "damage": {
+      "physical": [
+        14,
+        20
+      ]
+    },
+    "accuracy": 80,
+    "evasion": 30,
+    "armour": 60,
+    "xp": 120,
+    "speed": 95,
+    "radius": 26,
+    "contactCooldown": 0.9,
+    "aggroRange": 9,
+    "dropTable": "warden_boss",
+    "sprite": {
+      "type": "monster",
+      "seed": "warden-hollow-2",
+      "theme": "earth",
+      "size": 40
+    },
+    "attacks": [
+      {
+        "id": "crushing_slam",
+        "kind": "slam",
+        "cooldown": 4.0,
+        "range": 260,
+        "windup": 1.0,
+        "damage": {
+          "physical": [
+            26,
+            36
+          ]
+        },
+        "radius": 95,
+        "weight": 3
+      },
+      {
+        "id": "bone_ring",
+        "kind": "projectile",
+        "cooldown": 6.0,
+        "range": 420,
+        "windup": 0.9,
+        "damage": {
+          "physical": [
+            10,
+            14
+          ]
+        },
+        "count": 12,
+        "spreadDegrees": 360,
+        "speed": 280,
+        "projRadius": 8,
+        "maxRange": 520,
+        "weight": 2
+      },
+      {
+        "id": "raise_husks",
+        "kind": "summon",
+        "cooldown": 11,
+        "range": 600,
+        "windup": 1.2,
+        "summon": "husk",
+        "summonCount": 3,
+        "maxSummons": 9,
+        "weight": 1
+      }
+    ]
+  },
+  {
+    "id": "cinder_matron",
+    "name": "Cinder Matron",
+    "boss": "warden",
+    "life": 330,
+    "damage": {
+      "physical": [
+        8,
+        12
+      ]
+    },
+    "accuracy": 80,
+    "evasion": 40,
+    "armour": 20,
+    "xp": 120,
+    "speed": 100,
+    "radius": 22,
+    "contactCooldown": 0.9,
+    "aggroRange": 9,
+    "dropTable": "warden_boss",
+    "keepDistance": 230,
+    "resist": {
+      "fire": 50
+    },
+    "sprite": {
+      "type": "monster",
+      "seed": "matron-6",
+      "theme": "fire",
+      "size": 40
+    },
+    "attacks": [
+      {
+        "id": "cinder_fan",
+        "kind": "projectile",
+        "cooldown": 2.6,
+        "range": 420,
+        "windup": 0.7,
+        "damage": {
+          "fire": [
+            12,
+            17
+          ]
+        },
+        "count": 5,
+        "spreadDegrees": 50,
+        "speed": 320,
+        "projRadius": 9,
+        "maxRange": 520,
+        "weight": 3
+      },
+      {
+        "id": "flame_nova",
+        "kind": "nova",
+        "cooldown": 5.5,
+        "range": 170,
+        "windup": 0.9,
+        "damage": {
+          "fire": [
+            22,
+            30
+          ]
+        },
+        "radius": 150,
+        "weight": 2
+      },
+      {
+        "id": "call_acolytes",
+        "kind": "summon",
+        "cooldown": 12,
+        "range": 600,
+        "windup": 1.2,
+        "summon": "ember_acolyte",
+        "summonCount": 2,
+        "maxSummons": 6,
+        "weight": 1
+      }
+    ]
+  },
+  {
+    "id": "frostbound_sentinel",
+    "name": "Frostbound Sentinel",
+    "boss": "warden",
+    "life": 480,
+    "damage": {
+      "physical": [
+        12,
+        18
+      ]
+    },
+    "accuracy": 75,
+    "evasion": 20,
+    "armour": 90,
+    "xp": 120,
+    "speed": 80,
+    "radius": 28,
+    "contactCooldown": 1.0,
+    "aggroRange": 9,
+    "dropTable": "warden_boss",
+    "resist": {
+      "cold": 50
+    },
+    "sprite": {
+      "type": "monster",
+      "seed": "sentinel-3",
+      "theme": "ice",
+      "size": 40
+    },
+    "attacks": [
+      {
+        "id": "glacial_slam",
+        "kind": "slam",
+        "cooldown": 3.6,
+        "range": 300,
+        "windup": 1.1,
+        "damage": {
+          "cold": [
+            24,
+            34
+          ]
+        },
+        "radius": 110,
+        "weight": 3
+      },
+      {
+        "id": "shard_storm",
+        "kind": "projectile",
+        "cooldown": 4.5,
+        "range": 440,
+        "windup": 0.8,
+        "damage": {
+          "cold": [
+            8,
+            12
+          ]
+        },
+        "count": 7,
+        "spreadDegrees": 70,
+        "speed": 360,
+        "projRadius": 7,
+        "maxRange": 540,
+        "weight": 2
+      },
+      {
+        "id": "ice_nova",
+        "kind": "nova",
+        "cooldown": 7,
+        "range": 160,
+        "windup": 1.0,
+        "damage": {
+          "cold": [
+            20,
+            28
+          ]
+        },
+        "radius": 160,
+        "weight": 1
+      }
+    ]
+  },
+  {
+    "id": "rift_colossus",
+    "name": "Rift Colossus",
+    "boss": "titan",
+    "life": 1500,
+    "damage": {
+      "physical": [
+        22,
+        30
+      ]
+    },
+    "accuracy": 95,
+    "evasion": 40,
+    "armour": 140,
+    "xp": 600,
+    "speed": 90,
+    "radius": 34,
+    "contactCooldown": 0.9,
+    "aggroRange": 10,
+    "dropTable": "titan_boss",
+    "resist": {
+      "fire": 30,
+      "cold": 30,
+      "lightning": 30
+    },
+    "sprite": {
+      "type": "monster",
+      "seed": "colossus-9",
+      "theme": "arcane",
+      "size": 48
+    },
+    "enrage": {
+      "below": 0.5,
+      "stats": {
+        "speed": 30,
+        "cooldown": 60,
+        "damage": 20
+      }
+    },
+    "attacks": [
+      {
+        "id": "rift_slam",
+        "kind": "slam",
+        "cooldown": 3.0,
+        "range": 320,
+        "windup": 0.95,
+        "damage": {
+          "physical": [
+            34,
+            46
+          ],
+          "lightning": [
+            10,
+            18
+          ]
+        },
+        "radius": 120,
+        "weight": 3
+      },
+      {
+        "id": "rift_ring",
+        "kind": "projectile",
+        "cooldown": 5.0,
+        "range": 480,
+        "windup": 0.9,
+        "damage": {
+          "lightning": [
+            12,
+            18
+          ]
+        },
+        "count": 18,
+        "spreadDegrees": 360,
+        "speed": 300,
+        "projRadius": 9,
+        "maxRange": 600,
+        "weight": 2
+      },
+      {
+        "id": "collapse",
+        "kind": "nova",
+        "cooldown": 8,
+        "range": 200,
+        "windup": 1.2,
+        "damage": {
+          "physical": [
+            40,
+            55
+          ]
+        },
+        "radius": 210,
+        "weight": 1
+      },
+      {
+        "id": "spill_skitterlings",
+        "kind": "summon",
+        "cooldown": 10,
+        "range": 700,
+        "windup": 1.0,
+        "summon": "skitterling",
+        "summonCount": 5,
+        "maxSummons": 20,
+        "weight": 1
+      }
+    ]
+  },
+  {
+    "id": "ashen_king",
+    "name": "The Ashen King",
+    "boss": "titan",
+    "life": 1250,
+    "damage": {
+      "physical": [
+        18,
+        26
+      ]
+    },
+    "accuracy": 95,
+    "evasion": 80,
+    "armour": 80,
+    "xp": 600,
+    "speed": 110,
+    "radius": 30,
+    "contactCooldown": 0.8,
+    "aggroRange": 10,
+    "dropTable": "titan_boss",
+    "keepDistance": 200,
+    "resist": {
+      "fire": 60
+    },
+    "sprite": {
+      "type": "monster",
+      "seed": "ashenking-4",
+      "theme": "fire",
+      "size": 48
+    },
+    "enrage": {
+      "below": 0.5,
+      "stats": {
+        "speed": 25,
+        "cooldown": 70,
+        "damage": 25
+      }
+    },
+    "attacks": [
+      {
+        "id": "ember_storm",
+        "kind": "projectile",
+        "cooldown": 2.2,
+        "range": 460,
+        "windup": 0.6,
+        "damage": {
+          "fire": [
+            14,
+            20
+          ]
+        },
+        "count": 7,
+        "spreadDegrees": 80,
+        "speed": 360,
+        "projRadius": 9,
+        "maxRange": 560,
+        "weight": 3
+      },
+      {
+        "id": "pyre",
+        "kind": "slam",
+        "cooldown": 4.0,
+        "range": 420,
+        "windup": 1.0,
+        "damage": {
+          "fire": [
+            30,
+            42
+          ]
+        },
+        "radius": 105,
+        "weight": 2
+      },
+      {
+        "id": "inferno",
+        "kind": "nova",
+        "cooldown": 9,
+        "range": 220,
+        "windup": 1.3,
+        "damage": {
+          "fire": [
+            38,
+            52
+          ]
+        },
+        "radius": 230,
+        "weight": 1
+      },
+      {
+        "id": "court_of_ash",
+        "kind": "summon",
+        "cooldown": 12,
+        "range": 700,
+        "windup": 1.2,
+        "summon": "ember_acolyte",
+        "summonCount": 3,
+        "maxSummons": 9,
+        "weight": 1
+      }
+    ]
   }
 ]

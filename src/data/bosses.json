@@ -1,0 +1,41 @@
+{
+  "titanChance": 8,
+  "escort": [
+    3,
+    5
+  ],
+  "rarityWeights": {
+    "normal": 55,
+    "magic": 30,
+    "rare": 15
+  },
+  "rarity": {
+    "normal": {
+      "life": 1,
+      "damage": 1,
+      "mods": [
+        0,
+        0
+      ],
+      "dropRolls": 1
+    },
+    "magic": {
+      "life": 1.4,
+      "damage": 1.15,
+      "mods": [
+        1,
+        2
+      ],
+      "dropRolls": 1.5
+    },
+    "rare": {
+      "life": 1.9,
+      "damage": 1.3,
+      "mods": [
+        2,
+        3
+      ],
+      "dropRolls": 2.2
+    }
+  }
+}

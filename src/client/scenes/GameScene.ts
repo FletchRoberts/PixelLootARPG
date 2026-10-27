@@ -97,6 +97,8 @@ export class GameScene extends Phaser.Scene {
   private clearMessage = "";
   private shots!: Phaser.GameObjects.Graphics;
   private under!: Phaser.GameObjects.Graphics; // drawn below actors: rarity rings
+  private exitLabel?: Phaser.GameObjects.Text;
+  private bossText!: Phaser.GameObjects.Text;
   private skillBar!: { g: Phaser.GameObjects.Graphics; labels: Phaser.GameObjects.Text[] };
   private lastNoManaToast = 0;
 
@@ -123,6 +125,7 @@ export class GameScene extends Phaser.Scene {
     this.accumulator = 0;
     this.views.clear();
     this.portalView = null; // the old scene's objects are gone after a restart
+    this.exitLabel = undefined;
 
     const zone = this.world.zone;
     const biome = content.biomes.find((b) => b.id === zone.biome)!;
@@ -140,6 +143,12 @@ export class GameScene extends Phaser.Scene {
     this.minimap = this.makeMinimap(zone);
     this.shots = this.add.graphics().setDepth(12_000);
     this.under = this.add.graphics().setDepth(-2);
+    this.bossText = this.add
+      .text(0, 0, "", { fontFamily: "monospace", fontSize: "14px", color: "#ffff77", stroke: "#000", strokeThickness: 3 })
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0)
+      .setDepth(20_001)
+      .setVisible(false);
     this.skillBar = {
       g: this.add.graphics().setScrollFactor(0).setDepth(20_000),
       labels: Array.from({ length: SKILL_SLOTS }, () =>
@@ -396,6 +405,17 @@ export class GameScene extends Phaser.Scene {
       case "player_died":
         this.onPlayerDied();
         break;
+      case "boss_defeated":
+        this.toast(`${e.name} is defeated! The exit is open.`);
+        this.inputs.rumble(0.8, 0.6, 350);
+        this.cameras.main.shake(250, 0.008);
+        break;
+      case "boss_enraged":
+        this.toast(`${e.name} is enraged!`);
+        this.cameras.main.shake(200, 0.006);
+        break;
+      case "monster_cast":
+        break;
       case "portal_opened":
         this.toast(`Portal opened: walk to it and press ${this.inputs.prompt("pickup")} to go home`);
         break;
@@ -472,6 +492,7 @@ export class GameScene extends Phaser.Scene {
     this.syncPortal();
     if (this.time.now - this.lastAutosave > AUTOSAVE_MS) this.persist();
     this.drawSkillBar();
+    this.drawBossBar();
     this.drawMinimapDots();
     this.drawAimMarker();
   }
@@ -700,10 +721,33 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(0x6fd3ff, 0.35).fillCircle(x, y, r);
     g.lineStyle(3, 0xbfefff, 0.9).strokeCircle(x, y, r);
     this.tweens.add({ targets: g, alpha: 0.55, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
-    this.add
+    this.exitLabel = this.add
       .text(x, y - r - 14, "EXIT", { fontFamily: "monospace", fontSize: "14px", color: "#bfefff", stroke: "#000", strokeThickness: 3 })
       .setOrigin(0.5)
       .setDepth(-4);
+  }
+
+  /** The boss bar along the top while the boss is awake, and the exit label (sealed until it dies). */
+  private drawBossBar(): void {
+    const w = this.world;
+    const boss = w.bossId !== null ? w.monsters.find((m) => m.id === w.bossId) : undefined;
+    this.exitLabel?.setText(boss ? "SEALED" : "EXIT").setColor(boss ? "#ff7a6a" : "#bfefff");
+    const show = !!boss && boss.awake;
+    this.bossText.setVisible(show);
+    if (!boss || !show) return;
+    const def = content.monsters.find((d) => d.id === boss.defId);
+    const { width } = this.scale;
+    const bw = Math.min(520, width - 80);
+    const x = (width - bw) / 2;
+    const titan = def?.boss === "titan";
+    const color = titan ? 0xc04aff : MONSTER_RARITY_COLOR[boss.rarity];
+    this.drawBar(this.hud, x, 30, bw, 12, boss.life / boss.maxLife, color, 0x1a1016);
+    const kind = titan ? "Titan" : `${boss.rarity === "normal" ? "" : `${content.monsterRarity.rarities[boss.rarity].name} `}Warden`;
+    const mods = boss.mods.map((id) => content.monsterMods.find((d) => d.id === id)?.name ?? id).join(", ");
+    this.bossText
+      .setPosition(width / 2, 10)
+      .setText(`${boss.name ?? def?.name}  ·  ${kind}${boss.enraged ? "  ·  ENRAGED" : ""}${mods ? `  ·  ${mods}` : ""}`)
+      .setColor(titan ? "#d8a0ff" : `#${MONSTER_RARITY_COLOR[boss.rarity === "normal" ? "rare" : boss.rarity].toString(16).padStart(6, "0")}`);
   }
 
   private makeMinimap(zone: Zone) {

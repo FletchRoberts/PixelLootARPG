@@ -20,7 +20,8 @@ describe("monster rarity", () => {
   });
 
   it("rare and Legendary leaders have a name and their own mods; magic packs share theirs", () => {
-    for (const m of all.filter((m) => m.rarity === "rare" || m.rarity === "unique")) {
+    const isBoss = (m: MonsterState) => !!content.monsters.find((d) => d.id === m.defId)?.boss;
+    for (const m of all.filter((m) => (m.rarity === "rare" || m.rarity === "unique") && !isBoss(m))) {
       expect(m.name).toBeTruthy();
       expect(m.mods.length).toBeGreaterThanOrEqual(content.monsterRarity.rarities[m.rarity].mods[0]);
     }

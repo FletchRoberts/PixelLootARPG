@@ -152,6 +152,16 @@ export interface Monster {
   attacks?: MonsterAttackDef[]; // besides contact damage
   keepDistance?: number; // px: ranged monsters back off to about this distance
   packSize?: number; // multiplier on pack size when a pack is of this monster (swarms)
+  boss?: "warden" | "titan"; // map bosses: Wardens close every map; Titans are the rare super bosses
+  enrage?: { below: number; stats: Record<string, number> }; // below this share of life, gains these mod stats
+}
+
+/** Boss rules (src/data/bosses.json). Boss rarity is milder than pack rarity: they're already big. */
+export interface BossRules {
+  titanChance: number; // % per map that a Titan replaces the Warden
+  escort: Range; // normal monsters guarding the boss
+  rarityWeights: Record<"normal" | "magic" | "rare", number>;
+  rarity: Record<"normal" | "magic" | "rare", { life: number; damage: number; mods: Range; dropRolls: number }>;
 }
 
 /**
@@ -324,7 +334,6 @@ export interface ZoneGenConfig {
   };
   monsterPool: WeightedRef[];
   biomes: WeightedRef[];
-  endPackDropTable: string; // the end-arena pack drops from this instead of its own table
   layouts: ZoneLayoutDef[]; // map shapes; one is picked per seed and overrides the settings above
 }
 

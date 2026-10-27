@@ -8,6 +8,7 @@ import type {
   CraftingRules,
   HideoutDef,
   MonsterModDef,
+  BossRules,
   MonsterRarityRules,
   Currency,
   DropTable,
@@ -46,6 +47,7 @@ import mapMods from "./map-mods.json";
 import hideout from "./hideout.json";
 import monsterMods from "./monster-mods.json";
 import monsterRarity from "./monster-rarity.json";
+import bosses from "./bosses.json";
 
 export const content = {
   itemBases: itemBases as ItemBase[],
@@ -72,6 +74,7 @@ export const content = {
   hideout: hideout as HideoutDef,
   monsterMods: monsterMods as MonsterModDef[],
   monsterRarity: monsterRarity as MonsterRarityRules,
+  bosses: bosses as BossRules,
 };
 
 export type Content = typeof content;

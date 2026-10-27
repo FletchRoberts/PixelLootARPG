@@ -66,8 +66,16 @@ export function rareMonsterName(content: RarityContent, rng: Rng): string {
  * Make a freshly spawned (normal) monster this rarity with these mods: life, damage and the
  * summed mod stats. Its attack cooldowns are re-made to include mod attacks.
  */
-export function applyRarity(content: RarityContent, m: MonsterState, rarity: MonsterRarity, mods: string[], defAttacks: MonsterAttackDef[] | undefined, rng: Rng): void {
-  const r = content.monsterRarity.rarities[rarity];
+export function applyRarity(
+  content: RarityContent,
+  m: MonsterState,
+  rarity: MonsterRarity,
+  mods: string[],
+  defAttacks: MonsterAttackDef[] | undefined,
+  rng: Rng,
+  mult: { life: number; damage: number } = content.monsterRarity.rarities[rarity], // bosses pass milder ones
+): void {
+  const r = mult;
   m.rarity = rarity;
   m.mods = mods;
   m.mstats = modStats(content, mods);
