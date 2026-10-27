@@ -30,6 +30,9 @@ function addMonster(w: WorldState, pos: { x: number; y: number }, awake = true):
     awake,
     ailments: { chill: 0, slow: 0, freeze: 0, ignite: 0, igniteDps: 0 },
     dropTable: "none",
+    damageMult: 1,
+    cooldowns: [],
+    cast: null,
   };
   w.monsters.push(m);
   return m;
@@ -53,7 +56,7 @@ describe("world", () => {
   it("spawns sleeping packs from the zone and starts the player at the zone start", () => {
     const w = createWorld(content, 7);
     expect(w.player.pos).toEqual(w.zone.start);
-    expect(w.monsters.length).toBe(w.zone.packs.reduce((n, p) => n + p.size, 0));
+    expect(w.monsters.length).toBeGreaterThanOrEqual(w.zone.packs.reduce((n, p) => n + p.size, 0)); // swarms come bigger
     expect(w.monsters.every((m) => !m.awake && isFloorAt(w.zone, m.pos))).toBe(true);
   });
 

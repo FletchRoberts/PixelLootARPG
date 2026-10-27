@@ -36,6 +36,21 @@ import { makeGem } from "./items/gems";
 import { equipmentGrants, equipmentModifiers, rollGear, type RollOptions } from "./items/gear";
 import { freeMap, mapStats, plainMap, rollCairnstone, stoneMap } from "./items/cairnstone";
 import { hideoutZone } from "./zone/hideout";
+import {
+  awayFrom,
+  chooseAttack,
+  finishCast,
+  hitPlayer,
+  monsterHitSpec,
+  playerDefences,
+  rangedStance,
+  startCast,
+  stepEnemyShots,
+  stepTelegraphs,
+  untouchable as playerUntouchable,
+  type EnemyShot,
+  type Telegraph,
+} from "./monsters/attacks";
 import { addCurrency, applyCurrency, salvage, salvageBulk, type BulkSalvage, type CraftTarget } from "./items/crafting";
 import { addToBag, bagOf, moveStash, type StashTab, equipGear, equipSkill, levelSkillGem, socketSupport, unequipGear, unequipSkill, unsocket } from "./items/inventory";
 import { applyDeathPenalty, loadoutOf, newCharacter } from "./items/save";
@@ -54,6 +69,7 @@ const KNOCKBACK_DECAY = 10; // per second, exponential
 const SEPARATION_STRENGTH = 0.5;
 const FLOW_MAX_DIST = 40; // tiles; monsters further than this can't path to the player
 const EXIT_RADIUS = 0.8; // tiles
+const STRAY_CHANCE = 0.15; // pack members that are a random monster rather than the pack's kind
 const TRIGGER_TARGET_RANGE = 600; // px: Cast on Kill aims at enemies this close to the corpse
 
 export interface SimContent {
@@ -129,6 +145,10 @@ export interface MonsterState extends Actor {
   level: number;
   ailments: Ailments;
   dropTable: string;
+  damageMult: number; // monster rarity / mods
+  cooldowns: number[]; // per attack in its def
+  cast: { attack: number; t: number } | null; // winding up an attack (stands still)
+  summoned?: number; // summons made so far
 }
 
 export interface WorldState {
@@ -143,6 +163,8 @@ export interface WorldState {
   player: PlayerState;
   monsters: MonsterState[];
   projectiles: ProjectileState[];
+  enemyShots: EnemyShot[];
+  telegraphs: Telegraph[]; // slams / novas winding up
   groundItems: GroundItem[];
   portal: Vec | null; // map: portal to the hideout; hideout: portal back to the open map
   nextId: number;
@@ -183,7 +205,8 @@ export type SimEvent =
   | { type: "player_died" }
   | { type: "zone_complete"; reward: CairnstoneItem | null }
   | { type: "interact"; station: Station["id"] | "portal" }
-  | { type: "portal_opened" };
+  | { type: "portal_opened" }
+  | { type: "monster_cast"; actorId: number; attack: string; windup: number };
 
 // Derived, non-serialized cache: flow field toward the player's current tile.
 const flowCache = new WeakMap<WorldState, FlowField>();
@@ -243,6 +266,8 @@ export function createWorld(content: SimContent, seed: number, save: CharacterSa
     },
     monsters: [],
     projectiles: [],
+    enemyShots: [],
+    telegraphs: [],
     groundItems: [],
     portal: run.hideout && run.portalBack ? add(zone.start, { x: 0, y: -zone.tileSize * 2.4 }) : null,
     nextId: 2,
@@ -254,8 +279,14 @@ export function createWorld(content: SimContent, seed: number, save: CharacterSa
   world.player.mana = world.player.maxMana;
   zone.packs.forEach((pack, packId) => {
     const table = pack.kind === "end" ? content.zoneGen.endPackDropTable : undefined;
-    const size = Math.round(pack.size * (1 + (world.mapStats.pack_size ?? 0) / 100));
-    for (let i = 0; i < size; i++) spawnMonster(world, content, rng, pack.pos, content.zoneGen.packs.spread, packId, table);
+    // A pack is mostly one kind of monster (swarms come bigger), with the odd stray mixed in.
+    const kind = rng.weighted(content.zoneGen.monsterPool)?.id;
+    const kindDef = content.monsters.find((d) => d.id === kind);
+    const size = Math.round(pack.size * (kindDef?.packSize ?? 1) * (1 + (world.mapStats.pack_size ?? 0) / 100));
+    for (let i = 0; i < size; i++) {
+      const id = rng.next() < STRAY_CHANCE ? rng.weighted(content.zoneGen.monsterPool)?.id : kind;
+      if (id) spawnMonster(world, content, rng, id, pack.pos, content.zoneGen.packs.spread, packId, table);
+    }
   });
   world.totalMonsters = world.monsters.length;
   world.rngState = rng.state;
@@ -472,6 +503,8 @@ export function step(world: WorldState, content: SimContent, input: PlayerInput,
   stepProjectiles(world, ctx, events, dt);
   reapDead(world, content, ctx, rng, events);
   updateMonsters(world, content, rng, events, dt);
+  if (world.status === "playing") stepEnemyShots(world, content, rng, events, dt);
+  if (world.status === "playing") stepTelegraphs(world, content, rng, events, dt);
   if (world.status === "playing" && !world.map.hideout && dist(world.player.pos, world.zone.exit) < EXIT_RADIUS * world.zone.tileSize) {
     world.status = "complete";
     // Every cleared map pays out a Cairnstone (bag limit ignored: it's the guaranteed one).
@@ -496,11 +529,7 @@ export function playerFlowField(world: WorldState): FlowField {
   return field;
 }
 
-export function playerDefences(p: PlayerState): Defences {
-  const resist: Defences["resist"] = {};
-  for (const e of ELEMENTS) resist[e] = p.stats[`${e}_resistance`] ?? 0;
-  return { armour: p.stats.armour ?? 0, evasion: p.stats.evasion ?? 0, resist };
-}
+export { playerDefences };
 
 function monsterDefences(m: MonsterState, def: Monster, content: SimContent, ms: Record<string, number>): Defences {
   const s = content.monsterScaling;
@@ -870,10 +899,37 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
 
     const toP = sub(p.pos, m.pos);
     m.facing = angleOf(toP);
+    m.cooldowns = m.cooldowns.map((c) => Math.max(0, c - dt));
+    const canSee = hasLineOfSight(zone, m.pos, p.pos);
+
+    // Attacks: wind up (standing still), then fire / summon. Frozen monsters lose their cast.
+    if (frozen) m.cast = null;
+    else if (m.cast) {
+      m.cast.t += dt;
+      const attack = def.attacks?.[m.cast.attack];
+      if (!attack || m.cast.t >= attack.windup) {
+        const summon = attack ? finishCast(world, content, m, def) : ((m.cast = null), null);
+        if (summon) {
+          for (let k = 0; k < summon.count; k++) {
+            const minion = spawnMonster(world, content, rng, summon.monster, m.pos, 1.2, m.packId);
+            minion.awake = true;
+            minion.dropTable = "nothing";
+            world.totalMonsters++;
+          }
+        }
+      }
+    } else if (def.attacks?.length) {
+      const i = chooseAttack(m, def, dist(m.pos, p.pos), canSee, rng);
+      if (i >= 0) startCast(world, content, m, def, i, events);
+    }
 
     // Close by: head straight for the player. Further: walk downhill on the flow field.
+    // Ranged monsters back off when you get close and hold at their preferred range.
     let target: Vec | null = null;
-    if (pathDist <= 1) target = p.pos;
+    const stance = rangedStance(m, def, p.pos, canSee);
+    if (m.cast || stance === "hold") target = null;
+    else if (stance === "away") target = add(m.pos, scale(awayFrom(m.pos, p.pos), 48));
+    else if (pathDist <= 1) target = p.pos;
     else if (pathDist !== UNREACHED) {
       const next = nextStep(field, zone, tx, ty);
       if (next) target = tileCenter(zone, next.tx, next.ty);
@@ -896,44 +952,10 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
 
     if (frozen) continue; // frozen monsters can't attack
     m.contactCooldown = Math.max(0, m.contactCooldown - dt);
-    if (untouchable || m.contactCooldown > 0 || dist(m.pos, p.pos) > p.radius + m.radius + 2) continue;
+    if (playerUntouchable(world, content) || m.contactCooldown > 0 || dist(m.pos, p.pos) > p.radius + m.radius + 2) continue;
 
     m.contactCooldown = def.contactCooldown;
-    const s = content.monsterScaling;
-    const ms = world.mapStats;
-    const base = scaleRange(def.damage, monsterScale("damage", m.level, s) * (1 + (ms.monster_damage ?? 0) / 100));
-    // Map mods: a share of physical damage added as extra fire / cold / lightning.
-    for (const e of ["fire", "cold", "lightning"] as const) {
-      const pct = ms[`monster_${e}_extra`] ?? 0;
-      const phys = base.physical;
-      if (pct > 0 && phys) base[e] = [phys[0] * (pct / 100) + (base[e]?.[0] ?? 0), phys[1] * (pct / 100) + (base[e]?.[1] ?? 0)];
-    }
-    const hit = rollHit(
-      {
-        base,
-        tags: ["attack", "melee"],
-        critChance: ms.monster_crit ?? 0,
-        accuracy: def.accuracy * monsterScale("accuracy", m.level, s),
-        isAttack: true,
-      },
-      [],
-      rules,
-      rng,
-    );
-    const entropy = { value: p.evasionEntropy };
-    const result = applyHit(hit, playerDefences(p), rules, entropy);
-    p.evasionEntropy = entropy.value;
-    if (result.evaded) {
-      events.push({ type: "evade", targetId: p.id, pos: { ...p.pos } });
-      continue;
-    }
-    p.life = Math.max(0, p.life - result.total);
-    events.push({ type: "damage", targetId: p.id, amount: result.total, crit: hit.crit, pos: { ...p.pos } });
-    if (p.life === 0) {
-      world.status = "dead";
-      events.push({ type: "player_died" });
-      return;
-    }
+    if (hitPlayer(world, content, monsterHitSpec(world, content, m, def, def.damage, ["attack", "melee"]), rng, events)) return;
   }
 }
 
@@ -948,9 +970,7 @@ function wakePack(world: WorldState, packId: number, events: SimEvent[]): void {
   if (woke) events.push({ type: "wake", packId });
 }
 
-function spawnMonster(world: WorldState, content: SimContent, rng: Rng, center: Vec, spreadTiles: number, packId: number, dropTable?: string): void {
-  const monsterId = rng.weighted(content.zoneGen.monsterPool)?.id;
-  if (!monsterId) return;
+function spawnMonster(world: WorldState, content: SimContent, rng: Rng, monsterId: string, center: Vec, spreadTiles: number, packId: number, dropTable?: string): MonsterState {
   const def = lookup(content.monsters, monsterId, "monster");
   const ts = world.zone.tileSize;
   let pos = center;
@@ -965,7 +985,7 @@ function spawnMonster(world: WorldState, content: SimContent, rng: Rng, center: 
   }
   const level = world.monsterLevel;
   const life = def.life * monsterScale("life", level, content.monsterScaling) * (1 + (world.mapStats.monster_life ?? 0) / 100);
-  world.monsters.push({
+  const m: MonsterState = {
     id: world.nextId++,
     defId: def.id,
     pos: resolveWalls(world.zone, pos, def.radius),
@@ -981,7 +1001,13 @@ function spawnMonster(world: WorldState, content: SimContent, rng: Rng, center: 
     level,
     ailments: { ...NO_AILMENTS },
     dropTable: dropTable ?? def.dropTable,
-  });
+    damageMult: 1,
+    // Start part-way through cooldowns so a pack doesn't fire in unison.
+    cooldowns: (def.attacks ?? []).map((a) => rng.range(0.3, 1) * a.cooldown),
+    cast: null,
+  };
+  world.monsters.push(m);
+  return m;
 }
 
 function applyKnockback(a: Actor, dt: number): void {

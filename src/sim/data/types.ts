@@ -149,6 +149,34 @@ export interface Monster {
   aggroRange: number; // tiles of walking distance at which it wakes up
   dropTable: string;
   sprite?: SpriteSpec;
+  attacks?: MonsterAttackDef[]; // besides contact damage
+  keepDistance?: number; // px: ranged monsters back off to about this distance
+  packSize?: number; // multiplier on pack size when a pack is of this monster (swarms)
+}
+
+/**
+ * A monster attack with a readable windup (the monster stands still meanwhile).
+ * projectile: fires `count` shots at the player (fan of `spreadDegrees`, 360 = ring);
+ * slam: an area at the player's spot, shown during the windup; nova: an area around itself;
+ * summon: brings `summonCount` of `summon` (at most `maxSummons` over its life).
+ */
+export interface MonsterAttackDef {
+  id: string;
+  kind: "projectile" | "slam" | "nova" | "summon";
+  cooldown: number; // s
+  range: number; // px: used when the player is this close (and visible)
+  windup: number; // s
+  damage?: Partial<Record<DamageTypeId, Range>>; // at level 1, scaled like contact damage
+  weight?: number;
+  count?: number;
+  spreadDegrees?: number;
+  speed?: number; // px/s
+  projRadius?: number;
+  maxRange?: number; // px a shot travels
+  radius?: number; // slam / nova area
+  summon?: string;
+  summonCount?: number;
+  maxSummons?: number;
 }
 
 /** Inline modifier in data files (same shape as sim/stats Modifier). */

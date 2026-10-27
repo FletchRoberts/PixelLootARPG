@@ -23,5 +23,213 @@
       "seed": "husk-1",
       "theme": "earth"
     }
+  },
+  {
+    "id": "bone_archer",
+    "name": "Bone Archer",
+    "life": 22,
+    "damage": {
+      "physical": [
+        3,
+        5
+      ]
+    },
+    "accuracy": 70,
+    "evasion": 60,
+    "armour": 0,
+    "xp": 7,
+    "speed": 105,
+    "radius": 12,
+    "contactCooldown": 0.8,
+    "aggroRange": 10,
+    "dropTable": "trash",
+    "keepDistance": 260,
+    "sprite": {
+      "type": "monster",
+      "seed": "archer-3",
+      "theme": "shadow"
+    },
+    "attacks": [
+      {
+        "id": "arrow",
+        "kind": "projectile",
+        "cooldown": 1.8,
+        "range": 380,
+        "windup": 0.45,
+        "damage": {
+          "physical": [
+            7,
+            11
+          ]
+        },
+        "speed": 430,
+        "projRadius": 6,
+        "maxRange": 540
+      }
+    ]
+  },
+  {
+    "id": "ember_acolyte",
+    "name": "Ember Acolyte",
+    "life": 26,
+    "damage": {
+      "physical": [
+        3,
+        5
+      ]
+    },
+    "accuracy": 60,
+    "evasion": 20,
+    "armour": 0,
+    "xp": 8,
+    "speed": 95,
+    "radius": 12,
+    "contactCooldown": 0.8,
+    "aggroRange": 10,
+    "dropTable": "trash",
+    "keepDistance": 240,
+    "resist": {
+      "fire": 40
+    },
+    "sprite": {
+      "type": "monster",
+      "seed": "acolyte-2",
+      "theme": "fire"
+    },
+    "attacks": [
+      {
+        "id": "fire_bolt",
+        "kind": "projectile",
+        "cooldown": 2.4,
+        "range": 360,
+        "windup": 0.6,
+        "damage": {
+          "fire": [
+            9,
+            14
+          ]
+        },
+        "speed": 300,
+        "projRadius": 9,
+        "maxRange": 480
+      }
+    ]
+  },
+  {
+    "id": "frost_acolyte",
+    "name": "Frost Acolyte",
+    "life": 26,
+    "damage": {
+      "physical": [
+        3,
+        5
+      ]
+    },
+    "accuracy": 60,
+    "evasion": 20,
+    "armour": 0,
+    "xp": 8,
+    "speed": 95,
+    "radius": 12,
+    "contactCooldown": 0.8,
+    "aggroRange": 10,
+    "dropTable": "trash",
+    "keepDistance": 240,
+    "resist": {
+      "cold": 40
+    },
+    "sprite": {
+      "type": "monster",
+      "seed": "acolyte-5",
+      "theme": "ice"
+    },
+    "attacks": [
+      {
+        "id": "frost_shards",
+        "kind": "projectile",
+        "cooldown": 2.8,
+        "range": 340,
+        "windup": 0.7,
+        "damage": {
+          "cold": [
+            5,
+            8
+          ]
+        },
+        "count": 3,
+        "spreadDegrees": 30,
+        "speed": 330,
+        "projRadius": 7,
+        "maxRange": 440
+      }
+    ]
+  },
+  {
+    "id": "brute",
+    "name": "Bloated Brute",
+    "life": 90,
+    "damage": {
+      "physical": [
+        10,
+        16
+      ]
+    },
+    "accuracy": 55,
+    "evasion": 10,
+    "armour": 40,
+    "xp": 16,
+    "speed": 80,
+    "radius": 18,
+    "contactCooldown": 1.0,
+    "aggroRange": 8,
+    "dropTable": "trash",
+    "sprite": {
+      "type": "monster",
+      "seed": "brute-4",
+      "theme": "blood"
+    },
+    "attacks": [
+      {
+        "id": "slam",
+        "kind": "slam",
+        "cooldown": 3.5,
+        "range": 170,
+        "windup": 0.9,
+        "damage": {
+          "physical": [
+            16,
+            24
+          ]
+        },
+        "radius": 70
+      }
+    ]
+  },
+  {
+    "id": "skitterling",
+    "name": "Skitterling",
+    "life": 12,
+    "damage": {
+      "physical": [
+        4,
+        7
+      ]
+    },
+    "accuracy": 70,
+    "evasion": 140,
+    "armour": 0,
+    "xp": 3,
+    "speed": 175,
+    "radius": 9,
+    "contactCooldown": 0.4,
+    "aggroRange": 10,
+    "dropTable": "trash",
+    "packSize": 1.6,
+    "sprite": {
+      "type": "monster",
+      "seed": "skitter-7",
+      "theme": "poison",
+      "size": 24
+    }
   }
 ]

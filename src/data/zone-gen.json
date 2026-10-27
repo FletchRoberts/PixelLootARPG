@@ -74,7 +74,27 @@
   "monsterPool": [
     {
       "id": "husk",
-      "weight": 1
+      "weight": 30
+    },
+    {
+      "id": "bone_archer",
+      "weight": 15
+    },
+    {
+      "id": "ember_acolyte",
+      "weight": 10
+    },
+    {
+      "id": "frost_acolyte",
+      "weight": 8
+    },
+    {
+      "id": "brute",
+      "weight": 12
+    },
+    {
+      "id": "skitterling",
+      "weight": 12
     }
   ],
   "biomes": [

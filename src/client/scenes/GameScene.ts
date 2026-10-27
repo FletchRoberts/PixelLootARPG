@@ -502,6 +502,25 @@ export class GameScene extends Phaser.Scene {
       g.fillStyle(color, 1).fillCircle(pr.pos.x, pr.pos.y, r);
       g.fillStyle(0xffffff, 0.8).fillCircle(pr.pos.x - pr.dir.x * r * 0.3, pr.pos.y - pr.dir.y * r * 0.3, r * 0.4);
     }
+    // Enemy shots: dark core with an element rim, so they read differently from yours.
+    for (const s of this.world.enemyShots) {
+      const color = SHOT_COLORS[s.element] ?? 0xffffff;
+      g.fillStyle(color, 0.3).fillCircle(s.pos.x, s.pos.y, s.radius * 2);
+      g.fillStyle(0x1a0a0a, 1).fillCircle(s.pos.x, s.pos.y, s.radius);
+      g.lineStyle(2, color, 1).strokeCircle(s.pos.x, s.pos.y, s.radius);
+    }
+    // Slams and novas: a red warning circle that fills in until it lands.
+    for (const t of this.world.telegraphs) {
+      const k = Math.min(1, t.t / t.total);
+      g.fillStyle(0xff3a2a, 0.12).fillCircle(t.pos.x, t.pos.y, t.radius);
+      g.fillStyle(0xff3a2a, 0.3).fillCircle(t.pos.x, t.pos.y, t.radius * k);
+      g.lineStyle(2, 0xff6a4a, 0.9).strokeCircle(t.pos.x, t.pos.y, t.radius);
+    }
+    // Monsters winding up an attack glow so you can see what's coming.
+    for (const m of this.world.monsters) {
+      if (!m.cast) continue;
+      g.lineStyle(3, 0xffd04a, 0.85).strokeCircle(m.pos.x, m.pos.y, m.radius * SPRITE_SCALE * 0.9 + 4);
+    }
   }
 
   /** Four skill slots along the bottom: button prompt, skill name, mana cost (dim when unaffordable). */
