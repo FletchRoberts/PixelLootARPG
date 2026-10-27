@@ -1,0 +1,132 @@
+[
+  {
+    "id": "hasted",
+    "name": "Hasted",
+    "weight": 10,
+    "stats": {
+      "speed": 35,
+      "cooldown": 30
+    }
+  },
+  {
+    "id": "armoured",
+    "name": "Armoured",
+    "weight": 10,
+    "stats": {
+      "armour": 80,
+      "life": 20
+    }
+  },
+  {
+    "id": "evasive",
+    "name": "Evasive",
+    "weight": 8,
+    "stats": {
+      "evasion": 350
+    }
+  },
+  {
+    "id": "fire_touched",
+    "name": "Fire-touched",
+    "weight": 8,
+    "stats": {
+      "fire_extra": 50,
+      "fire_resist": 30
+    }
+  },
+  {
+    "id": "frost_touched",
+    "name": "Frost-touched",
+    "weight": 8,
+    "stats": {
+      "cold_extra": 50,
+      "cold_resist": 30
+    }
+  },
+  {
+    "id": "storm_touched",
+    "name": "Storm-touched",
+    "weight": 8,
+    "stats": {
+      "lightning_extra": 50,
+      "lightning_resist": 30
+    }
+  },
+  {
+    "id": "regenerating",
+    "name": "Regenerating",
+    "weight": 8,
+    "stats": {
+      "regen": 4
+    }
+  },
+  {
+    "id": "vampiric",
+    "name": "Vampiric",
+    "weight": 6,
+    "stats": {
+      "leech": 200
+    }
+  },
+  {
+    "id": "volatile",
+    "name": "Volatile",
+    "weight": 7,
+    "onDeath": {
+      "id": "volatile_burst",
+      "kind": "nova",
+      "cooldown": 0,
+      "range": 0,
+      "windup": 0.9,
+      "radius": 85,
+      "damage": {
+        "fire": [
+          14,
+          22
+        ]
+      }
+    }
+  },
+  {
+    "id": "necromantic",
+    "name": "Necromantic",
+    "weight": 5,
+    "attack": {
+      "id": "raise_dead",
+      "kind": "summon",
+      "cooldown": 7,
+      "range": 500,
+      "windup": 1.0,
+      "summon": "skitterling",
+      "summonCount": 3,
+      "maxSummons": 9
+    }
+  },
+  {
+    "id": "brutal",
+    "name": "Brutal",
+    "weight": 10,
+    "stats": {
+      "damage": 35
+    }
+  },
+  {
+    "id": "colossal",
+    "name": "Colossal",
+    "weight": 8,
+    "stats": {
+      "life": 70,
+      "speed": -15
+    }
+  },
+  {
+    "id": "warded",
+    "name": "Warded",
+    "weight": 7,
+    "stats": {
+      "fire_resist": 35,
+      "cold_resist": 35,
+      "lightning_resist": 35
+    }
+  }
+]

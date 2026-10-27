@@ -1,0 +1,73 @@
+{
+  "rarities": {
+    "normal": {
+      "name": "Normal",
+      "life": 1,
+      "damage": 1,
+      "xp": 1,
+      "dropRolls": 1,
+      "itemRarity": 0,
+      "mods": [
+        0,
+        0
+      ],
+      "scale": 1
+    },
+    "magic": {
+      "name": "Magic",
+      "life": 2.2,
+      "damage": 1.2,
+      "xp": 2.5,
+      "dropRolls": 2,
+      "itemRarity": 40,
+      "mods": [
+        1,
+        2
+      ],
+      "scale": 1.1
+    },
+    "rare": {
+      "name": "Rare",
+      "life": 5,
+      "damage": 1.45,
+      "xp": 6,
+      "dropRolls": 4,
+      "itemRarity": 100,
+      "mods": [
+        3,
+        4
+      ],
+      "scale": 1.3,
+      "bonusTable": "rare_monster"
+    },
+    "unique": {
+      "name": "Legendary",
+      "life": 9,
+      "damage": 1.7,
+      "xp": 12,
+      "dropRolls": 6,
+      "itemRarity": 200,
+      "mods": [
+        4,
+        5
+      ],
+      "scale": 1.5,
+      "bonusTable": "legendary_monster"
+    }
+  },
+  "packWeights": {
+    "normal": 66,
+    "magic": 24,
+    "rare": 8,
+    "unique": 2
+  },
+  "minions": {
+    "magic": "magic",
+    "rare": "magic",
+    "unique": "magic"
+  },
+  "minionMods": {
+    "rare": 1,
+    "unique": 2
+  }
+}

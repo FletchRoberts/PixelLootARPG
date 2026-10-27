@@ -45,7 +45,12 @@ const AUTOSAVE_MS = 5000;
 interface ActorView {
   sprite: Phaser.GameObjects.Image;
   flashUntil: number; // scene time; status tints wait until a hit flash is over
+  label?: Phaser.GameObjects.Text; // magic / rare / Legendary monsters: name and mods
+  scale: number; // sprite size relative to a normal monster of its kind
 }
+
+/** Monster rarity colours (rings, labels, health bars), matching item rarity colours. */
+const MONSTER_RARITY_COLOR = { normal: 0xd04040, magic: 0x8a8aff, rare: 0xffff77, unique: 0xe08a3a } as const;
 
 interface SceneData {
   seed?: number; // seed for the next free map (a map in progress keeps its own)
@@ -91,6 +96,7 @@ export class GameScene extends Phaser.Scene {
   private stationLabels = new Map<string, Phaser.GameObjects.Text>();
   private clearMessage = "";
   private shots!: Phaser.GameObjects.Graphics;
+  private under!: Phaser.GameObjects.Graphics; // drawn below actors: rarity rings
   private skillBar!: { g: Phaser.GameObjects.Graphics; labels: Phaser.GameObjects.Text[] };
   private lastNoManaToast = 0;
 
@@ -133,6 +139,7 @@ export class GameScene extends Phaser.Scene {
       .setDepth(20_000);
     this.minimap = this.makeMinimap(zone);
     this.shots = this.add.graphics().setDepth(12_000);
+    this.under = this.add.graphics().setDepth(-2);
     this.skillBar = {
       g: this.add.graphics().setScrollFactor(0).setDepth(20_000),
       labels: Array.from({ length: SKILL_SLOTS }, () =>
@@ -291,15 +298,28 @@ export class GameScene extends Phaser.Scene {
     const p = this.world.player;
     if (!this.views.has(p.id)) this.views.set(p.id, this.makeView(p, textureKey.character(p.defId)));
     for (const m of this.world.monsters) {
-      if (!this.views.has(m.id)) this.views.set(m.id, this.makeView(m, textureKey.monster(m.defId)));
+      if (this.views.has(m.id)) continue;
+      const scale = content.monsterRarity.rarities[m.rarity].scale;
+      const view = this.makeView(m, textureKey.monster(m.defId), scale);
+      if (m.rarity !== "normal") {
+        const mods = m.mods.map((id) => content.monsterMods.find((d) => d.id === id)?.name ?? id).join(", ");
+        const color = `#${MONSTER_RARITY_COLOR[m.rarity].toString(16).padStart(6, "0")}`;
+        const title = m.name ? `${m.name}${m.rarity === "unique" ? " (Legendary)" : ""}` : "";
+        view.label = this.add
+          .text(m.pos.x, m.pos.y, [title, mods].filter(Boolean).join("\n"), { fontFamily: "monospace", fontSize: m.name ? "12px" : "10px", color, align: "center", stroke: "#000", strokeThickness: 3 })
+          .setOrigin(0.5, 1)
+          .setDepth(10_001)
+          .setVisible(!!m.name);
+      }
+      this.views.set(m.id, view);
     }
   }
 
-  private makeView(actor: Actor, key: string): ActorView {
+  private makeView(actor: Actor, key: string, scale = 1): ActorView {
     const sprite = this.add.image(actor.pos.x, actor.pos.y, key);
-    const height = actor.radius * 2 * SPRITE_SCALE;
+    const height = actor.radius * 2 * SPRITE_SCALE * scale;
     sprite.setScale(height / sprite.height);
-    return { sprite, flashUntil: 0 };
+    return { sprite, flashUntil: 0, scale };
   }
 
   private onEvent(e: SimEvent): void {
@@ -361,6 +381,7 @@ export class GameScene extends Phaser.Scene {
       case "death": {
         const view = this.views.get(e.actorId);
         this.views.delete(e.actorId);
+        view?.label?.destroy();
         if (view) {
           this.tweens.add({
             targets: view.sprite,
@@ -396,13 +417,28 @@ export class GameScene extends Phaser.Scene {
     const w = this.world;
     const actors: Actor[] = [w.player, ...w.monsters];
     this.bars.clear();
+    const under = this.under.clear();
     for (const a of actors) {
       const view = this.views.get(a.id);
       if (!view) continue;
       view.sprite.setPosition(a.pos.x, a.pos.y).setDepth(a.pos.y).setFlipX(Math.cos(a.facing) < 0);
-      if (a !== w.player) this.drawAilments(a as MonsterState);
-      if (a !== w.player && a.life < a.maxLife) {
-        this.drawBar(this.bars, a.pos.x - 16, a.pos.y - a.radius * SPRITE_SCALE - 8, 32, 4, a.life / a.maxLife, 0xd04040);
+      if (a === w.player) continue;
+      const m = a as MonsterState;
+      this.drawAilments(m);
+      const top = a.pos.y - a.radius * SPRITE_SCALE * view.scale - 8;
+      const color = MONSTER_RARITY_COLOR[m.rarity];
+      if (m.rarity !== "normal") {
+        // A coloured ring underfoot marks magic / rare / Legendary monsters.
+        const feet = a.pos.y + a.radius * SPRITE_SCALE * view.scale * 0.8;
+        const rw = a.radius * 3 * view.scale;
+        under.fillStyle(color, m.rarity === "magic" ? 0.18 : 0.3).fillEllipse(a.pos.x, feet, rw, rw * 0.4);
+        under.lineStyle(m.rarity === "magic" ? 2 : 3, color, 0.95).strokeEllipse(a.pos.x, feet, rw, rw * 0.4);
+        // Leaders always show their name and mods; magic monsters once they're hurt (keeps packs readable).
+        view.label?.setPosition(a.pos.x, top - 6).setVisible(!!m.name || a.life < a.maxLife);
+      }
+      if (a.life < a.maxLife || m.name) {
+        const wBar = m.name ? 48 : 32;
+        this.drawBar(this.bars, a.pos.x - wBar / 2, top, wBar, m.name ? 5 : 4, a.life / a.maxLife, color);
       }
     }
 

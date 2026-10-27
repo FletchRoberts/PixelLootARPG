@@ -31,6 +31,9 @@ function addMonster(w: WorldState, pos: { x: number; y: number }, awake = true):
     ailments: { chill: 0, slow: 0, freeze: 0, ignite: 0, igniteDps: 0 },
     dropTable: "none",
     damageMult: 1,
+    rarity: "normal",
+    mods: [],
+    mstats: {},
     cooldowns: [],
     cast: null,
   };

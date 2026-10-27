@@ -20,7 +20,7 @@ function addMonster(w: WorldState, dx: number, dy: number, life = 1e6): MonsterS
   const def = content.monsters[0]!;
   const m: MonsterState = {
     id: w.nextId++, defId: def.id, pos: { x: w.player.pos.x + dx, y: w.player.pos.y + dy }, knock: { x: 0, y: 0 }, radius: def.radius,
-    life, maxLife: life, facing: 0, evasionEntropy: 0.5, contactCooldown: 99, packId: 999, awake: true, level: 1, ailments: { ...NO_AILMENTS }, dropTable: "none", damageMult: 1, cooldowns: [], cast: null,
+    life, maxLife: life, facing: 0, evasionEntropy: 0.5, contactCooldown: 99, packId: 999, awake: true, level: 1, ailments: { ...NO_AILMENTS }, dropTable: "none", damageMult: 1, rarity: "normal", mods: [], mstats: {}, cooldowns: [], cast: null,
   };
   w.monsters.push(m);
   return m;

@@ -17,6 +17,8 @@ export interface MonsterHitSpec {
   accuracy: number;
   critChance: number;
   tags: string[];
+  source?: number; // monster id (Vampiric heals it)
+  leech?: number; // % of damage dealt the source heals
 }
 
 export interface EnemyShot {
@@ -56,13 +58,18 @@ export function monsterHitSpec(world: WorldState, content: SimContent, m: Monste
   const s = content.monsterScaling;
   const ms = world.mapStats;
   const base = scaleRange(damage, monsterScale("damage", m.level, s) * (1 + (ms.monster_damage ?? 0) / 100) * m.damageMult);
-  // Map mods: a share of physical damage added as extra fire / cold / lightning.
+  // Map and monster mods: a share of physical damage added as extra fire / cold / lightning.
   for (const e of ["fire", "cold", "lightning"] as const) {
-    const pct = ms[`monster_${e}_extra`] ?? 0;
+    const pct = (ms[`monster_${e}_extra`] ?? 0) + (m.mstats[`${e}_extra`] ?? 0);
     const phys = base.physical;
     if (pct > 0 && phys) base[e] = [phys[0] * (pct / 100) + (base[e]?.[0] ?? 0), phys[1] * (pct / 100) + (base[e]?.[1] ?? 0)];
   }
-  return { base, accuracy: def.accuracy * monsterScale("accuracy", m.level, s), critChance: ms.monster_crit ?? 0, tags };
+  const spec: MonsterHitSpec = { base, accuracy: def.accuracy * monsterScale("accuracy", m.level, s), critChance: ms.monster_crit ?? 0, tags };
+  if (m.mstats.leech) {
+    spec.source = m.id;
+    spec.leech = m.mstats.leech;
+  }
+  return spec;
 }
 
 /** True while a dodge roll makes the player untouchable. */
@@ -85,6 +92,10 @@ export function hitPlayer(world: WorldState, content: SimContent, spec: MonsterH
   }
   p.life = Math.max(0, p.life - result.total);
   events.push({ type: "damage", targetId: p.id, amount: result.total, crit: hit.crit, pos: { ...p.pos } });
+  if (spec.leech && spec.source !== undefined) {
+    const src = world.monsters.find((x) => x.id === spec.source && x.life > 0);
+    if (src) src.life = Math.min(src.maxLife, src.life + (result.total * spec.leech) / 100);
+  }
   if (p.life > 0) return false;
   world.status = "dead";
   events.push({ type: "player_died" });
@@ -105,8 +116,8 @@ function mainElement(d: DamageRange): DamageTypeId {
 }
 
 /** Pick an attack that's ready and in range (weighted), or -1. */
-export function chooseAttack(m: MonsterState, def: Monster, distance: number, canSee: boolean, rng: Rng): number {
-  const ready = (def.attacks ?? [])
+export function chooseAttack(m: MonsterState, attacks: MonsterAttackDef[], distance: number, canSee: boolean, rng: Rng): number {
+  const ready = attacks
     .map((a, i) => ({ a, i, weight: a.weight ?? 1 }))
     .filter(({ a, i }) => (m.cooldowns[i] ?? 0) <= 0 && distance <= a.range && (canSee || a.kind === "summon"));
   return rng.weighted(ready)?.i ?? -1;
@@ -116,28 +127,24 @@ export function chooseAttack(m: MonsterState, def: Monster, distance: number, ca
  * Start an attack's windup. Slams and novas show their area right away (that's the
  * telegraph); projectiles and summons happen when the windup ends.
  */
-export function startCast(world: WorldState, content: SimContent, m: MonsterState, def: Monster, index: number, events: SimEvent[]): void {
-  const a = def.attacks![index]!;
-  m.cooldowns[index] = a.cooldown;
+export function startCast(world: WorldState, content: SimContent, m: MonsterState, def: Monster, attacks: MonsterAttackDef[], index: number, events: SimEvent[]): void {
+  const a = attacks[index]!;
+  m.cooldowns[index] = a.cooldown / (1 + (m.mstats.cooldown ?? 0) / 100);
   m.cast = { attack: index, t: 0 };
   events.push({ type: "monster_cast", actorId: m.id, attack: a.id, windup: a.windup });
-  if ((a.kind === "slam" || a.kind === "nova") && a.damage) {
-    const hit = monsterHitSpec(world, content, m, def, a.damage, ["spell", "area"]);
-    world.telegraphs.push({
-      id: world.nextId++,
-      pos: a.kind === "slam" ? { ...world.player.pos } : { ...m.pos },
-      radius: a.radius ?? 60,
-      t: 0,
-      total: a.windup,
-      hit,
-      element: mainElement(hit.base),
-    });
-  }
+  if (a.kind === "slam" || a.kind === "nova") telegraph(world, content, m, def, a, a.kind === "slam" ? world.player.pos : m.pos);
+}
+
+/** Put down an area attack's warning circle at `at`; it lands after the windup. */
+export function telegraph(world: WorldState, content: SimContent, m: MonsterState, def: Monster, a: MonsterAttackDef, at: Vec): void {
+  if (!a.damage) return;
+  const hit = monsterHitSpec(world, content, m, def, a.damage, ["spell", "area"]);
+  world.telegraphs.push({ id: world.nextId++, pos: { ...at }, radius: a.radius ?? 60, t: 0, total: a.windup, hit, element: mainElement(hit.base) });
 }
 
 /** The windup is over: fire projectiles or summon. Returns monsters to summon (the world spawns them). */
-export function finishCast(world: WorldState, content: SimContent, m: MonsterState, def: Monster): { monster: string; count: number } | null {
-  const a: MonsterAttackDef = def.attacks![m.cast!.attack]!;
+export function finishCast(world: WorldState, content: SimContent, m: MonsterState, def: Monster, attacks: MonsterAttackDef[]): { monster: string; count: number } | null {
+  const a: MonsterAttackDef = attacks[m.cast!.attack]!;
   m.cast = null;
   if (a.kind === "summon" && a.summon) {
     const room = (a.maxSummons ?? 6) - (m.summoned ?? 0);

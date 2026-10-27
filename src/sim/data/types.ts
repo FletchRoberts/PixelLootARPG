@@ -179,6 +179,35 @@ export interface MonsterAttackDef {
   maxSummons?: number;
 }
 
+export type MonsterRarity = "normal" | "magic" | "rare" | "unique"; // "unique" shows as Legendary
+
+/**
+ * A monster mod (src/data/monster-mods.json). `stats` add up per monster:
+ * life / damage / speed / evasion (% more), armour (flat), fire_/cold_/lightning_resist,
+ * fire_/cold_/lightning_extra (% of physical as extra), regen (% max life per second),
+ * leech (% of damage dealt healed), cooldown (% faster attack recovery).
+ * `attack` grants an attack; `onDeath` is an attack that goes off where it died.
+ */
+export interface MonsterModDef {
+  id: string;
+  name: string;
+  weight: number;
+  stats?: Record<string, number>;
+  attack?: MonsterAttackDef;
+  onDeath?: MonsterAttackDef;
+}
+
+/** Monster rarity rules (src/data/monster-rarity.json). */
+export interface MonsterRarityRules {
+  rarities: Record<
+    MonsterRarity,
+    { name: string; life: number; damage: number; xp: number; dropRolls: number; itemRarity: number; mods: Range; scale: number; bonusTable?: string }
+  >;
+  packWeights: Record<MonsterRarity, number>;
+  minions: Partial<Record<MonsterRarity, MonsterRarity>>; // rare/unique packs: what the rest of the pack is
+  minionMods: Partial<Record<MonsterRarity, number>>; // mods the minions of that pack share
+}
+
 /** Inline modifier in data files (same shape as sim/stats Modifier). */
 export interface ModifierDef {
   stat: string;

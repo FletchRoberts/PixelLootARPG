@@ -21,7 +21,7 @@ function duel(id: string, dx: number): { w: WorldState; m: MonsterState } {
   const m: MonsterState = {
     id: w.nextId++, defId: id, pos: along(40 + dx), knock: { x: 0, y: 0 }, radius: def.radius,
     life: 1e6, maxLife: 1e6, facing: 0, evasionEntropy: 0.5, contactCooldown: 0, packId: 1, awake: true, level: 1,
-    ailments: { chill: 0, slow: 0, freeze: 0, ignite: 0, igniteDps: 0 }, dropTable: "none", damageMult: 1, cooldowns: (def.attacks ?? []).map(() => 0), cast: null,
+    ailments: { chill: 0, slow: 0, freeze: 0, ignite: 0, igniteDps: 0 }, dropTable: "none", damageMult: 1, rarity: "normal", mods: [], mstats: {}, cooldowns: (def.attacks ?? []).map(() => 0), cast: null,
   };
   w.monsters = [m];
   return { w, m };

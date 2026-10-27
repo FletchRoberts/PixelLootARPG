@@ -84,7 +84,7 @@ function arena(c: SimContent = quiet, loadout?: Partial<Loadout>): WorldState {
 
 function addMonster(w: WorldState, x: number, y: number) {
   const def = content.monsters[0]!;
-  const m = { id: w.nextId++, defId: def.id, pos: { x, y }, knock: { x: 0, y: 0 }, radius: def.radius, life: 1e6, maxLife: 1e6, facing: 0, evasionEntropy: 0.5, contactCooldown: 99, packId: 999, awake: true, level: 1, ailments: { chill: 0, slow: 0, freeze: 0, ignite: 0, igniteDps: 0 }, dropTable: "none", damageMult: 1, cooldowns: [], cast: null };
+  const m = { id: w.nextId++, defId: def.id, pos: { x, y }, knock: { x: 0, y: 0 }, radius: def.radius, life: 1e6, maxLife: 1e6, facing: 0, evasionEntropy: 0.5, contactCooldown: 99, packId: 999, awake: true, level: 1, ailments: { chill: 0, slow: 0, freeze: 0, ignite: 0, igniteDps: 0 }, dropTable: "none", damageMult: 1, rarity: "normal" as const, mods: [], mstats: {}, cooldowns: [], cast: null };
   w.monsters.push(m);
   return m;
 }

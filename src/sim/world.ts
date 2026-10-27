@@ -10,6 +10,9 @@ import { add, angleOf, dist, len, normalize, scale, sub, type Vec } from "./core
 import type {
   CairnstoneRules,
   HideoutDef,
+  MonsterModDef,
+  MonsterRarity,
+  MonsterRarityRules,
   CraftingRules,
   Currency,
   AttributeBonuses,
@@ -48,9 +51,11 @@ import {
   stepEnemyShots,
   stepTelegraphs,
   untouchable as playerUntouchable,
+  telegraph,
   type EnemyShot,
   type Telegraph,
 } from "./monsters/attacks";
+import { applyRarity, attacksOf, deathAttacks, modCount, rareMonsterName, rollMonsterMods, rollPackRarity } from "./monsters/rarity";
 import { addCurrency, applyCurrency, salvage, salvageBulk, type BulkSalvage, type CraftTarget } from "./items/crafting";
 import { addToBag, bagOf, moveStash, type StashTab, equipGear, equipSkill, levelSkillGem, socketSupport, unequipGear, unequipSkill, unsocket } from "./items/inventory";
 import { applyDeathPenalty, loadoutOf, newCharacter } from "./items/save";
@@ -95,6 +100,8 @@ export interface SimContent {
   cairnstones: CairnstoneRules;
   mapMods: Affix[];
   hideout: HideoutDef;
+  monsterMods: MonsterModDef[];
+  monsterRarity: MonsterRarityRules;
 }
 
 export interface Actor {
@@ -146,7 +153,11 @@ export interface MonsterState extends Actor {
   ailments: Ailments;
   dropTable: string;
   damageMult: number; // monster rarity / mods
-  cooldowns: number[]; // per attack in its def
+  rarity: MonsterRarity;
+  mods: string[]; // monster-mods.json ids
+  mstats: Record<string, number>; // its mods' stats summed
+  name?: string; // rare / Legendary leaders
+  cooldowns: number[]; // per attack (def attacks first, then attacks from mods)
   cast: { attack: number; t: number } | null; // winding up an attack (stands still)
   summoned?: number; // summons made so far
 }
@@ -283,9 +294,22 @@ export function createWorld(content: SimContent, seed: number, save: CharacterSa
     const kind = rng.weighted(content.zoneGen.monsterPool)?.id;
     const kindDef = content.monsters.find((d) => d.id === kind);
     const size = Math.round(pack.size * (kindDef?.packSize ?? 1) * (1 + (world.mapStats.pack_size ?? 0) / 100));
+    // Rarity: magic packs share their mods; rare / Legendary packs have a leader with its own
+    // mods and a name, and magic minions sharing a few mods.
+    const rarity = rollPackRarity(content, rng);
+    const rules = content.monsterRarity;
+    const shared = rollMonsterMods(content, rng, rarity === "magic" ? modCount(content, rng, "magic") : (rules.minionMods[rarity] ?? 0));
     for (let i = 0; i < size; i++) {
       const id = rng.next() < STRAY_CHANCE ? rng.weighted(content.zoneGen.monsterPool)?.id : kind;
-      if (id) spawnMonster(world, content, rng, id, pack.pos, content.zoneGen.packs.spread, packId, table);
+      if (!id) continue;
+      const m = spawnMonster(world, content, rng, id, pack.pos, content.zoneGen.packs.spread, packId, table);
+      const def = lookup(content.monsters, id, "monster");
+      if (rarity === "normal") continue;
+      if (rarity === "magic" || i > 0) applyRarity(content, m, rules.minions[rarity] ?? "magic", shared, def.attacks, rng);
+      else {
+        applyRarity(content, m, rarity, rollMonsterMods(content, rng, modCount(content, rng, rarity)), def.attacks, rng);
+        m.name = rareMonsterName(content, rng);
+      }
     }
   });
   world.totalMonsters = world.monsters.length;
@@ -534,10 +558,10 @@ export { playerDefences };
 function monsterDefences(m: MonsterState, def: Monster, content: SimContent, ms: Record<string, number>): Defences {
   const s = content.monsterScaling;
   const resist: Defences["resist"] = { ...def.resist };
-  for (const e of ["fire", "cold", "lightning"] as const) resist[e] = (resist[e] ?? 0) + (ms.monster_resistances ?? 0);
+  for (const e of ["fire", "cold", "lightning"] as const) resist[e] = (resist[e] ?? 0) + (ms.monster_resistances ?? 0) + (m.mstats[`${e}_resist`] ?? 0);
   return {
-    armour: def.armour * monsterScale("armour", m.level, s) + (ms.monster_armour ?? 0),
-    evasion: def.evasion * monsterScale("evasion", m.level, s) * (1 + (ms.monster_evasion ?? 0) / 100),
+    armour: (def.armour + (m.mstats.armour ?? 0)) * monsterScale("armour", m.level, s) + (ms.monster_armour ?? 0),
+    evasion: def.evasion * monsterScale("evasion", m.level, s) * (1 + (ms.monster_evasion ?? 0) / 100) * (1 + (m.mstats.evasion ?? 0) / 100),
     resist,
   };
 }
@@ -797,19 +821,24 @@ function pickUpNearest(world: WorldState, content: SimContent, events: SimEvent[
   events.push({ type: "pickup", item: clone(g.item) });
 }
 
-/** A monster's loot with the map's item quantity: the table rolls extra times (the fraction as a chance). */
+/**
+ * A monster's loot: its table rolls once per rarity drop roll, times the map's item quantity
+ * (the fraction as a chance); rare and Legendary monsters also roll their bonus table.
+ */
 function mapDrops(world: WorldState, content: SimContent, m: MonsterState, rng: Rng): DropResult[] {
-  const quantity = 1 + (world.mapStats.item_quantity ?? 0) / 100;
+  const r = content.monsterRarity.rarities[m.rarity];
+  const quantity = r.dropRolls * (1 + (world.mapStats.item_quantity ?? 0) / 100);
   let times = Math.floor(quantity);
   if (quantity > times && rng.next() < quantity - times) times++;
   const out: DropResult[] = [];
   for (let i = 0; i < times; i++) out.push(...rollDrops(content, m.dropTable, rng, m.level));
+  if (r.bonusTable) out.push(...rollDrops(content, r.bonusTable, rng, m.level));
   return out;
 }
 
-/** Content whose gear rarity weights include the map's item rarity (magic/rare/unique more likely). */
-function lootContent(world: WorldState, content: SimContent): SimContent {
-  const rarity = 1 + (world.mapStats.item_rarity ?? 0) / 100;
+/** Content whose gear rarity weights include the map's and the monster's item rarity. */
+function lootContent(world: WorldState, content: SimContent, m: MonsterState): SimContent {
+  const rarity = 1 + ((world.mapStats.item_rarity ?? 0) + content.monsterRarity.rarities[m.rarity].itemRarity) / 100;
   if (rarity === 1) return content;
   const w = content.gear.rarityWeights;
   return { ...content, gear: { ...content.gear, rarityWeights: { normal: w.normal, magic: w.magic * rarity, rare: w.rare * rarity, unique: w.unique * rarity } } };
@@ -826,7 +855,9 @@ function reapDead(world: WorldState, content: SimContent, ctx: SkillContext, rng
   for (const m of dead) {
     events.push({ type: "death", actorId: m.id, pos: { ...m.pos } });
     const def = lookup(content.monsters, m.defId, "monster");
-    xp += xpForKill(def.xp, m.level, p.level, content.progression, content.monsterScaling);
+    xp += xpForKill(def.xp, m.level, p.level, content.progression, content.monsterScaling) * content.monsterRarity.rarities[m.rarity].xp;
+    // Volatile and friends: their death attack lands where they fell, after a warning.
+    for (const a of deathAttacks(content, m)) telegraph(world, content, m, def, a, m.pos);
     for (const drop of mapDrops(world, content, m, rng)) {
       // Gear rolls at the monster's level (item level gates affix tiers and bases).
       const item: Item | null =
@@ -835,7 +866,7 @@ function reapDead(world: WorldState, content: SimContent, ctx: SkillContext, rng
           : drop.kind === "currency"
           ? { uid: p.save.nextUid++, kind: "currency", id: drop.id, count: drop.count }
           : drop.kind === "gear" || drop.kind === "unique"
-            ? rollGear(lootContent(world, content), rng, m.level, p.save.nextUid++, drop.kind === "unique" ? (drop.unique ? { unique: drop.unique } : { rarity: "unique" }) : { base: drop.base })
+            ? rollGear(lootContent(world, content, m), rng, m.level, p.save.nextUid++, drop.kind === "unique" ? (drop.unique ? { unique: drop.unique } : { rarity: "unique" }) : { base: drop.base })
             : makeGem(p.save, drop.kind, drop.defId, content.gems);
       if (!item) continue;
       const spread = 24;
@@ -881,7 +912,7 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
     // Ailments tick down; ignite burns through fire resistance (no armour, no evasion).
     const ail = m.ailments;
     if (ail.ignite > 0) {
-      const resist = Math.min(rules.resistance.defaultMax, (def.resist?.fire ?? 0) + (world.mapStats.monster_resistances ?? 0));
+      const resist = Math.min(rules.resistance.defaultMax, (def.resist?.fire ?? 0) + (world.mapStats.monster_resistances ?? 0) + (m.mstats.fire_resist ?? 0));
       m.life -= ail.igniteDps * dt * (1 - resist / 100);
       ail.ignite = Math.max(0, ail.ignite - dt);
       if (m.life <= 0) continue; // reaped next tick
@@ -890,7 +921,8 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
     if (ail.chill === 0) ail.slow = 0;
     ail.freeze = Math.max(0, ail.freeze - dt);
     const frozen = ail.freeze > 0;
-    const speed = frozen ? 0 : def.speed * (1 + (world.mapStats.monster_speed ?? 0) / 100) * (1 - ail.slow / 100);
+    const speed = frozen ? 0 : def.speed * (1 + (world.mapStats.monster_speed ?? 0) / 100) * (1 + (m.mstats.speed ?? 0) / 100) * (1 - ail.slow / 100);
+    if (m.mstats.regen) m.life = Math.min(m.maxLife, m.life + (m.maxLife * m.mstats.regen * dt) / 100);
 
     if (!m.awake) {
       if (pathDist <= def.aggroRange) wakePack(world, m.packId, events);
@@ -903,12 +935,13 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
     const canSee = hasLineOfSight(zone, m.pos, p.pos);
 
     // Attacks: wind up (standing still), then fire / summon. Frozen monsters lose their cast.
+    const attacks = attacksOf(content, m, def.attacks);
     if (frozen) m.cast = null;
     else if (m.cast) {
       m.cast.t += dt;
-      const attack = def.attacks?.[m.cast.attack];
+      const attack = attacks[m.cast.attack];
       if (!attack || m.cast.t >= attack.windup) {
-        const summon = attack ? finishCast(world, content, m, def) : ((m.cast = null), null);
+        const summon = attack ? finishCast(world, content, m, def, attacks) : ((m.cast = null), null);
         if (summon) {
           for (let k = 0; k < summon.count; k++) {
             const minion = spawnMonster(world, content, rng, summon.monster, m.pos, 1.2, m.packId);
@@ -918,9 +951,9 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
           }
         }
       }
-    } else if (def.attacks?.length) {
-      const i = chooseAttack(m, def, dist(m.pos, p.pos), canSee, rng);
-      if (i >= 0) startCast(world, content, m, def, i, events);
+    } else if (attacks.length) {
+      const i = chooseAttack(m, attacks, dist(m.pos, p.pos), canSee, rng);
+      if (i >= 0) startCast(world, content, m, def, attacks, i, events);
     }
 
     // Close by: head straight for the player. Further: walk downhill on the flow field.
@@ -1002,6 +1035,9 @@ function spawnMonster(world: WorldState, content: SimContent, rng: Rng, monsterI
     ailments: { ...NO_AILMENTS },
     dropTable: dropTable ?? def.dropTable,
     damageMult: 1,
+    rarity: "normal",
+    mods: [],
+    mstats: {},
     // Start part-way through cooldowns so a pack doesn't fire in unison.
     cooldowns: (def.attacks ?? []).map((a) => rng.range(0.3, 1) * a.cooldown),
     cast: null,
