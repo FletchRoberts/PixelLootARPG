@@ -6,8 +6,8 @@ import type { MapRun } from "../items/types";
 import { FLOOR, SOLID, type Zone } from "./zone";
 
 /** The map run that means "in the hideout". */
-export function hideoutRun(def: HideoutDef): MapRun {
-  return { seed: 0, level: 1, mods: [], name: def.name, free: true, deaths: 0, hideout: true };
+export function hideoutRun(def: HideoutDef, portalBack = false): MapRun {
+  return { seed: 0, level: 1, mods: [], name: def.name, free: true, deaths: 0, hideout: true, ...(portalBack ? { portalBack } : {}) };
 }
 
 /** A rounded room (an ellipse inside a solid border). */

@@ -144,6 +144,7 @@ export interface WorldState {
   monsters: MonsterState[];
   projectiles: ProjectileState[];
   groundItems: GroundItem[];
+  portal: Vec | null; // map: portal to the hideout; hideout: portal back to the open map
   nextId: number;
   kills: number;
   totalMonsters: number;
@@ -161,6 +162,7 @@ export interface PlayerInput {
   skills?: boolean[];
   dodge?: boolean;
   pickup?: boolean;
+  portal?: boolean; // open a portal to the hideout here (maps only)
 }
 
 export type SimEvent =
@@ -180,7 +182,8 @@ export type SimEvent =
   | { type: "wake"; packId: number }
   | { type: "player_died" }
   | { type: "zone_complete"; reward: CairnstoneItem | null }
-  | { type: "interact"; station: Station["id"] };
+  | { type: "interact"; station: Station["id"] | "portal" }
+  | { type: "portal_opened" };
 
 // Derived, non-serialized cache: flow field toward the player's current tile.
 const flowCache = new WeakMap<WorldState, FlowField>();
@@ -241,6 +244,7 @@ export function createWorld(content: SimContent, seed: number, save: CharacterSa
     monsters: [],
     projectiles: [],
     groundItems: [],
+    portal: run.hideout && run.portalBack ? add(zone.start, { x: 0, y: -zone.tileSize * 2.4 }) : null,
     nextId: 2,
     kills: 0,
     totalMonsters: 0,
@@ -283,6 +287,25 @@ export function saveAfterDeath(world: WorldState, content: SimContent): Characte
     if (save.currentMap.maxDeaths !== undefined && save.currentMap.deaths >= save.currentMap.maxDeaths) delete save.currentMap;
   }
   return save;
+}
+
+/**
+ * Come back through the portal: the open map continues where you left it, with the character
+ * as it is now (whatever you stored, crafted or equipped in the hideout). You arrive at the portal.
+ */
+export function rejoinMap(map: WorldState, save: CharacterSave, content: SimContent): WorldState {
+  const world = clone(map);
+  const p = world.player;
+  p.save = clone({ ...save, currentMap: map.player.save.currentMap });
+  p.level = save.level;
+  p.xp = save.xp;
+  p.loadoutOverride = null;
+  p.pos = world.portal ? { ...world.portal } : { ...world.zone.start };
+  p.roll = null;
+  refreshSkills(world, content);
+  p.life = Math.min(p.life, p.maxLife);
+  p.mana = Math.min(p.mana, p.maxMana);
+  return world;
 }
 
 /** Debug/test helper: run with this loadout instead of the equipped gems. */
@@ -621,6 +644,12 @@ function updatePlayer(world: WorldState, content: SimContent, input: PlayerInput
   }
   applyKnockback(p, dt);
   p.pos = resolveWalls(world.zone, p.pos, p.radius);
+  if (input.portal && !world.map.hideout) {
+    // A portal a step ahead of you; opening another moves it.
+    const ahead = add(p.pos, { x: Math.cos(p.facing) * 56, y: Math.sin(p.facing) * 56 });
+    world.portal = isFloorAt(world.zone, ahead) ? resolveWalls(world.zone, ahead, 20) : { ...p.pos };
+    events.push({ type: "portal_opened" });
+  }
   if (input.pickup) pickUpNearest(world, content, events);
   if (p.roll) return;
 
@@ -722,7 +751,11 @@ export function nearestStation(world: WorldState, content: SimContent): Station 
 function pickUpNearest(world: WorldState, content: SimContent, events: SimEvent[]): void {
   const g = nearestPickup(world, content);
   if (!g) {
-    // Nothing to pick up: the same button uses a hideout station.
+    // Nothing to pick up: the same button uses a portal or a hideout station.
+    if (world.portal && dist(world.portal, world.player.pos) <= content.hideout.interactRange) {
+      events.push({ type: "interact", station: "portal" });
+      return;
+    }
     const s = nearestStation(world, content);
     if (s) events.push({ type: "interact", station: s.id });
     return;

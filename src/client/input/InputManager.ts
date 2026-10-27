@@ -25,7 +25,8 @@ export type Action =
   | "right"
   | "tabPrev"
   | "tabNext"
-  | "salvage";
+  | "salvage"
+  | "portal";
 
 interface Binding {
   keys: string[]; // Phaser key names
@@ -49,6 +50,7 @@ const BINDINGS: Record<Action, Binding> = {
   tabPrev: { keys: ["Q"], pad: ["l1"], label: "Q" },
   tabNext: { keys: ["TAB"], pad: ["r1"], label: "Tab" },
   salvage: { keys: ["X"], pad: ["square"], label: "X" }, // menus only (□ is a skill in gameplay)
+  portal: { keys: ["T"], pad: ["up"], label: "T" }, // gameplay: D-pad up opens a portal to the hideout
 };
 
 const ATTACK_PAD: PadButton[] = ["r2"];
@@ -144,18 +146,19 @@ export class InputManager {
   gameplay(targets: AimTargets, pointerWorld: Vec, mouse: { left: boolean; right: boolean }): PlayerInput {
     const dodge = this.pressed("dodge");
     const pickup = this.pressed("pickup");
+    const portal = this.pressed("portal");
     if (this.device === "pad" && this.pad) {
       const pad = this.pad;
       const move = leftStick(pad);
       const aim = padAim({ ...targets, move, rightStick: rightStick(pad) });
       const skills = SKILL_PAD.map((b) => isDown(pad, b));
-      return { move, aim, attack: ATTACK_PAD.some((b) => isDown(pad, b)), skills, dodge, pickup };
+      return { move, aim, attack: ATTACK_PAD.some((b) => isDown(pad, b)), skills, dodge, pickup, portal };
     }
     const k = (names: string[]) => names.some((n) => this.keys.get(n)?.isDown);
     const x = (k(MOVE_KEYS.right) ? 1 : 0) - (k(MOVE_KEYS.left) ? 1 : 0);
     const y = (k(MOVE_KEYS.down) ? 1 : 0) - (k(MOVE_KEYS.up) ? 1 : 0);
     const skills = SKILL_KEYS.map((key) => (key ? k([key]) : mouse.right));
-    return { move: { x, y }, aim: pointerWorld, attack: mouse.left, skills, dodge, pickup };
+    return { move: { x, y }, aim: pointerWorld, attack: mouse.left, skills, dodge, pickup, portal };
   }
 
   /** Button prompt for skill slot i (0-based) on the current device. */

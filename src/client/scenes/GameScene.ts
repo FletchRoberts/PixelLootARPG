@@ -7,6 +7,7 @@ import {
   inventoryCommand,
   nearestPickup,
   nearestStation,
+  rejoinMap,
   previewInventoryCommand,
   saveAfterClear,
   saveAfterDeath,
@@ -50,6 +51,8 @@ interface SceneData {
   seed?: number; // seed for the next free map (a map in progress keeps its own)
   save?: CharacterSave; // the character entering this zone (else the browser save, else a new one)
   message?: string; // toast on arrival (e.g. what the last map rewarded)
+  suspended?: WorldState; // went home through a portal: the open map, waiting
+  resume?: WorldState; // came back through the portal: continue this map
 }
 
 interface ItemView {
@@ -81,6 +84,10 @@ export class GameScene extends Phaser.Scene {
   private device!: MapDevice;
   private stash!: Stash;
   private freeSeed = 0; // the free map the Map Device previews and opens
+  private suspended: WorldState | null = null; // the open map while you're home through a portal
+  private abandonArmed = false; // Map Device: second press abandons the open map
+  private arrivedAt = 0; // scene start: presses right after arriving belong to the previous screen
+  private portalView: { g: Phaser.GameObjects.Graphics; label: Phaser.GameObjects.Text } | null = null;
   private stationLabels = new Map<string, Phaser.GameObjects.Text>();
   private clearMessage = "";
   private shots!: Phaser.GameObjects.Graphics;
@@ -98,12 +105,18 @@ export class GameScene extends Phaser.Scene {
     const save = data.save ?? loadSave() ?? newCharacter(content, randomSeed());
     // A map in progress (e.g. retrying after a death) resumes; otherwise you're in the hideout.
     this.freeSeed = seed;
-    this.world = createWorld(content, seed, save, save.currentMap ?? hideoutRun(content.hideout));
+    this.suspended = data.suspended ?? null;
+    if (data.resume) this.world = data.resume;
+    else if (this.suspended) this.world = createWorld(content, seed, save, hideoutRun(content.hideout, true));
+    else this.world = createWorld(content, seed, save, save.currentMap ?? hideoutRun(content.hideout));
+    this.abandonArmed = false;
+    this.arrivedAt = this.time.now;
     this.itemViews.clear();
     this.deathSave = null;
     this.persist();
     this.accumulator = 0;
     this.views.clear();
+    this.portalView = null; // the old scene's objects are gone after a restart
 
     const zone = this.world.zone;
     const biome = content.biomes.find((b) => b.id === zone.biome)!;
@@ -225,6 +238,7 @@ export class GameScene extends Phaser.Scene {
       const events = step(this.world, content, input, DT);
       // One-shot actions go to the first tick only.
       input.dodge = false;
+      input.portal = false;
       input.pickup = false;
       for (const e of events) this.onEvent(e);
       if (this.world.status !== "playing") break;
@@ -247,6 +261,10 @@ export class GameScene extends Phaser.Scene {
       { left: pointer.leftButtonDown(), right: pointer.rightButtonDown() },
     );
     this.lastAim = input.aim;
+    if (this.time.now - this.arrivedAt < OVERLAY_DELAY_MS) {
+      input.pickup = false;
+      input.portal = false;
+    }
     return input;
   }
 
@@ -357,8 +375,12 @@ export class GameScene extends Phaser.Scene {
       case "player_died":
         this.onPlayerDied();
         break;
+      case "portal_opened":
+        this.toast(`Portal opened: walk to it and press ${this.inputs.prompt("pickup")} to go home`);
+        break;
       case "interact":
-        if (e.station === "map_device") this.device.show();
+        if (e.station === "portal") this.takePortal();
+        else if (e.station === "map_device") this.device.show();
         else if (e.station === "stash") this.stash.show();
         else this.menu.show("currency");
         break;
@@ -404,13 +426,14 @@ export class GameScene extends Phaser.Scene {
       `Level ${p.level}   ${w.map.name}: monster lvl ${w.monsterLevel} (${biome.name}, ${content.zoneGen.layouts.find((l) => l.id === w.zone.layout)?.name ?? w.zone.layout})`,
       `${w.map.mods.length} map mod${w.map.mods.length === 1 ? "" : "s"}: ${rewardLine(content, w.map.mods)}${w.map.deaths ? `   deaths ${w.map.deaths}` : ""}`,
       `Kills ${w.kills}/${w.totalMonsters}   ${formatTime(w.tick / TICK_RATE)}`,
-      `Attack [${this.inputs.device === "pad" ? "R2" : "LMB"}]   Dodge [${this.inputs.prompt("dodge")}]   Menu [${this.inputs.prompt("character")}]   Skills [${this.inputs.prompt("inventory")}]`,
+      `Attack [${this.inputs.device === "pad" ? "R2" : "LMB"}]   Dodge [${this.inputs.prompt("dodge")}]   Portal [${this.inputs.device === "pad" ? "D-pad ↑" : "T"}]   Menu [${this.inputs.prompt("character")}]   Gear [${this.inputs.prompt("inventory")}]`,
     ]);
     const player = this.views.get(p.id)?.sprite;
     if (player && w.status === "playing") player.setAlpha(p.roll ? 0.55 : 1);
     this.drawProjectiles();
     this.syncItems();
     this.syncStations();
+    this.syncPortal();
     if (this.time.now - this.lastAutosave > AUTOSAVE_MS) this.persist();
     this.drawSkillBar();
     this.drawMinimapDots();
@@ -574,6 +597,36 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /** The portal (if open): a swirling blue ring with a label; highlighted when ✕ would use it. */
+  private syncPortal(): void {
+    const at = this.world.portal;
+    if (!at) {
+      this.portalView?.g.setVisible(false);
+      this.portalView?.label.setVisible(false);
+      return;
+    }
+    if (!this.portalView) {
+      const g = this.add.graphics();
+      g.fillStyle(0x3a8aff, 0.25).fillEllipse(0, 0, 64, 80);
+      g.lineStyle(4, 0x8ac8ff, 0.95).strokeEllipse(0, 0, 44, 62);
+      g.lineStyle(2, 0xffffff, 0.6).strokeEllipse(0, 0, 26, 40);
+      this.tweens.add({ targets: g, scaleX: 0.9, duration: 700, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      const label = this.add
+        .text(0, 0, "", { fontFamily: "monospace", fontSize: "13px", color: "#cfe6ff", backgroundColor: "#000000aa", padding: { x: 4, y: 1 } })
+        .setOrigin(0.5)
+        .setDepth(20_500);
+      this.portalView = { g, label };
+    }
+    const near = dist2(this.world.player.pos, at) <= content.hideout.interactRange ** 2 && !nearestPickup(this.world, content);
+    const name = this.world.map.hideout ? `Portal to ${this.suspended?.map.name ?? "your map"}` : "Portal to hideout";
+    this.portalView.g.setVisible(true).setPosition(at.x, at.y).setDepth(at.y - 1);
+    this.portalView.label
+      .setVisible(true)
+      .setPosition(at.x, at.y - 52)
+      .setText(near ? `[${this.inputs.prompt("pickup")}] ${name}` : name)
+      .setBackgroundColor(near ? "#1c4a7aee" : "#000000aa");
+  }
+
   /** Highlight the station ✕ would use, with the button prompt. */
   private syncStations(): void {
     const near = nearestPickup(this.world, content) ? null : nearestStation(this.world, content);
@@ -723,8 +776,24 @@ export class GameScene extends Phaser.Scene {
     this.showOverlay("MAP CLEARED", "#6fd3ff", () => `reward: ${got}   ·   press ${this.inputs.prompt("confirm")} to return to the hideout`);
   }
 
+  /** Through the portal: map → hideout (the map waits in memory), or hideout → back into the map. */
+  private takePortal(): void {
+    const save = currentSave(this.world);
+    writeSave(save);
+    if (this.world.map.hideout && this.suspended) {
+      this.scene.restart({ resume: rejoinMap(this.suspended, save, content) } satisfies SceneData);
+    } else if (!this.world.map.hideout) {
+      this.scene.restart({ save, suspended: this.world, message: "Home through the portal. Your map is waiting: use the portal to go back." } satisfies SceneData);
+    }
+  }
+
   /** Start a map from the Map Device: the previewed free map (null) or a Cairnstone (consumed). */
   private openMap(stoneIndex: number | null): void {
+    if (this.suspended && !this.abandonArmed) {
+      this.abandonArmed = true;
+      this.toast(`You have a map open: take the portal back, or press ${this.inputs.prompt("confirm")} again to abandon it`);
+      return;
+    }
     const refused = inventoryCommand(this.world, content, { type: "open_map", stoneIndex, seed: stoneIndex === null ? this.freeSeed : randomSeed() });
     if (refused) return;
     this.device.hide();
@@ -785,3 +854,5 @@ const SHOT_COLORS = {
   lightning: 0xfff07a,
   chaos: 0xc070ff,
 };
+
+const dist2 = (a: Vec, b: Vec) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;

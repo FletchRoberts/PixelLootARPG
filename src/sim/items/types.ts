@@ -66,6 +66,7 @@ export interface MapRun {
   deaths: number;
   maxDeaths?: number; // undefined = unlimited retries (a limit may come later)
   hideout?: boolean; // the safe room between maps: no monsters, no exit
+  portalBack?: boolean; // hideout only: a portal back to the open map stands by the entrance
 }
 
 export type Item = GemItem | GearItem | CurrencyItem | CairnstoneItem;

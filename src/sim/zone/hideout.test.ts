@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { content } from "../../data";
-import { createWorld, inventoryCommand, step, type SimContent } from "../world";
+import { createWorld, currentSave, inventoryCommand, rejoinMap, step, type SimContent } from "../world";
+import { plainMap } from "../items/cairnstone";
 import { newCharacter } from "../items/save";
 import { hideoutRun } from "./hideout";
 import { isFloorAt } from "./zone";
@@ -53,5 +54,29 @@ describe("hideout", () => {
     expect(map.free).toBe(true);
     expect(map.hideout).toBeUndefined();
     expect(createWorld(quiet, 1, w.player.save).zone.seed).toBe(4242);
+  });
+
+  it("a portal takes you home mid-map and back into the same map state", () => {
+    const map = createWorld(content, 5, newCharacter(content, 5), plainMap(5, 2));
+    map.player.save.currentMap = map.map;
+    const killed = map.monsters.splice(0, 3).length;
+    expect(step(map, content, { ...idle, portal: true })).toContainEqual({ type: "portal_opened" });
+    expect(map.portal).not.toBeNull();
+    map.player.pos = { ...map.portal! };
+    expect(step(map, content, { ...idle, pickup: true })).toContainEqual({ type: "interact", station: "portal" });
+
+    // In the hideout: a portal back stands near the entrance; store gear meanwhile.
+    const home = createWorld(content, 1, currentSave(map), hideoutRun(content.hideout, true));
+    expect(home.portal).not.toBeNull();
+    expect(isFloorAt(home.zone, home.portal!)).toBe(true);
+    inventoryCommand(home, quiet, { type: "debug_give_gear", opts: { rarity: "magic" }, seed: 2 });
+    inventoryCommand(home, quiet, { type: "stash", tab: "gear", index: 0, take: false });
+
+    const back = rejoinMap(map, currentSave(home), content);
+    expect(back.monsters.length).toBe(map.monsters.length);
+    expect(back.totalMonsters - back.monsters.length).toBeGreaterThanOrEqual(killed);
+    expect(back.player.save.stash.gear).toHaveLength(1);
+    expect(back.player.save.currentMap?.seed).toBe(5);
+    expect(back.player.pos).toEqual(map.portal);
   });
 });
