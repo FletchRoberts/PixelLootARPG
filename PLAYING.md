@@ -83,7 +83,7 @@ Controller: plug it in, open the page, press any button. A "Controller connected
    - Support gems don't level; extra copies let you socket the same support into several skills.
    - Taking a skill gem off (or swapping it) puts its supports back in your bag.
 9. **Menu → Stones** (works anywhere, also mid-map): your Cairnstones, best first. ✕ on a stone lists the currencies you own that work on it; ✕ uses one (keep pressing to keep crafting), and the changed lines show as + / −. □ / X salvages a stone.
-10. **Menu → Currency** (L1/R1 to the 4th tab):
+10. **Menu → Currency** (L1/R1 to the 5th tab):
    - Lists every currency with how many you have, and fragment progress (e.g. "fragments 7/10"). **10 fragments turn into the full currency automatically.**
    - Pick a currency with ✕, then pick an item (worn gear, bag gear, Cairnstones, or skill gems for Cutter's Prism). Only items it works on are listed. The item's tooltip shows below.
    - ✕ uses it. You stay on the same item, so you can keep pressing ✕ to keep crafting. The lines that changed show as **+** (gained) and **−** (lost). ○ goes back.
