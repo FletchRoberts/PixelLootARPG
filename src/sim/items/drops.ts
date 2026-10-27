@@ -16,7 +16,8 @@ export type DropResult =
   | { kind: GemItem["kind"]; defId: string }
   | { kind: "gear"; base?: string }
   | { kind: "unique"; unique?: string }
-  | { kind: "currency"; id: string; count: number };
+  | { kind: "currency"; id: string; count: number }
+  | { kind: "cairnstone" };
 
 const MAX_NESTING = 5;
 
@@ -41,6 +42,7 @@ export function rollDrops(content: DropContent, tableId: string, rng: Rng, level
       const [lo, hi] = entry.count ?? [1, 1];
       if (id) out.push({ kind: "currency", id, count: rng.int(lo, hi) });
     }
+    else if (entry.kind === "cairnstone") out.push({ kind: "cairnstone" });
     // "nothing" drops nothing.
   }
   return out;

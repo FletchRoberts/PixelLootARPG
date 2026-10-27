@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { content } from "../data";
+import { plainMap } from "./items/cairnstone";
 import { newCharacter } from "./items/save";
 import { createWorld, saveAfterClear, step, TICK_RATE, type MonsterState, type PlayerInput, type SimContent, type WorldState } from "./world";
 import { xpToNext } from "./stats/character";
@@ -147,9 +148,9 @@ describe("world", () => {
     expect(w.player.maxLife).toBeGreaterThan(before);
   });
 
-  it("monster level rises with zones cleared and scales their life", () => {
+  it("monster level comes from the map and scales their life", () => {
     const w1 = createWorld(content, 9);
-    const w5 = createWorld(content, 9, { ...newCharacter(content, 9), zonesCleared: 4 });
+    const w5 = createWorld(content, 9, newCharacter(content, 9), plainMap(9, 5));
     expect(w5.monsterLevel).toBe(5);
     expect(w5.monsters[0]!.maxLife).toBeCloseTo(w1.monsters[0]!.maxLife * Math.pow(content.monsterScaling.life, 4));
   });
@@ -165,14 +166,16 @@ describe("world", () => {
     expect(hurt(200)).toBeLessThan(hurt(0) * 0.5);
   });
 
-  it("level and XP carry into the next zone, which is one monster level higher", () => {
-    const w = createWorld(quiet, 4, { ...newCharacter(quiet, 4), level: 3, xp: 50, zonesCleared: 2 });
+  it("level and XP carry out of a cleared map, which counts as the best level reached", () => {
+    const w = createWorld(quiet, 4, { ...newCharacter(quiet, 4), level: 3, xp: 50, zonesCleared: 2 }, plainMap(4, 3));
     expect(w.player.level).toBe(3);
     expect(w.player.life).toBe(w.player.maxLife);
     w.status = "complete";
-    const next = createWorld(quiet, 5, saveAfterClear(w));
+    const after = saveAfterClear(w);
+    expect(after.bestMapLevel).toBe(3);
+    expect(after.zonesCleared).toBe(3);
+    const next = createWorld(quiet, 5, after);
     expect(next.player.level).toBe(3);
     expect(next.player.xp).toBe(50);
-    expect(next.monsterLevel).toBe(4);
   });
 });

@@ -1,14 +1,15 @@
 // Crafting currency: the stash (with fragments that combine 10 → 1), currency effects on
-// gear and gems, and salvaging unwanted items into fragments.
+// gear, Cairnstones and gems, and salvaging unwanted items into fragments.
 // Every currency's behaviour is a named effect here, referenced by id from currencies.json.
 
 import type { Rng } from "../core/rng";
-import type { CraftingRules, Currency, GemRules, ItemBase } from "../data/types";
+import type { Affix, CraftingRules, Currency, GearRules, GemRules, ItemBase } from "../data/types";
+import { mapAffixes, STONE_BASE, stoneView, type CairnstoneContent } from "./cairnstone";
 import { rareName, rollAffix, rollMods, rollRange, type GearContent } from "./gear";
 import { raiseGemLevel } from "./gems";
-import type { CharacterSave, EquipSlot, GearItem, GemItem } from "./types";
+import type { CairnstoneItem, CharacterSave, EquipSlot, GearItem, GemItem, RolledMod } from "./types";
 
-export interface CraftingContent extends GearContent {
+export interface CraftingContent extends GearContent, CairnstoneContent {
   currencies: Currency[];
   crafting: CraftingRules;
   gems: GemRules;
@@ -35,9 +36,12 @@ export type CraftTarget =
   | { where: "equipped"; slot: EquipSlot }
   | { where: "gear_bag"; index: number }
   | { where: "skill"; slot: number }
-  | { where: "gem_bag"; index: number };
+  | { where: "gem_bag"; index: number }
+  | { where: "stone_bag"; index: number };
 
-export function targetItem(save: CharacterSave, t: CraftTarget): GearItem | GemItem | undefined {
+export type CraftItem = GearItem | GemItem | CairnstoneItem;
+
+export function targetItem(save: CharacterSave, t: CraftTarget): CraftItem | undefined {
   switch (t.where) {
     case "equipped":
       return save.equipment[t.slot];
@@ -47,6 +51,8 @@ export function targetItem(save: CharacterSave, t: CraftTarget): GearItem | GemI
       return save.skillBar[t.slot] ?? undefined;
     case "gem_bag":
       return save.gemBag[t.index];
+    case "stone_bag":
+      return save.stoneBag[t.index];
   }
 }
 
@@ -57,6 +63,7 @@ export function allTargets(save: CharacterSave): CraftTarget[] {
   save.gearBag.forEach((_, index) => out.push({ where: "gear_bag", index }));
   save.skillBar.forEach((g, slot) => g && out.push({ where: "skill", slot }));
   save.gemBag.forEach((_, index) => out.push({ where: "gem_bag", index }));
+  save.stoneBag.forEach((_, index) => out.push({ where: "stone_bag", index }));
   return out;
 }
 
@@ -66,7 +73,7 @@ const MAGIC_MAX = 2;
 const RARE_MAX = 6;
 
 /** Why this currency can't be used on this item, or null if it can. Doesn't roll anything. */
-export function currencyProblem(content: CraftingContent, currencyId: string, item: GearItem | GemItem | undefined): string | null {
+export function currencyProblem(content: Pick<CraftingContent, "currencies" | "gems">, currencyId: string, item: CraftItem | undefined): string | null {
   const def = content.currencies.find((c) => c.id === currencyId);
   if (!def || def.effect === "none") return "can't be used directly";
   if (!item) return "no item";
@@ -74,7 +81,7 @@ export function currencyProblem(content: CraftingContent, currencyId: string, it
     if (item.kind !== "skill_gem") return "only works on skill gems";
     return item.level >= content.gems.maxLevel ? "gem is max level" : null;
   }
-  if (item.kind !== "gear") return "only works on gear";
+  if (item.kind !== "gear" && item.kind !== "cairnstone") return "only works on gear and Cairnstones";
   if (item.corrupted) return "item is corrupted";
   const r = item.rarity;
   const n = item.mods.length;
@@ -95,7 +102,7 @@ export function currencyProblem(content: CraftingContent, currencyId: string, it
     case "chaos":
       return r !== "rare" ? "needs a rare item" : null;
     case "reroll_values":
-      return n > 0 || item.unique ? null : "item has no mods";
+      return n > 0 || (item.kind === "gear" && item.unique) ? null : "item has no mods";
     case "corrupt":
       return null;
   }
@@ -112,85 +119,106 @@ export function applyCurrency(save: CharacterSave, content: CraftingContent, cur
   const problem = currencyProblem(content, currencyId, item);
   if (problem) return problem;
   const effect = content.currencies.find((c) => c.id === currencyId)!.effect;
-  const refused = item!.kind === "gear" ? gearEffect(content, effect, item!, rng) : (raiseGemLevel(item!, 1, content.gems), null);
+  const it = item!;
+  let refused: string | null = null;
+  if (it.kind === "gear" || it.kind === "cairnstone") refused = craftEffect(content, effect, it, rng);
+  else raiseGemLevel(it, 1, content.gems);
   if (refused) return refused;
   save.currency[currencyId]! -= 1;
   return null;
 }
 
-function gearEffect(content: CraftingContent, effect: string, item: GearItem, rng: Rng): string | null {
-  const base = content.itemBases.find((b) => b.id === item.base);
-  if (!base) return "unknown item";
+/**
+ * The same effects work on gear and Cairnstones: a Cairnstone just rolls from the map mod
+ * pool, gated by its level instead of an item level.
+ */
+interface Craft {
+  item: GearItem | CairnstoneItem;
+  pool: { affixes: Affix[]; gear: GearRules };
+  base: Pick<ItemBase, "tags" | "implicits">;
+  view: { mods: RolledMod[]; ilvl: number };
+}
+
+function craftEffect(content: CraftingContent, effect: string, item: GearItem | CairnstoneItem, rng: Rng): string | null {
+  let c: Craft;
+  if (item.kind === "gear") {
+    const base = content.itemBases.find((b) => b.id === item.base);
+    if (!base) return "unknown item";
+    c = { item, pool: content, base, view: item };
+  } else c = { item, pool: mapAffixes(content), base: STONE_BASE, view: stoneView(item) };
   switch (effect) {
     case "upgrade_magic":
     case "reroll_magic":
       item.rarity = "magic";
-      rollMods(content, rng, base, item, "magic");
+      rollMods(c.pool, rng, c.base, c.view, "magic");
       return null;
     case "normal_to_rare":
-      return makeRare(content, rng, base, item);
+      makeRare(c, rng);
+      return null;
     case "upgrade_rare":
       item.rarity = "rare";
       item.name = rareName(content, rng);
-      addMod(content, rng, base, item);
+      addMod(c, rng);
       return null;
     case "add_magic_mod":
     case "add_rare_mod":
-      return addMod(content, rng, base, item) ? null : "no mod can be added";
+      return addMod(c, rng) ? null : "no mod can be added";
     case "remove_mod":
       item.mods.splice(rng.int(0, item.mods.length - 1), 1);
       return null;
     case "chaos":
       if (item.mods.length > 0) item.mods.splice(rng.int(0, item.mods.length - 1), 1);
-      addMod(content, rng, base, item);
+      addMod(c, rng);
       return null;
     case "reroll_values":
-      rerollValues(content, rng, base, item);
+      rerollValues(content, c, rng);
       return null;
     case "corrupt":
-      corrupt(content, rng, base, item);
+      corrupt(content, c, rng);
       return null;
   }
   return `unknown effect ${effect}`;
 }
 
-function addMod(content: CraftingContent, rng: Rng, base: ItemBase, item: GearItem): boolean {
-  const mod = rollAffix(content, rng, base, item, item.rarity === "rare" ? content.gear.maxPerKind.rare : content.gear.maxPerKind.magic);
-  if (mod) item.mods.push(mod);
+function addMod(c: Craft, rng: Rng): boolean {
+  const mod = rollAffix(c.pool, rng, c.base, c.view, c.item.rarity === "rare" ? c.pool.gear.maxPerKind.rare : c.pool.gear.maxPerKind.magic);
+  if (mod) c.item.mods.push(mod);
   return !!mod;
 }
 
-function makeRare(content: CraftingContent, rng: Rng, base: ItemBase, item: GearItem): null {
-  item.rarity = "rare";
-  item.name = rareName(content, rng);
-  rollMods(content, rng, base, item, "rare");
-  return null;
+function makeRare(c: Craft, rng: Rng): void {
+  c.item.rarity = "rare";
+  c.item.name = rareName(c.pool, rng);
+  rollMods(c.pool, rng, c.base, c.view, "rare");
 }
 
-/** New numbers within each mod's current tier (and implicits / unique ranges). */
-function rerollValues(content: CraftingContent, rng: Rng, base: ItemBase, item: GearItem): void {
-  item.implicits = (base.implicits ?? []).map((m) => rollRange(rng, m.value));
-  for (const m of item.mods) {
-    const tier = content.affixes.find((a) => a.id === m.affix)?.tiers.find((t) => t.tier === m.tier);
+/** New numbers within each mod's current tier (and gear implicits / unique ranges). */
+function rerollValues(content: CraftingContent, c: Craft, rng: Rng): void {
+  for (const m of c.item.mods) {
+    const tier = c.pool.affixes.find((a) => a.id === m.affix)?.tiers.find((t) => t.tier === m.tier);
     if (tier) m.values = tier.values.map((r) => rollRange(rng, r));
   }
+  const item = c.item;
+  if (item.kind !== "gear") return;
+  item.implicits = (c.base.implicits ?? []).map((m) => rollRange(rng, m.value));
   const u = item.unique ? content.uniques.find((x) => x.id === item.unique) : undefined;
   if (u) item.uniqueValues = u.mods.map((m) => rollRange(rng, m.value));
 }
 
 /** Void Pearl: one weighted outcome from crafting.json, then the item is locked. */
-function corrupt(content: CraftingContent, rng: Rng, base: ItemBase, item: GearItem): void {
+function corrupt(content: CraftingContent, c: Craft, rng: Rng): void {
   const outcome = rng.weighted(content.crafting.corruption)?.outcome ?? "nothing";
-  const u = item.unique ? content.uniques.find((x) => x.id === item.unique) : undefined;
+  const item = c.item;
+  const u = item.kind === "gear" && item.unique ? content.uniques.find((x) => x.id === item.unique) : undefined;
   if (outcome === "reroll_rare") {
-    if (u) rerollValues(content, rng, base, item);
-    else makeRare(content, rng, base, item);
+    if (u) rerollValues(content, c, rng);
+    else makeRare(c, rng);
   } else if (outcome === "tier_up") {
-    if (u) item.uniqueValues = u.mods.map((m) => m.value[1]); // perfect rolls
+    if (u && item.kind === "gear") item.uniqueValues = u.mods.map((m) => m.value[1]); // perfect rolls
     else {
       // A random mod that has a better tier moves up one, ignoring item level.
       const better = item.mods
-        .map((m) => ({ m, next: content.affixes.find((a) => a.id === m.affix)?.tiers.find((t) => t.tier === m.tier - 1) }))
+        .map((m) => ({ m, next: c.pool.affixes.find((a) => a.id === m.affix)?.tiers.find((t) => t.tier === m.tier - 1) }))
         .filter((x) => x.next);
       const pick = better[rng.int(0, Math.max(0, better.length - 1))];
       if (pick?.next) {
@@ -207,8 +235,9 @@ function corrupt(content: CraftingContent, rng: Rng, base: ItemBase, item: GearI
 // ---------------------------------------------------------------- salvage
 
 /** What salvaging this item gives. */
-export function salvageYield(content: CraftingContent, item: GearItem | GemItem): { currency: string; count: number } {
+export function salvageYield(content: Pick<CraftingContent, "crafting">, item: CraftItem): { currency: string; count: number } {
   const rules = content.crafting.salvage;
+  if (item.kind === "cairnstone") return { ...rules.cairnstone[item.rarity] };
   if (item.kind === "gear") {
     const y = rules.gear[item.rarity];
     return { currency: y.currency, count: y.count };
@@ -218,11 +247,12 @@ export function salvageYield(content: CraftingContent, item: GearItem | GemItem)
 }
 
 /** Destroy a bagged item for currency fragments. A skill gem's socketed supports go back to the gem bag. */
-export function salvage(save: CharacterSave, content: CraftingContent, bag: "gear" | "gems", index: number): string | null {
-  const item = bag === "gear" ? save.gearBag[index] : save.gemBag[index];
+export function salvage(save: CharacterSave, content: CraftingContent, bag: "gear" | "gems" | "stones", index: number): string | null {
+  const item = bag === "gear" ? save.gearBag[index] : bag === "stones" ? save.stoneBag[index] : save.gemBag[index];
   if (!item) return "no item there";
   const y = salvageYield(content, item);
   if (bag === "gear") save.gearBag.splice(index, 1);
+  else if (bag === "stones") save.stoneBag.splice(index, 1);
   else {
     save.gemBag.splice(index, 1);
     if (item.kind === "skill_gem") save.gemBag.push(...(item.sockets ?? []).filter((s): s is GemItem => !!s));

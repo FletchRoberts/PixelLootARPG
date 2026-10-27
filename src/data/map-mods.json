@@ -1,0 +1,904 @@
+[
+  {
+    "id": "map_monster_life",
+    "name": "Hardy",
+    "kind": "prefix",
+    "group": "map_monster_life",
+    "mods": [
+      {
+        "stat": "monster_life",
+        "kind": "increased"
+      },
+      {
+        "stat": "item_quantity",
+        "kind": "increased"
+      }
+    ],
+    "text": "Monsters have {0}% increased Life  (+{1}% item quantity)",
+    "tags": [
+      "cairnstone"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            20,
+            29
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 6,
+        "weight": 100,
+        "values": [
+          [
+            30,
+            44
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            45,
+            59
+          ],
+          [
+            7,
+            8
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            60,
+            80
+          ],
+          [
+            9,
+            11
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "map_monster_damage",
+    "name": "Savage",
+    "kind": "prefix",
+    "group": "map_monster_damage",
+    "mods": [
+      {
+        "stat": "monster_damage",
+        "kind": "increased"
+      },
+      {
+        "stat": "item_quantity",
+        "kind": "increased"
+      }
+    ],
+    "text": "Monsters deal {0}% increased Damage  (+{1}% item quantity)",
+    "tags": [
+      "cairnstone"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            15,
+            24
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 6,
+        "weight": 100,
+        "values": [
+          [
+            25,
+            34
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            35,
+            49
+          ],
+          [
+            7,
+            8
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            50,
+            65
+          ],
+          [
+            9,
+            11
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "map_monster_speed",
+    "name": "Frenzied",
+    "kind": "prefix",
+    "group": "map_monster_speed",
+    "mods": [
+      {
+        "stat": "monster_speed",
+        "kind": "increased"
+      },
+      {
+        "stat": "item_quantity",
+        "kind": "increased"
+      }
+    ],
+    "text": "Monsters have {0}% increased Movement Speed  (+{1}% item quantity)",
+    "tags": [
+      "cairnstone"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            14
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 6,
+        "weight": 100,
+        "values": [
+          [
+            15,
+            19
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            20,
+            25
+          ],
+          [
+            7,
+            8
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            26,
+            32
+          ],
+          [
+            9,
+            11
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "map_pack_size",
+    "name": "Teeming",
+    "kind": "prefix",
+    "group": "map_pack_size",
+    "mods": [
+      {
+        "stat": "pack_size",
+        "kind": "increased"
+      },
+      {
+        "stat": "item_quantity",
+        "kind": "increased"
+      }
+    ],
+    "text": "{0}% increased Pack Size  (+{1}% item quantity)",
+    "tags": [
+      "cairnstone"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            15,
+            24
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 6,
+        "weight": 100,
+        "values": [
+          [
+            25,
+            34
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            35,
+            44
+          ],
+          [
+            7,
+            8
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            45,
+            60
+          ],
+          [
+            9,
+            11
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "map_fire",
+    "name": "Searing",
+    "kind": "prefix",
+    "group": "map_fire",
+    "mods": [
+      {
+        "stat": "monster_fire_extra",
+        "kind": "flat"
+      },
+      {
+        "stat": "item_quantity",
+        "kind": "increased"
+      }
+    ],
+    "text": "Monsters deal {0}% of Physical Damage as extra Fire  (+{1}% item quantity)",
+    "tags": [
+      "cairnstone"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            20,
+            29
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 6,
+        "weight": 100,
+        "values": [
+          [
+            30,
+            44
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            45,
+            59
+          ],
+          [
+            7,
+            8
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            60,
+            80
+          ],
+          [
+            9,
+            11
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "map_cold",
+    "name": "Freezing",
+    "kind": "prefix",
+    "group": "map_cold",
+    "mods": [
+      {
+        "stat": "monster_cold_extra",
+        "kind": "flat"
+      },
+      {
+        "stat": "item_quantity",
+        "kind": "increased"
+      }
+    ],
+    "text": "Monsters deal {0}% of Physical Damage as extra Cold  (+{1}% item quantity)",
+    "tags": [
+      "cairnstone"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            20,
+            29
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 6,
+        "weight": 100,
+        "values": [
+          [
+            30,
+            44
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            45,
+            59
+          ],
+          [
+            7,
+            8
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            60,
+            80
+          ],
+          [
+            9,
+            11
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "map_lightning",
+    "name": "Shocking",
+    "kind": "prefix",
+    "group": "map_lightning",
+    "mods": [
+      {
+        "stat": "monster_lightning_extra",
+        "kind": "flat"
+      },
+      {
+        "stat": "item_quantity",
+        "kind": "increased"
+      }
+    ],
+    "text": "Monsters deal {0}% of Physical Damage as extra Lightning  (+{1}% item quantity)",
+    "tags": [
+      "cairnstone"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            20,
+            29
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 6,
+        "weight": 100,
+        "values": [
+          [
+            30,
+            44
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            45,
+            59
+          ],
+          [
+            7,
+            8
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            60,
+            80
+          ],
+          [
+            9,
+            11
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "map_monster_resist",
+    "name": "of Warding",
+    "kind": "suffix",
+    "group": "map_monster_resist",
+    "mods": [
+      {
+        "stat": "monster_resistances",
+        "kind": "flat"
+      },
+      {
+        "stat": "item_rarity",
+        "kind": "increased"
+      }
+    ],
+    "text": "Monsters have +{0}% to Fire, Cold and Lightning Resistance  (+{1}% item rarity)",
+    "tags": [
+      "cairnstone"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            10,
+            19
+          ],
+          [
+            6,
+            8
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 6,
+        "weight": 100,
+        "values": [
+          [
+            20,
+            29
+          ],
+          [
+            9,
+            12
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            30,
+            39
+          ],
+          [
+            13,
+            16
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            40,
+            50
+          ],
+          [
+            17,
+            22
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "map_monster_evasion",
+    "name": "of Shadows",
+    "kind": "suffix",
+    "group": "map_monster_evasion",
+    "mods": [
+      {
+        "stat": "monster_evasion",
+        "kind": "increased"
+      },
+      {
+        "stat": "item_rarity",
+        "kind": "increased"
+      }
+    ],
+    "text": "Monsters have {0}% increased Evasion Rating  (+{1}% item rarity)",
+    "tags": [
+      "cairnstone"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            150,
+            249
+          ],
+          [
+            6,
+            8
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 6,
+        "weight": 100,
+        "values": [
+          [
+            250,
+            399
+          ],
+          [
+            9,
+            12
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            400,
+            599
+          ],
+          [
+            13,
+            16
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            600,
+            900
+          ],
+          [
+            17,
+            22
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "map_monster_armour",
+    "name": "of Stone",
+    "kind": "suffix",
+    "group": "map_monster_armour",
+    "mods": [
+      {
+        "stat": "monster_armour",
+        "kind": "flat"
+      },
+      {
+        "stat": "item_rarity",
+        "kind": "increased"
+      }
+    ],
+    "text": "Monsters have +{0} to Armour  (+{1}% item rarity)",
+    "tags": [
+      "cairnstone"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            15,
+            29
+          ],
+          [
+            6,
+            8
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 6,
+        "weight": 100,
+        "values": [
+          [
+            30,
+            59
+          ],
+          [
+            9,
+            12
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            60,
+            99
+          ],
+          [
+            13,
+            16
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            100,
+            160
+          ],
+          [
+            17,
+            22
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "map_monster_crit",
+    "name": "of Precision",
+    "kind": "suffix",
+    "group": "map_monster_crit",
+    "mods": [
+      {
+        "stat": "monster_crit",
+        "kind": "flat"
+      },
+      {
+        "stat": "item_rarity",
+        "kind": "increased"
+      }
+    ],
+    "text": "Monsters have {0}% chance to Critically Strike  (+{1}% item rarity)",
+    "tags": [
+      "cairnstone"
+    ],
+    "tiers": [
+      {
+        "tier": 4,
+        "itemLevel": 1,
+        "weight": 100,
+        "values": [
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            8
+          ]
+        ]
+      },
+      {
+        "tier": 3,
+        "itemLevel": 6,
+        "weight": 100,
+        "values": [
+          [
+            8,
+            10
+          ],
+          [
+            9,
+            12
+          ]
+        ]
+      },
+      {
+        "tier": 2,
+        "itemLevel": 12,
+        "weight": 100,
+        "values": [
+          [
+            11,
+            14
+          ],
+          [
+            13,
+            16
+          ]
+        ]
+      },
+      {
+        "tier": 1,
+        "itemLevel": 20,
+        "weight": 100,
+        "values": [
+          [
+            15,
+            20
+          ],
+          [
+            17,
+            22
+          ]
+        ]
+      }
+    ]
+  }
+]

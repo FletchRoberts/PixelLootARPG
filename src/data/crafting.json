@@ -26,6 +26,20 @@
     "support_gem": {
       "currency": "cutters_prism_fragment",
       "count": 1
+    },
+    "cairnstone": {
+      "normal": {
+        "currency": "whetstone_fragment",
+        "count": 1
+      },
+      "magic": {
+        "currency": "crown_ember_fragment",
+        "count": 1
+      },
+      "rare": {
+        "currency": "chaos_thread_fragment",
+        "count": 2
+      }
     }
   },
   "corruption": [

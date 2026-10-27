@@ -52,8 +52,8 @@ export function rollGear(content: GearContent, rng: Rng, ilvl: number, uid: numb
 }
 
 /** Fill an item with a fresh set of mods for a rarity (magic 1–2, rare 4–6 by default). */
-export function rollMods(content: GearContent, rng: Rng, base: ItemBase, item: GearItem, rarity: "magic" | "rare"): void {
-  item.mods = [];
+export function rollMods(content: Pick<GearContent, "affixes" | "gear">, rng: Rng, base: Pick<ItemBase, "tags">, item: { mods: RolledMod[]; ilvl: number }, rarity: "magic" | "rare"): void {
+  item.mods.length = 0; // in place: callers may pass a view sharing the mods array
   const target = rng.int(content.gear.affixCount[rarity][0], content.gear.affixCount[rarity][1]);
   for (let i = 0; i < target; i++) {
     const mod = rollAffix(content, rng, base, item, content.gear.maxPerKind[rarity]);
@@ -61,7 +61,7 @@ export function rollMods(content: GearContent, rng: Rng, base: ItemBase, item: G
   }
 }
 
-export const rareName = (content: GearContent, rng: Rng) => `${pick(rng, content.gear.rareNames.first)} ${pick(rng, content.gear.rareNames.second)}`;
+export const rareName = (content: Pick<GearContent, "gear">, rng: Rng) => `${pick(rng, content.gear.rareNames.first)} ${pick(rng, content.gear.rareNames.second)}`;
 
 function dropLevel(content: GearContent, baseId: string): number | undefined {
   return content.itemBases.find((b) => b.id === baseId)?.dropLevel;
@@ -89,7 +89,7 @@ function rollUnique(content: GearContent, rng: Rng, ilvl: number, uid: number, u
 }
 
 /** Add one affix the item doesn't have a group for; prefix/suffix limits respected. Weighted by eligible tiers. */
-export function rollAffix(content: GearContent, rng: Rng, base: ItemBase, item: GearItem, maxPerKind: number): RolledMod | null {
+export function rollAffix(content: Pick<GearContent, "affixes">, rng: Rng, base: Pick<ItemBase, "tags">, item: { mods: RolledMod[]; ilvl: number }, maxPerKind: number): RolledMod | null {
   const have = item.mods.map((m) => content.affixes.find((a) => a.id === m.affix)).filter((a): a is Affix => !!a);
   const count = (kind: Affix["kind"]) => have.filter((a) => a.kind === kind).length;
   const groups = new Set(have.map((a) => a.group));
@@ -162,7 +162,7 @@ export function equipmentGrants(content: GearContent, equipment: CharacterSave["
 
 // ---------------------------------------------------------------- text
 
-const fill = (template: string, values: number[]) => template.replace(/\{(\d+)\}/g, (_, i: string) => String(values[Number(i)] ?? "?"));
+export const fill = (template: string, values: number[]) => template.replace(/\{(\d+)\}/g, (_, i: string) => String(values[Number(i)] ?? "?"));
 
 const STAT_LABEL: Record<string, string> = {
   life: "maximum Life",

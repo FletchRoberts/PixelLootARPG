@@ -3,6 +3,7 @@ import type {
   AttributeBonuses,
   Biome,
   Character,
+  CairnstoneRules,
   CombatRulesDef,
   CraftingRules,
   Currency,
@@ -37,6 +38,8 @@ import gems from "./gems.json";
 import uniques from "./uniques.json";
 import gear from "./gear.json";
 import crafting from "./crafting.json";
+import cairnstones from "./cairnstones.json";
+import mapMods from "./map-mods.json";
 
 export const content = {
   itemBases: itemBases as ItemBase[],
@@ -58,6 +61,8 @@ export const content = {
   uniques: uniques as UniqueDef[],
   gear: gear as GearRules,
   crafting: crafting as CraftingRules,
+  cairnstones: cairnstones as CairnstoneRules,
+  mapMods: mapMods as Affix[],
 };
 
 export type Content = typeof content;

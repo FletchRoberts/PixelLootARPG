@@ -67,6 +67,16 @@ export interface GearRules {
   bagSize: number; // gear bag slots (gems have their own bag; currency stacks without limit)
 }
 
+/** Cairnstone rules (src/data/cairnstones.json). Map mods live in map-mods.json (Affix shape). */
+export interface CairnstoneRules {
+  bagSize: number;
+  rarityWeights: { normal: number; magic: number; rare: number };
+  levelUpChance: number; // % chance a dropped stone is one level above the zone it dropped in
+  freeMap: { levelsBelowBest: number; modCount: Range; name: string }; // running without a stone
+  maxDeaths?: number; // per map; unset = unlimited retries
+  sprite: SpriteSpec;
+}
+
 /** Crafting currency (src/data/currencies.json). Stacks without limit in the currency stash. */
 export interface Currency {
   id: string;
@@ -94,6 +104,7 @@ export interface CraftingRules {
     gear: Record<"normal" | "magic" | "rare" | "unique", SalvageYield>;
     skill_gem: SalvageYield;
     support_gem: SalvageYield;
+    cairnstone: Record<"normal" | "magic" | "rare", SalvageYield>;
   };
   corruption: { outcome: CorruptionOutcome; weight: number }[];
 }
@@ -259,7 +270,8 @@ export interface DropEntry {
   // skill_gem / support_gem: a specific gem if `ref` is set, otherwise any gem of that kind.
   // table: roll another table (`ref`). currency: a random currency by dropWeight/dropLevel (or `ref`), `count` of it.
   // item: random gear (or base `ref`) with rolled rarity; unique: a random unique (or `ref`).
-  kind: "nothing" | "table" | "skill_gem" | "support_gem" | "item" | "unique" | "currency";
+  // cairnstone: a Cairnstone at the monster's level (sometimes one higher).
+  kind: "nothing" | "table" | "skill_gem" | "support_gem" | "item" | "unique" | "currency" | "cairnstone";
   ref?: string;
   count?: Range; // currency stack size (default 1)
 }

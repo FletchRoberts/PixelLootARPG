@@ -3,6 +3,7 @@ import { content } from "../../data";
 import { Rng } from "../core/rng";
 import { createWorld, inventoryCommand, step, type SimContent, type WorldState } from "../world";
 import { itemModifiers, itemText, rollGear } from "./gear";
+import { plainMap } from "./cairnstone";
 import { migrateSave, newCharacter } from "./save";
 import type { GearItem } from "./types";
 
@@ -150,7 +151,7 @@ describe("equipping gear", () => {
 
 describe("gear drops and saves", () => {
   it("monsters drop gear at their own level", () => {
-    const w = createWorld(content, 33, { ...newCharacter(content, 33), zonesCleared: 6 });
+    const w = createWorld(content, 33, newCharacter(content, 33), plainMap(33, 7));
     for (const m of w.monsters) m.life = 0;
     step(w, content, { move: { x: 0, y: 0 }, aim: { x: 0, y: 0 }, attack: false });
     const gear = w.groundItems.map((g) => g.item).filter((i): i is GearItem => i.kind === "gear");
@@ -162,7 +163,7 @@ describe("gear drops and saves", () => {
     const { gearBag: _g, gemBag, currency: _c, ...rest } = newCharacter(content, 1);
     const v1 = { ...rest, version: 1, equipment: undefined, weapon: "short_bow", bag: gemBag };
     const save = migrateSave(JSON.parse(JSON.stringify(v1)), content)!;
-    expect(save.version).toBe(3);
+    expect(save.version).toBe(4);
     expect(save.equipment.weapon?.base).toBe("short_bow");
     expect(save.gemBag).toHaveLength(1);
     expect(migrateSave({ nonsense: true }, content)).toBeNull();

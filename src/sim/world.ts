@@ -8,6 +8,7 @@ import { clone } from "./core/clone";
 import { Rng } from "./core/rng";
 import { add, angleOf, dist, len, normalize, scale, sub, type Vec } from "./core/vec";
 import type {
+  CairnstoneRules,
   CraftingRules,
   Currency,
   AttributeBonuses,
@@ -29,13 +30,14 @@ import type {
 import { weaponAttackSkill, compileSkill } from "./skills/compile";
 import { stepProjectiles, useSkill, type ProjectileState, type SkillContext } from "./skills/runtime";
 import type { CompiledNode, CompiledSkill, Loadout, SkillDef, SupportDef } from "./skills/types";
-import { rollDrops } from "./items/drops";
+import { rollDrops, type DropResult } from "./items/drops";
 import { makeGem } from "./items/gems";
 import { equipmentGrants, equipmentModifiers, rollGear, type RollOptions } from "./items/gear";
+import { mapStats, plainMap, rollCairnstone, stoneMap } from "./items/cairnstone";
 import { addCurrency, applyCurrency, salvage, salvageBulk, type BulkSalvage, type CraftTarget } from "./items/crafting";
 import { addToBag, bagOf, equipGear, equipSkill, levelSkillGem, socketSupport, unequipGear, unequipSkill, unsocket } from "./items/inventory";
 import { applyDeathPenalty, loadoutOf, newCharacter } from "./items/save";
-import type { CharacterSave, EquipSlot, GemItem, GroundItem, Item, SocketTarget } from "./items/types";
+import type { CairnstoneItem, CharacterSave, EquipSlot, GemItem, GroundItem, Item, MapRun, SocketTarget } from "./items/types";
 import { gainXp, monsterScale, playerModifiers, playerStats, xpForKill } from "./stats/character";
 import { computeStat, type StatBlock } from "./stats/stats";
 import { buildFlowField, distAt, nextStep, UNREACHED, type FlowField } from "./zone/flowfield";
@@ -72,6 +74,8 @@ export interface SimContent {
   gear: GearRules;
   currencies: Currency[];
   crafting: CraftingRules;
+  cairnstones: CairnstoneRules;
+  mapMods: Affix[];
 }
 
 export interface Actor {
@@ -128,6 +132,8 @@ export interface WorldState {
   tick: number;
   rngState: number;
   zone: Zone;
+  map: MapRun; // the map being run: level, mods, retries
+  mapStats: Record<string, number>; // its mods summed (monster_life, item_quantity, …)
   monsterLevel: number;
   zonesCleared: number; // before this zone
   status: "playing" | "dead" | "complete";
@@ -167,10 +173,10 @@ export type SimEvent =
   | { type: "level_up"; level: number }
   | { type: "drop"; itemId: number }
   | { type: "pickup"; item: Item }
-  | { type: "bag_full"; bag: "gear" | "gems" | "currency" }
+  | { type: "bag_full"; bag: "gear" | "gems" | "currency" | "stones" }
   | { type: "wake"; packId: number }
   | { type: "player_died" }
-  | { type: "zone_complete" };
+  | { type: "zone_complete"; reward: CairnstoneItem | null };
 
 // Derived, non-serialized cache: flow field toward the player's current tile.
 const flowCache = new WeakMap<WorldState, FlowField>();
@@ -181,7 +187,13 @@ function lookup<T extends { id: string }>(list: T[], id: string, what: string): 
   return found;
 }
 
-export function createWorld(content: SimContent, seed: number, save: CharacterSave = newCharacter(content, seed)): WorldState {
+/**
+ * A zone for a map run. The map is `map`, else the save's map in progress, else a plain
+ * level-1 zone with no mods (tests). The zone layout comes from the map's seed.
+ */
+export function createWorld(content: SimContent, seed: number, save: CharacterSave = newCharacter(content, seed), map?: MapRun): WorldState {
+  const run: MapRun = clone(map ?? save.currentMap ?? plainMap(seed, 1));
+  seed = run.seed;
   const zone = generateZone(content.zoneGen, seed);
   const hero = lookup(content.characters, save.characterId, "character");
   const rng = new Rng((seed ^ 0x9e3779b9) >>> 0);
@@ -190,7 +202,9 @@ export function createWorld(content: SimContent, seed: number, save: CharacterSa
     tick: 0,
     rngState: 0,
     zone,
-    monsterLevel: 1 + own.zonesCleared,
+    map: run,
+    mapStats: mapStats(content, run.mods),
+    monsterLevel: run.level,
     zonesCleared: own.zonesCleared,
     status: "playing",
     player: {
@@ -232,7 +246,8 @@ export function createWorld(content: SimContent, seed: number, save: CharacterSa
   world.player.mana = world.player.maxMana;
   zone.packs.forEach((pack, packId) => {
     const table = pack.kind === "end" ? content.zoneGen.endPackDropTable : undefined;
-    for (let i = 0; i < pack.size; i++) spawnMonster(world, content, rng, pack.pos, content.zoneGen.packs.spread, packId, table);
+    const size = Math.round(pack.size * (1 + (world.mapStats.pack_size ?? 0) / 100));
+    for (let i = 0; i < size; i++) spawnMonster(world, content, rng, pack.pos, content.zoneGen.packs.spread, packId, table);
   });
   world.totalMonsters = world.monsters.length;
   world.rngState = rng.state;
@@ -245,15 +260,24 @@ export function currentSave(world: WorldState): CharacterSave {
   return clone({ ...p.save, level: p.level, xp: p.xp, zonesCleared: world.zonesCleared });
 }
 
-/** Character to carry into the next zone after clearing this one. */
+/** Character to carry out of a cleared map: the map is done, its level counts as reached. */
 export function saveAfterClear(world: WorldState): CharacterSave {
-  return { ...currentSave(world), zonesCleared: world.zonesCleared + 1 };
+  const save = currentSave(world);
+  delete save.currentMap;
+  return { ...save, zonesCleared: world.zonesCleared + 1, bestMapLevel: Math.max(save.bestMapLevel, world.map.level) };
 }
 
-/** Character after dying: keeps everything picked up, loses some XP (never a level). */
+/**
+ * Character after dying: keeps everything picked up, loses some XP (never a level). The map
+ * stays in progress for a retry, unless it has a death limit and used it up (mapLost).
+ */
 export function saveAfterDeath(world: WorldState, content: SimContent): CharacterSave {
   const save = currentSave(world);
   applyDeathPenalty(save, content.progression);
+  if (save.currentMap) {
+    save.currentMap.deaths++;
+    if (save.currentMap.maxDeaths !== undefined && save.currentMap.deaths >= save.currentMap.maxDeaths) delete save.currentMap;
+  }
   return save;
 }
 
@@ -275,9 +299,11 @@ export type InventoryCommand =
   | { type: "debug_give"; kind: GemItem["kind"]; defId: string }
   | { type: "debug_give_gear"; opts: RollOptions; seed: number }
   | { type: "apply_currency"; currency: string; target: CraftTarget }
-  | { type: "salvage"; bag: "gear" | "gems"; index: number }
+  | { type: "salvage"; bag: "gear" | "gems" | "stones"; index: number }
   | { type: "salvage_bulk"; what: BulkSalvage }
-  | { type: "debug_give_currency"; currency: string; count: number };
+  | { type: "debug_give_currency"; currency: string; count: number }
+  | { type: "debug_give_stone"; level: number; rarity: CairnstoneItem["rarity"]; seed: number }
+  | { type: "open_map"; stoneIndex: number | null; seed: number };
 
 /** Change equipped gems. Returns null on success or why it was refused. */
 export function inventoryCommand(world: WorldState, content: SimContent, cmd: InventoryCommand): string | null {
@@ -333,6 +359,24 @@ export function inventoryCommand(world: WorldState, content: SimContent, cmd: In
       addCurrency(save, cmd.currency, cmd.count, content);
       result = null;
       break;
+    case "debug_give_stone":
+      result = addToBag(save, rollCairnstone(content, new Rng(cmd.seed), cmd.level, save.nextUid++, { rarity: cmd.rarity, exact: true }), content) ? null : "Cairnstone bag is full";
+      break;
+    case "open_map": {
+      // Use a stone (consumed now) or this world's map (the free map shown behind the Map Device).
+      if (cmd.stoneIndex === null) save.currentMap = clone(world.map);
+      else {
+        const stone = save.stoneBag[cmd.stoneIndex];
+        if (!stone) {
+          result = "no Cairnstone there";
+          break;
+        }
+        save.stoneBag.splice(cmd.stoneIndex, 1);
+        save.currentMap = stoneMap(content, stone, cmd.seed);
+      }
+      result = null;
+      break;
+    }
   }
   if (result === null) refreshSkills(world, content);
   return result;
@@ -399,7 +443,10 @@ export function step(world: WorldState, content: SimContent, input: PlayerInput,
   updateMonsters(world, content, rng, events, dt);
   if (world.status === "playing" && dist(world.player.pos, world.zone.exit) < EXIT_RADIUS * world.zone.tileSize) {
     world.status = "complete";
-    events.push({ type: "zone_complete" });
+    // Every cleared map pays out a Cairnstone (bag limit ignored: it's the guaranteed one).
+    const reward = rollCairnstone(content, rng, world.map.level, world.player.save.nextUid++);
+    world.player.save.stoneBag.push(reward);
+    events.push({ type: "zone_complete", reward: clone(reward) });
   }
 
   world.tick++;
@@ -424,12 +471,14 @@ export function playerDefences(p: PlayerState): Defences {
   return { armour: p.stats.armour ?? 0, evasion: p.stats.evasion ?? 0, resist };
 }
 
-function monsterDefences(m: MonsterState, def: Monster, content: SimContent): Defences {
+function monsterDefences(m: MonsterState, def: Monster, content: SimContent, ms: Record<string, number>): Defences {
   const s = content.monsterScaling;
+  const resist: Defences["resist"] = { ...def.resist };
+  for (const e of ["fire", "cold", "lightning"] as const) resist[e] = (resist[e] ?? 0) + (ms.monster_resistances ?? 0);
   return {
-    armour: def.armour * monsterScale("armour", m.level, s),
-    evasion: def.evasion * monsterScale("evasion", m.level, s),
-    resist: { ...def.resist },
+    armour: def.armour * monsterScale("armour", m.level, s) + (ms.monster_armour ?? 0),
+    evasion: def.evasion * monsterScale("evasion", m.level, s) * (1 + (ms.monster_evasion ?? 0) / 100),
+    resist,
   };
 }
 
@@ -461,7 +510,7 @@ function combatContext(world: WorldState, content: SimContent, rng: Rng): SkillC
         rng,
       );
       const entropy = { value: m.evasionEntropy };
-      const result = applyHit(hit, monsterDefences(m, def, content), rules, entropy);
+      const result = applyHit(hit, monsterDefences(m, def, content, world.mapStats), rules, entropy);
       m.evasionEntropy = entropy.value;
       if (result.evaded) {
         events.push({ type: "evade", targetId: m.id, pos: { ...m.pos } });
@@ -659,6 +708,24 @@ function pickUpNearest(world: WorldState, content: SimContent, events: SimEvent[
   events.push({ type: "pickup", item: clone(g.item) });
 }
 
+/** A monster's loot with the map's item quantity: the table rolls extra times (the fraction as a chance). */
+function mapDrops(world: WorldState, content: SimContent, m: MonsterState, rng: Rng): DropResult[] {
+  const quantity = 1 + (world.mapStats.item_quantity ?? 0) / 100;
+  let times = Math.floor(quantity);
+  if (quantity > times && rng.next() < quantity - times) times++;
+  const out: DropResult[] = [];
+  for (let i = 0; i < times; i++) out.push(...rollDrops(content, m.dropTable, rng, m.level));
+  return out;
+}
+
+/** Content whose gear rarity weights include the map's item rarity (magic/rare/unique more likely). */
+function lootContent(world: WorldState, content: SimContent): SimContent {
+  const rarity = 1 + (world.mapStats.item_rarity ?? 0) / 100;
+  if (rarity === 1) return content;
+  const w = content.gear.rarityWeights;
+  return { ...content, gear: { ...content.gear, rarityWeights: { normal: w.normal, magic: w.magic * rarity, rare: w.rare * rarity, unique: w.unique * rarity } } };
+}
+
 /** Remove dead monsters, award XP (character and equipped gems), drop loot, and fire Cast on Kill skills. */
 function reapDead(world: WorldState, content: SimContent, ctx: SkillContext, rng: Rng, events: SimEvent[]): void {
   const dead = world.monsters.filter((m) => m.life <= 0);
@@ -671,13 +738,15 @@ function reapDead(world: WorldState, content: SimContent, ctx: SkillContext, rng
     events.push({ type: "death", actorId: m.id, pos: { ...m.pos } });
     const def = lookup(content.monsters, m.defId, "monster");
     xp += xpForKill(def.xp, m.level, p.level, content.progression, content.monsterScaling);
-    for (const drop of rollDrops(content, m.dropTable, rng, m.level)) {
+    for (const drop of mapDrops(world, content, m, rng)) {
       // Gear rolls at the monster's level (item level gates affix tiers and bases).
       const item: Item | null =
-        drop.kind === "currency"
+        drop.kind === "cairnstone"
+          ? rollCairnstone(content, rng, m.level, p.save.nextUid++)
+          : drop.kind === "currency"
           ? { uid: p.save.nextUid++, kind: "currency", id: drop.id, count: drop.count }
           : drop.kind === "gear" || drop.kind === "unique"
-            ? rollGear(content, rng, m.level, p.save.nextUid++, drop.kind === "unique" ? (drop.unique ? { unique: drop.unique } : { rarity: "unique" }) : { base: drop.base })
+            ? rollGear(lootContent(world, content), rng, m.level, p.save.nextUid++, drop.kind === "unique" ? (drop.unique ? { unique: drop.unique } : { rarity: "unique" }) : { base: drop.base })
             : makeGem(p.save, drop.kind, drop.defId, content.gems);
       if (!item) continue;
       const spread = 24;
@@ -723,7 +792,7 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
     // Ailments tick down; ignite burns through fire resistance (no armour, no evasion).
     const ail = m.ailments;
     if (ail.ignite > 0) {
-      const resist = Math.min(rules.resistance.defaultMax, def.resist?.fire ?? 0);
+      const resist = Math.min(rules.resistance.defaultMax, (def.resist?.fire ?? 0) + (world.mapStats.monster_resistances ?? 0));
       m.life -= ail.igniteDps * dt * (1 - resist / 100);
       ail.ignite = Math.max(0, ail.ignite - dt);
       if (m.life <= 0) continue; // reaped next tick
@@ -732,7 +801,7 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
     if (ail.chill === 0) ail.slow = 0;
     ail.freeze = Math.max(0, ail.freeze - dt);
     const frozen = ail.freeze > 0;
-    const speed = frozen ? 0 : def.speed * (1 - ail.slow / 100);
+    const speed = frozen ? 0 : def.speed * (1 + (world.mapStats.monster_speed ?? 0) / 100) * (1 - ail.slow / 100);
 
     if (!m.awake) {
       if (pathDist <= def.aggroRange) wakePack(world, m.packId, events);
@@ -771,11 +840,19 @@ function updateMonsters(world: WorldState, content: SimContent, rng: Rng, events
 
     m.contactCooldown = def.contactCooldown;
     const s = content.monsterScaling;
+    const ms = world.mapStats;
+    const base = scaleRange(def.damage, monsterScale("damage", m.level, s) * (1 + (ms.monster_damage ?? 0) / 100));
+    // Map mods: a share of physical damage added as extra fire / cold / lightning.
+    for (const e of ["fire", "cold", "lightning"] as const) {
+      const pct = ms[`monster_${e}_extra`] ?? 0;
+      const phys = base.physical;
+      if (pct > 0 && phys) base[e] = [phys[0] * (pct / 100) + (base[e]?.[0] ?? 0), phys[1] * (pct / 100) + (base[e]?.[1] ?? 0)];
+    }
     const hit = rollHit(
       {
-        base: scaleRange(def.damage, monsterScale("damage", m.level, s)),
+        base,
         tags: ["attack", "melee"],
-        critChance: 0,
+        critChance: ms.monster_crit ?? 0,
         accuracy: def.accuracy * monsterScale("accuracy", m.level, s),
         isAttack: true,
       },
@@ -827,7 +904,7 @@ function spawnMonster(world: WorldState, content: SimContent, rng: Rng, center: 
     }
   }
   const level = world.monsterLevel;
-  const life = def.life * monsterScale("life", level, content.monsterScaling);
+  const life = def.life * monsterScale("life", level, content.monsterScaling) * (1 + (world.mapStats.monster_life ?? 0) / 100);
   world.monsters.push({
     id: world.nextId++,
     defId: def.id,

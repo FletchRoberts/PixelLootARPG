@@ -39,6 +39,7 @@ export class BootScene extends Phaser.Scene {
       else this.textures.addCanvas(key, armourIcon(b.slot, b.tags.includes("dex_armour") || b.slot === "belt" ? "#9a6a3a" : "#9aa3ad"));
     }
     for (const c of content.currencies) this.textures.addCanvas(`currency:${c.id}`, makeSprite(c.sprite));
+    this.textures.addCanvas("cairnstone", makeSprite(content.cairnstones.sprite));
     this.scene.start("Game");
   }
 }

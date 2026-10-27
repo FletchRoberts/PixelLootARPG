@@ -42,7 +42,32 @@ export interface CurrencyItem {
   count: number;
 }
 
-export type Item = GemItem | GearItem | CurrencyItem; // Cairnstones join this union later
+/**
+ * A map item: opens a zone at its level (= monster level, which also gates its mod tiers).
+ * Crafted with the same currencies as gear; its mods come from map-mods.json.
+ */
+export interface CairnstoneItem {
+  uid: number;
+  kind: "cairnstone";
+  level: number;
+  rarity: Exclude<Rarity, "unique">;
+  name?: string; // rare names
+  mods: RolledMod[];
+  corrupted?: boolean;
+}
+
+/** The map being run: kept in the save so a death retries it (same seed, same mods). */
+export interface MapRun {
+  seed: number;
+  level: number;
+  mods: RolledMod[];
+  name: string; // the Cairnstone's name, or the free map's
+  free: boolean; // opened without a Cairnstone
+  deaths: number;
+  maxDeaths?: number; // undefined = unlimited retries (a limit may come later)
+}
+
+export type Item = GemItem | GearItem | CurrencyItem | CairnstoneItem;
 
 export type EquipSlot = "weapon" | "helmet" | "body" | "gloves" | "boots" | "belt" | "amulet" | "ring1" | "ring2";
 export const EQUIP_SLOTS: EquipSlot[] = ["weapon", "helmet", "body", "gloves", "boots", "belt", "amulet", "ring1", "ring2"];
@@ -59,7 +84,7 @@ export type SocketTarget = { kind: "skill"; slot: number } | { kind: "attack" };
 
 /** Everything that persists between zones and browser sessions. */
 export interface CharacterSave {
-  version: 3;
+  version: 4;
   characterId: string;
   level: number;
   xp: number;
@@ -71,5 +96,8 @@ export interface CharacterSave {
   gearBag: GearItem[]; // unequipped gear (gear.bagSize)
   gemBag: GemItem[]; // unequipped skill and support gems (gems.bagSize)
   currency: Record<string, number>; // currency id → count; no limit
+  stoneBag: CairnstoneItem[]; // Cairnstones (cairnstones.bagSize)
+  bestMapLevel: number; // highest map level cleared (free maps run a bit below it)
+  currentMap?: MapRun; // the map in progress, if any
   nextUid: number;
 }

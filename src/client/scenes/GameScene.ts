@@ -20,14 +20,16 @@ import {
   type WorldState,
 } from "../../sim/world";
 import { xpToNext } from "../../sim/stats/character";
+import { freeMap, rewardLine } from "../../sim/items/cairnstone";
 import { newCharacter } from "../../sim/items/save";
-import type { CharacterSave } from "../../sim/items/types";
+import type { CairnstoneItem, CharacterSave } from "../../sim/items/types";
 import { itemColor, itemName, itemTextureKey } from "../ui/items";
 import { clearSave, loadSave, writeSave } from "../save/storage";
 import type { Vec } from "../../sim/core/vec";
 import { hasLineOfSight, isFloor, type Zone } from "../../sim/zone/zone";
 import { InputManager } from "../input/InputManager";
 import { GameMenu } from "../ui/GameMenu";
+import { MapDevice } from "../ui/MapDevice";
 import { textureKey, TILE_SRC } from "./BootScene";
 
 const SPRITE_SCALE = 2.6; // sprite height relative to collision diameter
@@ -42,8 +44,9 @@ interface ActorView {
 }
 
 interface SceneData {
-  seed?: number;
+  seed?: number; // free map seed (a map in progress keeps its own)
   save?: CharacterSave; // the character entering this zone (else the browser save, else a new one)
+  message?: string; // shown on the Map Device (e.g. what the last map rewarded)
 }
 
 interface ItemView {
@@ -72,6 +75,8 @@ export class GameScene extends Phaser.Scene {
   private deathSave: CharacterSave | null = null;
   private lastAutosave = 0;
   private menu!: GameMenu;
+  private device!: MapDevice;
+  private clearMessage = "";
   private shots!: Phaser.GameObjects.Graphics;
   private skillBar!: { g: Phaser.GameObjects.Graphics; labels: Phaser.GameObjects.Text[] };
   private lastNoManaToast = 0;
@@ -85,7 +90,8 @@ export class GameScene extends Phaser.Scene {
     const urlSeed = Number(new URLSearchParams(location.search).get("seed"));
     const seed = data.seed ?? (Number.isFinite(urlSeed) && urlSeed > 0 ? urlSeed : (Math.random() * 2 ** 32) >>> 0);
     const save = data.save ?? loadSave() ?? newCharacter(content, randomSeed());
-    this.world = createWorld(content, seed, save);
+    // A map in progress (e.g. retrying after a death) resumes; otherwise the Map Device opens over a free map.
+    this.world = createWorld(content, seed, save, save.currentMap ?? freeMap(content, save, seed));
     this.itemViews.clear();
     this.deathSave = null;
     this.persist();
@@ -131,6 +137,17 @@ export class GameScene extends Phaser.Scene {
       },
     });
 
+    this.device = new MapDevice(this, this.inputs, () => this.world, {
+      command: (cmd) => {
+        const refused = inventoryCommand(this.world, content, cmd);
+        if (!refused) this.persist();
+        return refused;
+      },
+      open: (stoneIndex) => this.openMap(stoneIndex),
+      openMenu: () => this.menu.show("currency"),
+    });
+    if (!save.currentMap) this.device.show(data.message);
+
     const cam = this.cameras.main;
     cam.setBounds(0, 0, zone.width * zone.tileSize, zone.height * zone.tileSize);
     this.syncViews();
@@ -148,10 +165,11 @@ export class GameScene extends Phaser.Scene {
       const pressed = this.inputs.pressed("confirm") || this.input.activePointer.leftButtonDown();
       if (ready && pressed) {
         // Died: retry the same zone (items kept, some XP lost). Cleared: roll a new, harder one.
+        // Died: the save keeps the map in progress, so it's retried. Cleared: back to the Map Device.
         const next: SceneData =
           this.world.status === "dead"
             ? { seed: this.world.zone.seed, save: this.deathSave ?? saveAfterDeath(this.world, content) }
-            : { seed: randomSeed(), save: saveAfterClear(this.world) };
+            : { seed: randomSeed(), save: saveAfterClear(this.world), message: this.clearMessage };
         if (next.save) writeSave(next.save);
         this.scene.restart(next);
       }
@@ -162,6 +180,12 @@ export class GameScene extends Phaser.Scene {
     if (this.menu.open) {
       this.menu.update();
       this.render();
+      return;
+    }
+    // Between maps: the Map Device is up and the free map behind it waits.
+    if (this.device.open) {
+      this.device.update();
+      if (this.device.open) this.render();
       return;
     }
     if (this.inputs.pressed("character")) return this.menu.show("character");
@@ -265,7 +289,13 @@ export class GameScene extends Phaser.Scene {
         this.persist();
         break;
       case "bag_full":
-        this.toast(e.bag === "gear" ? "Gear bag is full: salvage some (menu, □ / X)" : "Gem bag is full: salvage spares in the Currency tab");
+        this.toast(
+          e.bag === "gear"
+            ? "Gear bag is full: salvage some (menu, □ / X)"
+            : e.bag === "stones"
+              ? "Cairnstone bag is full: salvage some at the Map Device"
+              : "Gem bag is full: salvage spares in the Currency tab",
+        );
         break;
       case "drop":
       case "xp":
@@ -301,7 +331,7 @@ export class GameScene extends Phaser.Scene {
         this.onPlayerDied();
         break;
       case "zone_complete":
-        this.onZoneComplete();
+        this.onZoneComplete(e.reward);
         break;
       case "wake":
         break;
@@ -333,7 +363,8 @@ export class GameScene extends Phaser.Scene {
     this.drawBar(this.hud, 16, height - 14, width - 32, 6, Number.isFinite(need) ? p.xp / need : 1, 0xd8b04a, 0x2a2414);
     this.hudText.setPosition(16, 54).setText([
       `HP ${Math.ceil(p.life)}/${Math.round(p.maxLife)}   MP ${Math.floor(p.mana)}/${Math.round(p.maxMana)}`,
-      `Level ${p.level}   ${biome.name} (monster lvl ${w.monsterLevel})`,
+      `Level ${p.level}   ${w.map.name}: monster lvl ${w.monsterLevel} (${biome.name})`,
+      `${w.map.mods.length} map mod${w.map.mods.length === 1 ? "" : "s"}: ${rewardLine(content, w.map.mods)}${w.map.deaths ? `   deaths ${w.map.deaths}` : ""}`,
       `Kills ${w.kills}/${w.totalMonsters}   ${formatTime(w.tick / TICK_RATE)}`,
       `Attack [${this.inputs.device === "pad" ? "R2" : "LMB"}]   Dodge [${this.inputs.prompt("dodge")}]   Menu [${this.inputs.prompt("character")}]   Skills [${this.inputs.prompt("inventory")}]`,
     ]);
@@ -597,11 +628,28 @@ export class GameScene extends Phaser.Scene {
     this.deathSave = saveAfterDeath(this.world, content);
     writeSave(this.deathSave);
     const lost = Math.round(this.world.player.xp - this.deathSave.xp);
-    this.showOverlay("YOU DIED", "#c0302a", () => `lost ${lost} XP, kept all items   ·   press ${this.inputs.prompt("confirm")} to retry this zone`);
+    const retry = this.deathSave.currentMap ? "retry this map" : "return to the Map Device (map lost)";
+    this.showOverlay("YOU DIED", "#c0302a", () => `lost ${lost} XP, kept all items   ·   press ${this.inputs.prompt("confirm")} to ${retry}`);
   }
 
-  private onZoneComplete(): void {
-    this.showOverlay("ZONE CLEARED", "#6fd3ff", () => `press ${this.inputs.prompt("confirm")} for the next zone`);
+  private onZoneComplete(reward: CairnstoneItem | null): void {
+    const got = reward ? `${itemName(reward)}` : "nothing";
+    this.clearMessage = `Map cleared! Reward: ${got}.`;
+    this.showOverlay("MAP CLEARED", "#6fd3ff", () => `reward: ${got}   ·   press ${this.inputs.prompt("confirm")} for the Map Device`);
+  }
+
+  /** Start a map from the Map Device: the free map behind it (null) or a Cairnstone (consumed). */
+  private openMap(stoneIndex: number | null): void {
+    const refused = inventoryCommand(this.world, content, { type: "open_map", stoneIndex, seed: randomSeed() });
+    if (refused) return;
+    this.device.hide();
+    if (stoneIndex === null) {
+      this.persist(); // the free map is already loaded: just start playing
+      return;
+    }
+    const save = currentSave(this.world);
+    writeSave(save);
+    this.scene.restart({ save } satisfies SceneData);
   }
 
   private showOverlay(title: string, color: string, hint: () => string): void {

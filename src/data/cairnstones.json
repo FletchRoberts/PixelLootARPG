@@ -1,0 +1,23 @@
+{
+  "bagSize": 60,
+  "rarityWeights": {
+    "normal": 60,
+    "magic": 30,
+    "rare": 10
+  },
+  "levelUpChance": 30,
+  "freeMap": {
+    "levelsBelowBest": 1,
+    "modCount": [
+      0,
+      2
+    ],
+    "name": "Unmarked Path"
+  },
+  "sprite": {
+    "type": "currency",
+    "seed": "cairnstone-7",
+    "theme": "arcane",
+    "size": 16
+  }
+}

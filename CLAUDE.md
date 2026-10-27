@@ -285,7 +285,8 @@ src/
     input/InputManager.ts keyboard/mouse + gamepad -> PlayerInput and UI actions
     input/gamepad.ts      standard-mapping buttons, deadzones (pure, tested)
     input/aim.ts          controller aim assist (pure, tested)
-    ui/GameMenu.ts        pause menu: Character, Gear, Gems (sockets), Debug tabs
+    ui/GameMenu.ts        pause menu: Character, Gear, Gems (sockets), Currency, Debug tabs
+    ui/MapDevice.ts       between maps: pick a Cairnstone or the free map, salvage stones
     ui/items.ts           item names, rarity colours, icon keys, gear tooltips
     save/storage.ts       character save in localStorage (guarded)
     scenes/BootScene.ts   builds placeholder textures + biome tilesets
@@ -309,7 +310,8 @@ src/
     items/inventory.ts    equip / unequip gear and gems, socket / unsocket rules
     items/gear.ts         roll gear (base/rarity/affix tiers), gear -> modifiers & grants, tooltip text
     items/compare.ts      before/after stat diff for equip previews
-    items/crafting.ts     currency stash + fragment combining, currency effects, salvage
+    items/crafting.ts     currency stash + fragment combining, currency effects (gear + stones), salvage
+    items/cairnstone.ts   Cairnstones: rolling, names/text, map stats, free maps, MapRun
     world.test.ts         headless sim tests
     zone/generate.ts      linear zone generator (path, branches, arenas, packs)
     zone/zone.ts          Zone data, tile queries, circle-vs-wall collision
@@ -326,14 +328,16 @@ src/
     combat.json           armour/evasion/resistance/crit constants
     zone-gen.json         zone generator tuning (lengths, widths, packs, pools)
     biomes.json           tileset looks per biome (PixelGen floor/wall specs)
-    drop-tables.json      weighted drop tables (gems for now)
+    drop-tables.json      weighted drop tables (gems, gear, currency, Cairnstones)
     gems.json             gem levels, sockets by level, bag size, pickup range
     item-bases.json       gear bases (slot, tags, drop level, requirements, implicits, weapon link)
     affixes.json          prefixes/suffixes with tiers by item level
     uniques.json          unique items (fixed mods, support grants, flavour)
     gear.json             rarity weights, affix counts, rare name words
     currencies.json       crafting currency + fragments (effect id, drop weight/level, combine)
-    crafting.json         salvage yields per rarity / gem kind, Void Pearl outcomes
+    crafting.json         salvage yields per rarity / gem kind / stone, Void Pearl outcomes
+    cairnstones.json      stone bag size, rarity weights, level-up chance, free map rules, maxDeaths
+    map-mods.json         map mods (affix format, tiers gated by stone level; danger + reward stats)
     index.ts              typed content loader
 docs/
   combat.md               stats, damage and defence formulas
@@ -451,6 +455,26 @@ or in bulk from the Currency tab. Crafting rolls use the world rng
 a mod gains a tier / lose a mod; uniques reroll or get perfect values) and
 locks the item. Menu tabs: Character, Gear, Gems, Currency, Debug.
 
+**Cairnstones + map mods (done):** a Cairnstone (`CairnstoneItem`: level,
+rarity, mods) opens a map whose monster level is the stone's level. 11 map
+mods (`map-mods.json`, same `Affix` format as gear so every currency works on
+stones): monster life/damage/speed/crit, extra fire/cold/lightning damage,
+monster resistances/evasion/armour, pack size; each also adds item quantity
+or item rarity. `world.mapStats` sums them; the sim applies them in
+`spawnMonster`, `monsterDefences`, monster contact hits and `mapDrops` /
+`lootContent` (quantity = extra drop-table rolls, rarity = gear rarity
+weights). **Every cleared map gives a Cairnstone** (`zone_complete.reward`,
+`levelUpChance`% one level higher) and monsters drop them (kind
+`cairnstone`). Without a stone you run a **free map**
+(`freeMap()`: `bestMapLevel − levelsBelowBest`, 0–2 lowest-tier mods).
+`MapRun` (seed, level, mods, deaths, `maxDeaths?`) lives in
+`save.currentMap` while running, so a death retries the same map;
+`maxDeaths` is unset = unlimited (hook for a future limit). Save v4 adds
+`stoneBag` (60), `bestMapLevel`, `currentMap`; v3 saves get a stone at the
+level they had reached. Client: Map Device between maps (✕ open, □/X
+salvage, Options → Currency tab to craft stones), HUD shows map name, mods
+and rewards. `zonesCleared` is now just a counter.
+
 ### Balance & feel backlog (revisit after gear)
 
 - Cast on Kill chains: cooldown (0.3 s) and damage penalty feel; whether
@@ -474,6 +498,10 @@ locks the item. Menu tabs: Character, Gear, Gems, Currency, Debug.
 - Gem drop rates now need duplicates for levelling: tune skill gem weights.
 - Currency drop rate (8% of trash, 12% end pack ×1–3), per-currency weights,
   salvage yields; whether Void Pearl outcomes are too swingy.
+- Cairnstone economy: drop rate (2% trash, 6% end pack + 1 guaranteed),
+  level-up chance (30%), free map level (best − 1), stone bag 60. Map mod
+  values/rewards are first guesses. Map events ("low tier events" on free
+  maps) arrive with map mechanics.
 - **Corruption implicits (wanted):** Void Pearl should be able to add special
   corrupted-only mods (PoE-style corrupted implicits: e.g. +1 socket on a
   gem, "skills chain +1", "cull", "% chance to Echo"), its own pool in
@@ -487,7 +515,8 @@ locks the item. Menu tabs: Character, Gear, Gems, Currency, Debug.
    extend `tools/pixel-forge.html` with more weapon types, animation frames
    (walk / attack / hit), and paper-doll gear appearance on the character;
    make editing weapon/gear looks easy in the tool.
-4. Cairnstones + map mods, then the Reach, passive tree, map mechanics.
+4. ~~Cairnstones + map mods~~ (done), then the Reach, passive tree, map
+   mechanics (free maps should also roll low-tier events then).
 
 **Controller support (done):** DualSense/Xbox via the browser Gamepad API,
 twin-stick aim with aim assist, rumble on hits/death, prompts swap between

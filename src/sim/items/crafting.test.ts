@@ -180,14 +180,14 @@ describe("salvage", () => {
   });
 });
 
-describe("save v3", () => {
+describe("save migration", () => {
   it("v2 saves split their bag into gear and gem bags", async () => {
     const { migrateSave, newCharacter } = await import("./save");
     const { gearBag: _g, gemBag, currency: _c, ...rest } = newCharacter(content, 1);
     const gear: GearItem = { uid: 77, kind: "gear", base: "iron_cap", rarity: "normal", ilvl: 1, implicits: [], mods: [] };
     const v2 = { ...rest, version: 2, bag: [...gemBag, gear] };
     const save = migrateSave(JSON.parse(JSON.stringify(v2)), content)!;
-    expect(save.version).toBe(3);
+    expect(save.version).toBe(4);
     expect(save.gemBag).toHaveLength(1);
     expect(save.gearBag).toHaveLength(1);
     expect(save.currency).toEqual({});

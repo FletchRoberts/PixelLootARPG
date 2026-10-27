@@ -4,7 +4,7 @@
 
 import { supportFits, weaponAttackSkill } from "../skills/compile";
 import type { SkillDef, SupportDef } from "../skills/types";
-import type { Currency, GearRules, GemRules, ItemBase, WeaponDef } from "../data/types";
+import type { CairnstoneRules, Currency, GearRules, GemRules, ItemBase, WeaponDef } from "../data/types";
 import { addCurrency } from "./crafting";
 import { requirementProblem, slotAccepts, slotFor } from "./gear";
 import { raiseGemLevel } from "./gems";
@@ -15,6 +15,7 @@ export interface InventoryContent {
   gems: GemRules;
   gear: GearRules;
   currencies: Currency[];
+  cairnstones: CairnstoneRules;
   skills: SkillDef[];
   supports: SupportDef[];
   weapons: WeaponDef[];
@@ -31,13 +32,19 @@ export function addToBag(save: CharacterSave, item: Item, content: InventoryCont
     save.gearBag.push(item);
     return true;
   }
+  if (item.kind === "cairnstone") {
+    if (save.stoneBag.length >= content.cairnstones.bagSize) return false;
+    save.stoneBag.push(item);
+    return true;
+  }
   if (save.gemBag.length >= content.gems.bagSize) return false;
   save.gemBag.push(item);
   return true;
 }
 
 /** Which bag an item would go into, for "gem bag is full" messages. */
-export const bagOf = (item: Item): "gear" | "gems" | "currency" => (item.kind === "gear" ? "gear" : item.kind === "currency" ? "currency" : "gems");
+export const bagOf = (item: Item): "gear" | "gems" | "currency" | "stones" =>
+  item.kind === "gear" ? "gear" : item.kind === "currency" ? "currency" : item.kind === "cairnstone" ? "stones" : "gems";
 
 /** The weapon attack follows the equipped weapon; no weapon = fists. */
 function syncWeapon(save: CharacterSave, content: InventoryContent): void {

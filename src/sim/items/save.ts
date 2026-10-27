@@ -5,7 +5,7 @@ import type { GemRules, ItemBase, Progression } from "../data/types";
 import type { Loadout } from "../skills/types";
 import { xpToNext } from "../stats/character";
 import { makeGem } from "./gems";
-import type { CharacterSave, GearItem, GemItem } from "./types";
+import type { CairnstoneItem, CharacterSave, GearItem, GemItem } from "./types";
 
 export const SKILL_BAR_SIZE = 4;
 
@@ -26,7 +26,7 @@ export function normalItem(base: ItemBase, uid: number, ilvl = 1): GearItem {
 export function newCharacter(content: SaveContent, seed: number, characterId = "hero"): CharacterSave {
   const hero = content.characters.find((c) => c.id === characterId) ?? content.characters[0]!;
   const save: CharacterSave = {
-    version: 3,
+    version: 4,
     characterId: hero.id,
     level: 1,
     xp: 0,
@@ -38,6 +38,8 @@ export function newCharacter(content: SaveContent, seed: number, characterId = "
     gearBag: [],
     gemBag: [],
     currency: {},
+    stoneBag: [],
+    bestMapLevel: 0,
     nextUid: 1,
   };
   const weaponBase = content.itemBases.find((b) => b.weapon === hero.startingWeapon);
@@ -71,25 +73,35 @@ export function applyDeathPenalty(save: CharacterSave, progression: Progression)
 
 /**
  * Bring an older save up to date. v1 had no equipment: its weapon becomes an equipped
- * normal item. v2 had one shared bag: it splits into the gear and gem bags. Returns null if
- * the data isn't a recognisable save.
+ * normal item. v2 had one shared bag: it splits into the gear and gem bags. v3 had no
+ * Cairnstones: a player who had cleared zones gets a stone at the level they'd reached.
+ * Returns null if the data isn't a recognisable save.
  */
 export function migrateSave(raw: unknown, content: SaveContent): CharacterSave | null {
-  type Old = Omit<CharacterSave, "version"> & { version?: number; bag?: (GearItem | GemItem)[] };
+  type Old = Omit<CharacterSave, "version" | "stoneBag" | "bestMapLevel"> & { version?: number; bag?: (GearItem | GemItem)[]; stoneBag?: CairnstoneItem[]; bestMapLevel?: number };
   const s = raw as Old;
   if (!s || typeof s !== "object" || !Array.isArray(s.skillBar)) return null;
-  if (s.version === 3) return Array.isArray(s.gearBag) && Array.isArray(s.gemBag) ? (s as unknown as CharacterSave) : null;
-  if ((s.version !== 1 && s.version !== 2) || !Array.isArray(s.bag)) return null;
-  const save: CharacterSave = { ...s, version: 3, equipment: s.equipment ?? {}, nextUid: s.nextUid ?? 1, gearBag: [], gemBag: [], currency: {} };
-  delete (save as { bag?: unknown }).bag;
-  for (const item of s.bag) {
-    if (item.kind === "gear") save.gearBag.push(item);
-    else save.gemBag.push(item);
+  if (s.version === 4) return Array.isArray(s.gearBag) && Array.isArray(s.gemBag) && Array.isArray(s.stoneBag) ? (s as unknown as CharacterSave) : null;
+  let save: Old;
+  if (s.version === 3) {
+    if (!Array.isArray(s.gearBag) || !Array.isArray(s.gemBag)) return null;
+    save = { ...s };
+  } else {
+    if ((s.version !== 1 && s.version !== 2) || !Array.isArray(s.bag)) return null;
+    save = { ...s, equipment: s.equipment ?? {}, nextUid: s.nextUid ?? 1, gearBag: [], gemBag: [], currency: {} };
+    delete save.bag;
+    for (const item of s.bag) {
+      if (item.kind === "gear") save.gearBag.push(item);
+      else save.gemBag.push(item);
+    }
+    if (s.version === 1) {
+      const base = content.itemBases.find((b) => b.weapon === save.weapon);
+      if (base) save.equipment = { weapon: normalItem(base, save.nextUid++) };
+      else save.weapon = "unarmed";
+    }
   }
-  if (s.version === 1) {
-    const base = content.itemBases.find((b) => b.weapon === save.weapon);
-    if (base) save.equipment = { weapon: normalItem(base, save.nextUid++) };
-    else save.weapon = "unarmed";
-  }
-  return save;
+  // v3 → v4: monster level used to be 1 + zones cleared.
+  const out: CharacterSave = { ...save, version: 4, stoneBag: [], bestMapLevel: save.zonesCleared };
+  if (save.zonesCleared > 0) out.stoneBag.push({ uid: out.nextUid++, kind: "cairnstone", level: save.zonesCleared + 1, rarity: "normal", mods: [] });
+  return out;
 }

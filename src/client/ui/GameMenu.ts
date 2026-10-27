@@ -12,7 +12,7 @@ import { compareWorlds, type StatChange } from "../../sim/items/compare";
 import { allTargets, currencyProblem, salvageYield, targetItem, type BulkSalvage, type CraftTarget } from "../../sim/items/crafting";
 import { supportFitsTarget } from "../../sim/items/inventory";
 import { EQUIP_SLOTS, type EquipSlot, type GearItem, type GemItem, type SocketTarget } from "../../sim/items/types";
-import { currencyName, gearTooltip, itemColor, itemName, RARITY_COLOR } from "./items";
+import { currencyName, gearTooltip, itemColor, itemName, RARITY_COLOR, stoneTooltip } from "./items";
 import { describeSkill } from "../../sim/skills/describe";
 import { xpToNext } from "../../sim/stats/character";
 import { computeStat } from "../../sim/stats/stats";
@@ -500,14 +500,16 @@ export class GameMenu {
         return `[skill ${this.inputs.skillPrompt(t.slot)}] ${name}`;
       case "gem_bag":
         return `[gem bag] ${name}`;
+      case "stone_bag":
+        return `[stone] ${name}`;
     }
   }
 
   private itemLines(t: CraftTarget | undefined): string[] {
     const it = t && targetItem(this.world().player.save, t);
     if (!it) return [];
-    if (it.kind === "gear") {
-      const tip = gearTooltip(it);
+    if (it.kind === "gear" || it.kind === "cairnstone") {
+      const tip = it.kind === "gear" ? gearTooltip(it) : stoneTooltip(it);
       return [tip.title, ...tip.lines];
     }
     return [`${itemName(it)}: level ${it.level} / ${content.gems.maxLevel}`];
@@ -651,6 +653,10 @@ export class GameMenu {
     for (const b of content.itemBases.filter((x) => x.slot === "weapon")) {
       rows.push({ label: `Give rare weapon: ${b.name}`, run: () => this.actions.command({ type: "debug_give_gear", opts: { base: b.id, rarity: "rare" }, seed: seed() }) });
     }
+    for (const rarity of ["normal", "magic", "rare"] as const) {
+      const level = Math.max(1, this.world().player.save.bestMapLevel + 1);
+      rows.push({ label: `Give ${rarity} Cairnstone (level ${level})`, run: () => this.actions.command({ type: "debug_give_stone", level, rarity, seed: seed() }) });
+    }
     rows.push({
       label: "Give 5 of every currency",
       run: () => {
@@ -746,7 +752,7 @@ export class GameMenu {
     const points = (p.level - 1) * content.progression.passivePointsPerLevel;
     const lines = [
       `Level ${p.level}   XP ${r(p.xp)} / ${Number.isFinite(need) ? need : "max"}   Passive points ${points} (tree later)`,
-      `Zones cleared ${w.zonesCleared}   Death costs ${content.progression.deathXpPenalty}% of a level's XP (never a level)`,
+      `Maps cleared ${w.zonesCleared}   Best map level ${p.save.bestMapLevel}   Death costs ${content.progression.deathXpPenalty}% of a level's XP (never a level)`,
       ``,
       `Strength ${r(s.strength)}   Dexterity ${r(s.dexterity)}   Intelligence ${r(s.intelligence)}`,
       `Life ${r(p.maxLife)}   Mana ${r(p.maxMana)} (+${(s.mana_regen ?? 0).toFixed(1)}/s)`,
