@@ -86,7 +86,7 @@ export type SocketTarget = { kind: "skill"; slot: number } | { kind: "attack" };
 
 /** Everything that persists between zones and browser sessions. */
 export interface CharacterSave {
-  version: 5;
+  version: 6;
   characterId: string;
   level: number;
   xp: number;
@@ -102,5 +102,6 @@ export interface CharacterSave {
   bestMapLevel: number; // highest map level cleared (free maps run a bit below it)
   currentMap?: MapRun; // the map in progress, if any
   stash: { gear: GearItem[]; gems: GemItem[]; stones: CairnstoneItem[] }; // hideout storage
+  passives: string[]; // allocated passive tree nodes (the start node is free and not listed)
   nextUid: number;
 }

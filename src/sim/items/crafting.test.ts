@@ -27,7 +27,7 @@ describe("currency data", () => {
   it("every fragment combines into a real currency, and every effect is known", () => {
     for (const c of content.currencies) {
       if (c.combine) expect(content.currencies.some((x) => x.id === c.combine!.into)).toBe(true);
-      else expect(currencyProblem(content, c.id, undefined)).toBe("no item"); // i.e. not "unknown effect"
+      else if (c.effect !== "none") expect(currencyProblem(content, c.id, undefined)).toBe("no item"); // i.e. not "unknown effect"
     }
     const s = content.crafting.salvage;
     for (const y of [...Object.values(s.gear), s.skill_gem, s.support_gem]) expect(content.currencies.some((c) => c.id === y.currency)).toBe(true);
@@ -187,7 +187,7 @@ describe("save migration", () => {
     const gear: GearItem = { uid: 77, kind: "gear", base: "iron_cap", rarity: "normal", ilvl: 1, implicits: [], mods: [] };
     const v2 = { ...rest, version: 2, bag: [...gemBag, gear] };
     const save = migrateSave(JSON.parse(JSON.stringify(v2)), content)!;
-    expect(save.version).toBe(5);
+    expect(save.version).toBe(6);
     expect(save.gemBag).toHaveLength(1);
     expect(save.gearBag).toHaveLength(1);
     expect(save.currency).toEqual({});

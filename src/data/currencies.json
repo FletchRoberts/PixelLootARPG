@@ -242,5 +242,19 @@
       "theme": "poison",
       "size": 12
     }
+  },
+  {
+    "id": "lethe_ash",
+    "name": "Lethe Ash",
+    "description": "Refunds one passive skill point (passive tree, \u25a1 / X on an allocated node).",
+    "effect": "none",
+    "dropWeight": 25,
+    "dropLevel": 1,
+    "sprite": {
+      "type": "currency",
+      "seed": "lethe-ash",
+      "theme": "shadow",
+      "size": 16
+    }
   }
 ]

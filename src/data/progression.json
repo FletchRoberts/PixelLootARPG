@@ -47,5 +47,9 @@
     "perLevel": 0.2,
     "min": 0.1
   },
-  "deathXpPenalty": 10
+  "deathXpPenalty": 10,
+  "passives": {
+    "freeRefundsBelowLevel": 10,
+    "refundCurrency": "lethe_ash"
+  }
 }

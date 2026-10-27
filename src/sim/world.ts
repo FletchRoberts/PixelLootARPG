@@ -9,6 +9,7 @@ import { Rng } from "./core/rng";
 import { add, angleOf, dist, len, normalize, scale, sub, type Vec } from "./core/vec";
 import type {
   BossRules,
+  PassiveTreeDef,
   CairnstoneRules,
   HideoutDef,
   MonsterModDef,
@@ -40,6 +41,7 @@ import { makeGem } from "./items/gems";
 import { equipmentGrants, equipmentModifiers, rollGear, type RollOptions } from "./items/gear";
 import { freeMap, mapStats, plainMap, rollCairnstone, stoneMap } from "./items/cairnstone";
 import { hideoutZone } from "./zone/hideout";
+import { allocatePassive, cleanPassives, passiveGrants, passiveModifiers, refundPassive } from "./passives/tree";
 import {
   awayFrom,
   chooseAttack,
@@ -104,6 +106,7 @@ export interface SimContent {
   monsterMods: MonsterModDef[];
   monsterRarity: MonsterRarityRules;
   bosses: BossRules;
+  passiveTree: PassiveTreeDef;
 }
 
 export interface Actor {
@@ -245,6 +248,7 @@ export function createWorld(content: SimContent, seed: number, save: CharacterSa
   const hero = lookup(content.characters, save.characterId, "character");
   const rng = new Rng((seed ^ 0x9e3779b9) >>> 0);
   const own: CharacterSave = clone(save); // the world mutates its own copy
+  cleanPassives(own, content.passiveTree);
   const world: WorldState = {
     tick: 0,
     rngState: 0,
@@ -393,7 +397,9 @@ export type InventoryCommand =
   | { type: "debug_give_currency"; currency: string; count: number }
   | { type: "debug_give_stone"; level: number; rarity: CairnstoneItem["rarity"]; seed: number }
   | { type: "open_map"; stoneIndex: number | null; seed: number }
-  | { type: "stash"; tab: StashTab; index: number; take: boolean };
+  | { type: "stash"; tab: StashTab; index: number; take: boolean }
+  | { type: "passive_allocate"; node: string }
+  | { type: "passive_refund"; node: string };
 
 /** Change equipped gems. Returns null on success or why it was refused. */
 export function inventoryCommand(world: WorldState, content: SimContent, cmd: InventoryCommand): string | null {
@@ -452,6 +458,12 @@ export function inventoryCommand(world: WorldState, content: SimContent, cmd: In
     case "stash":
       result = moveStash(save, cmd.tab, cmd.index, cmd.take, content);
       break;
+    case "passive_allocate":
+      result = allocatePassive(save, world.player.level, content, cmd.node);
+      break;
+    case "passive_refund":
+      result = refundPassive(save, world.player.level, content, cmd.node);
+      break;
     case "debug_give_stone":
       result = addToBag(save, rollCairnstone(content, new Rng(cmd.seed), cmd.level, save.nextUid++, { rarity: cmd.rarity, exact: true }), content) ? null : "Cairnstone bag is full";
       break;
@@ -492,7 +504,8 @@ function refreshSkills(world: WorldState, content: SimContent): void {
 export function recomputePlayer(world: WorldState, content: SimContent): void {
   const p = world.player;
   const hero = lookup(content.characters, p.defId, "character");
-  const gearMods = equipmentModifiers(content, p.save.equipment);
+  // Gear and passives feed the same modifier list.
+  const gearMods = [...equipmentModifiers(content, p.save.equipment), ...passiveModifiers(p.save, content.passiveTree)];
   const stats = playerStats(hero, p.level, content, gearMods);
   const lifeGain = (stats.life ?? 0) - p.maxLife;
   const manaGain = (stats.mana ?? 0) - p.maxMana;
@@ -507,7 +520,7 @@ export function recomputePlayer(world: WorldState, content: SimContent): void {
   p.speed = computeStat("movement_speed", hero.speed, mods);
   const weapon = lookup(content.weapons, p.loadout.weapon, "weapon");
   // Socketed supports plus supports granted by uniques (for skills with the grant's tags).
-  const grants = equipmentGrants(content, p.save.equipment);
+  const grants = [...equipmentGrants(content, p.save.equipment), ...passiveGrants(p.save, content.passiveTree)];
   const supportsOf = (ids: string[], skillTags: string[]) => {
     const granted = grants.filter((g) => g.tags.every((t) => skillTags.includes(t))).map((g) => g.support);
     return [...new Set([...ids, ...granted])].filter((id) => content.supports.some((s) => s.id === id)).map((id) => lookup(content.supports, id, "support"));

@@ -9,6 +9,7 @@ import type {
   HideoutDef,
   MonsterModDef,
   BossRules,
+  PassiveTreeDef,
   MonsterRarityRules,
   Currency,
   DropTable,
@@ -48,6 +49,7 @@ import hideout from "./hideout.json";
 import monsterMods from "./monster-mods.json";
 import monsterRarity from "./monster-rarity.json";
 import bosses from "./bosses.json";
+import passiveTree from "./passive-tree.json";
 
 export const content = {
   itemBases: itemBases as ItemBase[],
@@ -75,6 +77,7 @@ export const content = {
   monsterMods: monsterMods as MonsterModDef[],
   monsterRarity: monsterRarity as MonsterRarityRules,
   bosses: bosses as BossRules,
+  passiveTree: passiveTree as PassiveTreeDef,
 };
 
 export type Content = typeof content;

@@ -134,7 +134,7 @@ describe("maps", () => {
   it("v3 saves get a Cairnstone at the level they had reached", () => {
     const { stoneBag: _s, bestMapLevel: _b, ...v3 } = { ...newCharacter(content, 1), version: 3, zonesCleared: 5 };
     const save = migrateSave(JSON.parse(JSON.stringify(v3)), content)!;
-    expect(save.version).toBe(5);
+    expect(save.version).toBe(6);
     expect(save.bestMapLevel).toBe(5);
     expect(save.stoneBag.map((s) => s.level)).toEqual([6]);
   });

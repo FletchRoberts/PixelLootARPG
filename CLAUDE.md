@@ -121,6 +121,9 @@ The loot system is the heart of the game and should be big:
 - **Weighted drop tables**: nestable tables (`kind: "table"`), per-monster and
   per-mechanic tables, global rarity/quantity modifiers applied by the sim.
 - A **loot filter** later, operating on sim item data, client-side only.
+  With it: **stacked ground labels** — when several items drop together their
+  names stack in a readable list (no overlap), and you can navigate that list
+  (D-pad / mouse) to choose exactly which item to pick up.
 
 ### Combat math
 
@@ -536,7 +539,8 @@ currency, repeatable; salvage). Map **layouts** (see Zones).
 - Freeze is very strong at low monster levels (Husks have 30 life).
 - Drop rates (`drop-tables.json`) and gem XP / socket pacing (`gems.json`).
 - Mana costs vs regen (5/s) once gear adds mana and leech.
-- Ground label stacking when several items drop together (loot filter era).
+- Ground label stacking when several items drop together: comes with the
+  loot filter (stacked, navigable list of nearby drops to pick from).
 - Leech rate cap (20%/s) and whether leech should apply to DoT.
 - **Resistances do nothing yet**: every monster deals physical damage. Add
   elemental monsters (and monster mods) so fire/cold/lightning res matter.

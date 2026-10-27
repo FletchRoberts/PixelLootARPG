@@ -26,7 +26,7 @@ export function normalItem(base: ItemBase, uid: number, ilvl = 1): GearItem {
 export function newCharacter(content: SaveContent, seed: number, characterId = "hero"): CharacterSave {
   const hero = content.characters.find((c) => c.id === characterId) ?? content.characters[0]!;
   const save: CharacterSave = {
-    version: 5,
+    version: 6,
     characterId: hero.id,
     level: 1,
     xp: 0,
@@ -41,6 +41,7 @@ export function newCharacter(content: SaveContent, seed: number, characterId = "
     stoneBag: [],
     bestMapLevel: 0,
     stash: { gear: [], gems: [], stones: [] },
+    passives: [],
     nextUid: 1,
   };
   const weaponBase = content.itemBases.find((b) => b.weapon === hero.startingWeapon);
@@ -76,15 +77,16 @@ export function applyDeathPenalty(save: CharacterSave, progression: Progression)
  * Bring an older save up to date. v1 had no equipment: its weapon becomes an equipped
  * normal item. v2 had one shared bag: it splits into the gear and gem bags. v3 had no
  * Cairnstones: a player who had cleared zones gets a stone at the level they'd reached. v4 had
- * no stash.
+ * no stash; v5 no passive tree.
  * Returns null if the data isn't a recognisable save.
  */
 export function migrateSave(raw: unknown, content: SaveContent): CharacterSave | null {
-  type Old = Omit<CharacterSave, "version" | "stoneBag" | "bestMapLevel" | "stash"> & { version?: number; bag?: (GearItem | GemItem)[]; stoneBag?: CairnstoneItem[]; bestMapLevel?: number; stash?: CharacterSave["stash"] };
+  type Old = Omit<CharacterSave, "version" | "stoneBag" | "bestMapLevel" | "stash" | "passives"> & { version?: number; bag?: (GearItem | GemItem)[]; stoneBag?: CairnstoneItem[]; bestMapLevel?: number; stash?: CharacterSave["stash"] };
   const s = raw as Old;
   if (!s || typeof s !== "object" || !Array.isArray(s.skillBar)) return null;
-  if (s.version === 5) return Array.isArray(s.gearBag) && Array.isArray(s.gemBag) && Array.isArray(s.stoneBag) && s.stash ? (s as unknown as CharacterSave) : null;
-  if (s.version === 4) return Array.isArray(s.stoneBag) ? { ...(s as unknown as CharacterSave), version: 5, stash: { gear: [], gems: [], stones: [] } } : null;
+  if (s.version === 6) return Array.isArray(s.gearBag) && Array.isArray(s.gemBag) && Array.isArray(s.stoneBag) && s.stash ? (s as unknown as CharacterSave) : null;
+  if (s.version === 5) return { ...(s as unknown as CharacterSave), version: 6, passives: [] };
+  if (s.version === 4) return Array.isArray(s.stoneBag) ? { ...(s as unknown as CharacterSave), version: 6, stash: { gear: [], gems: [], stones: [] }, passives: [] } : null;
   let save: Old;
   if (s.version === 3) {
     if (!Array.isArray(s.gearBag) || !Array.isArray(s.gemBag)) return null;
@@ -104,7 +106,7 @@ export function migrateSave(raw: unknown, content: SaveContent): CharacterSave |
     }
   }
   // v3 → v4: monster level used to be 1 + zones cleared.
-  const out: CharacterSave = { ...save, version: 5, stoneBag: [], bestMapLevel: save.zonesCleared, stash: { gear: [], gems: [], stones: [] } };
+  const out: CharacterSave = { ...save, version: 6, stoneBag: [], bestMapLevel: save.zonesCleared, stash: { gear: [], gems: [], stones: [] }, passives: [] };
   if (save.zonesCleared > 0) out.stoneBag.push({ uid: out.nextUid++, kind: "cairnstone", level: save.zonesCleared + 1, rarity: "normal", mods: [] });
   return out;
 }

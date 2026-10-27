@@ -1,0 +1,4476 @@
+{
+ "start": "start",
+ "nodes": [
+  {
+   "id": "start",
+   "kind": "start",
+   "name": "Wanderer's Root",
+   "x": 0,
+   "y": 0,
+   "stats": [],
+   "links": [
+    "ring_3",
+    "ring_11",
+    "ring_7"
+   ]
+  },
+  {
+   "id": "ring_0",
+   "kind": "small",
+   "name": "+4 Intelligence, +4 Dexterity",
+   "x": 170,
+   "y": 0,
+   "stats": [
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "ring_1",
+    "ring_11"
+   ]
+  },
+  {
+   "id": "ring_1",
+   "kind": "small",
+   "name": "10% increased Cold Damage",
+   "x": 147,
+   "y": -85,
+   "stats": [
+    {
+     "stat": "cold_damage",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "ring_0",
+    "ring_2",
+    "int_dex_s1_1"
+   ]
+  },
+  {
+   "id": "ring_2",
+   "kind": "small",
+   "name": "10% increased Spell Damage",
+   "x": 85,
+   "y": -147,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 10,
+     "tags": [
+      "spell"
+     ]
+    }
+   ],
+   "links": [
+    "ring_1",
+    "ring_3"
+   ]
+  },
+  {
+   "id": "ring_3",
+   "kind": "small",
+   "name": "8% increased Elemental Damage",
+   "x": 0,
+   "y": -170,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "elemental"
+     ]
+    }
+   ],
+   "links": [
+    "ring_2",
+    "ring_4",
+    "start",
+    "int_s1_1"
+   ]
+  },
+  {
+   "id": "ring_4",
+   "kind": "small",
+   "name": "+0.6 Mana Regeneration per second",
+   "x": -85,
+   "y": -147,
+   "stats": [
+    {
+     "stat": "mana_regen",
+     "kind": "flat",
+     "value": 0.6
+    }
+   ],
+   "links": [
+    "ring_3",
+    "ring_5"
+   ]
+  },
+  {
+   "id": "ring_5",
+   "kind": "small",
+   "name": "+4 Strength, +4 Intelligence",
+   "x": -147,
+   "y": -85,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "ring_4",
+    "ring_6",
+    "str_int_s1_1"
+   ]
+  },
+  {
+   "id": "ring_6",
+   "kind": "small",
+   "name": "+8 Strength",
+   "x": -170,
+   "y": 0,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "ring_5",
+    "ring_7"
+   ]
+  },
+  {
+   "id": "ring_7",
+   "kind": "small",
+   "name": "+12 to maximum Life",
+   "x": -147,
+   "y": 85,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "ring_6",
+    "ring_8",
+    "start",
+    "str_s1_1"
+   ]
+  },
+  {
+   "id": "ring_8",
+   "kind": "small",
+   "name": "4% increased Attack Speed",
+   "x": -85,
+   "y": 147,
+   "stats": [
+    {
+     "stat": "attack_speed",
+     "kind": "increased",
+     "value": 4,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "ring_7",
+    "ring_9"
+   ]
+  },
+  {
+   "id": "ring_9",
+   "kind": "small",
+   "name": "0.4% of Attack Damage Leeched as Life",
+   "x": 0,
+   "y": 170,
+   "stats": [
+    {
+     "stat": "life_leech",
+     "kind": "flat",
+     "value": 0.4,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "ring_8",
+    "ring_10",
+    "dex_str_s1_1"
+   ]
+  },
+  {
+   "id": "ring_10",
+   "kind": "small",
+   "name": "+25 to Accuracy Rating",
+   "x": 85,
+   "y": 147,
+   "stats": [
+    {
+     "stat": "accuracy",
+     "kind": "flat",
+     "value": 25
+    }
+   ],
+   "links": [
+    "ring_9",
+    "ring_11"
+   ]
+  },
+  {
+   "id": "ring_11",
+   "kind": "small",
+   "name": "10% increased Critical Strike Chance",
+   "x": 147,
+   "y": 85,
+   "stats": [
+    {
+     "stat": "crit_chance",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "ring_10",
+    "ring_0",
+    "start",
+    "dex_s1_1"
+   ]
+  },
+  {
+   "id": "int_w1_0",
+   "kind": "small",
+   "name": "+8 Intelligence",
+   "x": 0,
+   "y": -478,
+   "stats": [
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "int_w1_1",
+    "int_w1_5",
+    "int_s1_3"
+   ]
+  },
+  {
+   "id": "int_w1_1",
+   "kind": "small",
+   "name": "+12 to maximum Mana",
+   "x": 71,
+   "y": -519,
+   "stats": [
+    {
+     "stat": "mana",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "int_w1_0",
+    "int_w1_2",
+    "int_side_1",
+    "bridge1_int_dex_int_3"
+   ]
+  },
+  {
+   "id": "int_w1_2",
+   "kind": "small",
+   "name": "10% increased Spell Damage",
+   "x": 71,
+   "y": -601,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 10,
+     "tags": [
+      "spell"
+     ]
+    }
+   ],
+   "links": [
+    "int_w1_1",
+    "int_w1_3"
+   ]
+  },
+  {
+   "id": "int_w1_3",
+   "kind": "small",
+   "name": "8% increased Elemental Damage",
+   "x": 0,
+   "y": -642,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "elemental"
+     ]
+    }
+   ],
+   "links": [
+    "int_w1_2",
+    "int_w1_4",
+    "int_w1_n0",
+    "int_s2_1"
+   ]
+  },
+  {
+   "id": "int_w1_4",
+   "kind": "small",
+   "name": "+0.6 Mana Regeneration per second",
+   "x": -71,
+   "y": -601,
+   "stats": [
+    {
+     "stat": "mana_regen",
+     "kind": "flat",
+     "value": 0.6
+    }
+   ],
+   "links": [
+    "int_w1_3",
+    "int_w1_5",
+    "bridge1_int_str_int_1"
+   ]
+  },
+  {
+   "id": "int_w1_5",
+   "kind": "small",
+   "name": "5% increased Cast Speed",
+   "x": -71,
+   "y": -519,
+   "stats": [
+    {
+     "stat": "cast_speed",
+     "kind": "increased",
+     "value": 5,
+     "tags": [
+      "spell"
+     ]
+    }
+   ],
+   "links": [
+    "int_w1_4",
+    "int_w1_0"
+   ]
+  },
+  {
+   "id": "int_w1_n0",
+   "kind": "notable",
+   "name": "Arcane Flow",
+   "x": 0,
+   "y": -560,
+   "stats": [
+    {
+     "stat": "mana_regen",
+     "kind": "flat",
+     "value": 1.5
+    },
+    {
+     "stat": "mana",
+     "kind": "flat",
+     "value": 25
+    }
+   ],
+   "links": [
+    "int_w1_3"
+   ]
+  },
+  {
+   "id": "int_s1_1",
+   "kind": "small",
+   "name": "+8 Intelligence",
+   "x": 0,
+   "y": -247,
+   "stats": [
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "ring_3",
+    "int_s1_2"
+   ]
+  },
+  {
+   "id": "int_s1_2",
+   "kind": "small",
+   "name": "+12 to maximum Mana",
+   "x": 0,
+   "y": -324,
+   "stats": [
+    {
+     "stat": "mana",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "int_s1_1",
+    "int_s1_3"
+   ]
+  },
+  {
+   "id": "int_s1_3",
+   "kind": "small",
+   "name": "10% increased Spell Damage",
+   "x": 0,
+   "y": -401,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 10,
+     "tags": [
+      "spell"
+     ]
+    }
+   ],
+   "links": [
+    "int_s1_2",
+    "int_w1_0"
+   ]
+  },
+  {
+   "id": "int_w2_0",
+   "kind": "small",
+   "name": "8% increased Elemental Damage",
+   "x": 0,
+   "y": -798,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "elemental"
+     ]
+    }
+   ],
+   "links": [
+    "int_w2_1",
+    "int_w2_7",
+    "int_s2_2"
+   ]
+  },
+  {
+   "id": "int_w2_1",
+   "kind": "small",
+   "name": "+0.6 Mana Regeneration per second",
+   "x": 58,
+   "y": -822,
+   "stats": [
+    {
+     "stat": "mana_regen",
+     "kind": "flat",
+     "value": 0.6
+    }
+   ],
+   "links": [
+    "int_w2_0",
+    "int_w2_2"
+   ]
+  },
+  {
+   "id": "int_w2_2",
+   "kind": "small",
+   "name": "5% increased Cast Speed",
+   "x": 82,
+   "y": -880,
+   "stats": [
+    {
+     "stat": "cast_speed",
+     "kind": "increased",
+     "value": 5,
+     "tags": [
+      "spell"
+     ]
+    }
+   ],
+   "links": [
+    "int_w2_1",
+    "int_w2_3",
+    "int_w2_n0",
+    "bridge2_int_dex_int_4"
+   ]
+  },
+  {
+   "id": "int_w2_3",
+   "kind": "small",
+   "name": "+8 Intelligence",
+   "x": 58,
+   "y": -938,
+   "stats": [
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "int_w2_2",
+    "int_w2_4"
+   ]
+  },
+  {
+   "id": "int_w2_4",
+   "kind": "small",
+   "name": "+12 to maximum Mana",
+   "x": 0,
+   "y": -962,
+   "stats": [
+    {
+     "stat": "mana",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "int_w2_3",
+    "int_w2_5",
+    "int_s3_1"
+   ]
+  },
+  {
+   "id": "int_w2_5",
+   "kind": "small",
+   "name": "10% increased Spell Damage",
+   "x": -58,
+   "y": -938,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 10,
+     "tags": [
+      "spell"
+     ]
+    }
+   ],
+   "links": [
+    "int_w2_4",
+    "int_w2_6"
+   ]
+  },
+  {
+   "id": "int_w2_6",
+   "kind": "small",
+   "name": "8% increased Elemental Damage",
+   "x": -82,
+   "y": -880,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "elemental"
+     ]
+    }
+   ],
+   "links": [
+    "int_w2_5",
+    "int_w2_7",
+    "int_w2_n1",
+    "bridge2_int_str_int_1"
+   ]
+  },
+  {
+   "id": "int_w2_7",
+   "kind": "small",
+   "name": "+0.6 Mana Regeneration per second",
+   "x": -58,
+   "y": -822,
+   "stats": [
+    {
+     "stat": "mana_regen",
+     "kind": "flat",
+     "value": 0.6
+    }
+   ],
+   "links": [
+    "int_w2_6",
+    "int_w2_0"
+   ]
+  },
+  {
+   "id": "int_w2_n0",
+   "kind": "notable",
+   "name": "Spellweaver",
+   "x": -26,
+   "y": -880,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 25,
+     "tags": [
+      "spell"
+     ]
+    }
+   ],
+   "links": [
+    "int_w2_2"
+   ]
+  },
+  {
+   "id": "int_w2_n1",
+   "kind": "notable",
+   "name": "Quick Casting",
+   "x": 26,
+   "y": -880,
+   "stats": [
+    {
+     "stat": "cast_speed",
+     "kind": "increased",
+     "value": 12,
+     "tags": [
+      "spell"
+     ]
+    }
+   ],
+   "links": [
+    "int_w2_6"
+   ]
+  },
+  {
+   "id": "int_s2_1",
+   "kind": "small",
+   "name": "5% increased Cast Speed",
+   "x": 0,
+   "y": -694,
+   "stats": [
+    {
+     "stat": "cast_speed",
+     "kind": "increased",
+     "value": 5,
+     "tags": [
+      "spell"
+     ]
+    }
+   ],
+   "links": [
+    "int_w1_3",
+    "int_s2_2"
+   ]
+  },
+  {
+   "id": "int_s2_2",
+   "kind": "small",
+   "name": "+8 Intelligence",
+   "x": 0,
+   "y": -746,
+   "stats": [
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "int_s2_1",
+    "int_w2_0"
+   ]
+  },
+  {
+   "id": "int_keystone",
+   "kind": "keystone",
+   "name": "Twin Cast",
+   "x": 0,
+   "y": -1160,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "more",
+     "value": -30,
+     "tags": [
+      "spell"
+     ]
+    }
+   ],
+   "links": [
+    "int_s3_2"
+   ],
+   "text": [
+    "Your spells are supported by Echo",
+    "30% less Spell Damage"
+   ],
+   "grants": [
+    {
+     "support": "echo",
+     "tags": [
+      "spell"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "int_s3_1",
+   "kind": "small",
+   "name": "+12 to maximum Mana",
+   "x": 0,
+   "y": -1028,
+   "stats": [
+    {
+     "stat": "mana",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "int_w2_4",
+    "int_s3_2"
+   ]
+  },
+  {
+   "id": "int_s3_2",
+   "kind": "small",
+   "name": "10% increased Spell Damage",
+   "x": 0,
+   "y": -1094,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 10,
+     "tags": [
+      "spell"
+     ]
+    }
+   ],
+   "links": [
+    "int_s3_1",
+    "int_keystone"
+   ]
+  },
+  {
+   "id": "int_side_n",
+   "kind": "notable",
+   "name": "Elementalist",
+   "x": 198,
+   "y": -692,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 20,
+     "tags": [
+      "elemental"
+     ]
+    },
+    {
+     "stat": "fire_resistance",
+     "kind": "flat",
+     "value": 8
+    },
+    {
+     "stat": "cold_resistance",
+     "kind": "flat",
+     "value": 8
+    },
+    {
+     "stat": "lightning_resistance",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "int_side_2"
+   ]
+  },
+  {
+   "id": "int_side_1",
+   "kind": "small",
+   "name": "8% increased Elemental Damage",
+   "x": 113,
+   "y": -577,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "elemental"
+     ]
+    }
+   ],
+   "links": [
+    "int_w1_1",
+    "int_side_2"
+   ]
+  },
+  {
+   "id": "int_side_2",
+   "kind": "small",
+   "name": "+0.6 Mana Regeneration per second",
+   "x": 156,
+   "y": -634,
+   "stats": [
+    {
+     "stat": "mana_regen",
+     "kind": "flat",
+     "value": 0.6
+    }
+   ],
+   "links": [
+    "int_side_1",
+    "int_side_n"
+   ]
+  },
+  {
+   "id": "int_dex_w1_0",
+   "kind": "small",
+   "name": "+4 Intelligence, +4 Dexterity",
+   "x": 414,
+   "y": -239,
+   "stats": [
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "int_dex_w1_1",
+    "int_dex_w1_5",
+    "int_dex_s1_3"
+   ]
+  },
+  {
+   "id": "int_dex_w1_1",
+   "kind": "small",
+   "name": "10% increased Cold Damage",
+   "x": 485,
+   "y": -198,
+   "stats": [
+    {
+     "stat": "cold_damage",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "int_dex_w1_0",
+    "int_dex_w1_2",
+    "bridge1_dex_int_dex_3"
+   ]
+  },
+  {
+   "id": "int_dex_w1_2",
+   "kind": "small",
+   "name": "8% increased Projectile Damage",
+   "x": 556,
+   "y": -239,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "int_dex_w1_1",
+    "int_dex_w1_3"
+   ]
+  },
+  {
+   "id": "int_dex_w1_3",
+   "kind": "small",
+   "name": "10% increased Projectile Speed",
+   "x": 556,
+   "y": -321,
+   "stats": [
+    {
+     "stat": "projectile_speed",
+     "kind": "increased",
+     "value": 10,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "int_dex_w1_2",
+    "int_dex_w1_4",
+    "int_dex_w1_n0",
+    "int_dex_s2_1"
+   ]
+  },
+  {
+   "id": "int_dex_w1_4",
+   "kind": "small",
+   "name": "+8% to Cold Resistance",
+   "x": 485,
+   "y": -362,
+   "stats": [
+    {
+     "stat": "cold_resistance",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "int_dex_w1_3",
+    "int_dex_w1_5",
+    "bridge1_int_dex_int_1"
+   ]
+  },
+  {
+   "id": "int_dex_w1_5",
+   "kind": "small",
+   "name": "+4 Intelligence, +4 Dexterity",
+   "x": 414,
+   "y": -321,
+   "stats": [
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "int_dex_w1_4",
+    "int_dex_w1_0"
+   ]
+  },
+  {
+   "id": "int_dex_w1_n0",
+   "kind": "notable",
+   "name": "Hoarfrost",
+   "x": 485,
+   "y": -280,
+   "stats": [
+    {
+     "stat": "cold_damage",
+     "kind": "increased",
+     "value": 25
+    },
+    {
+     "stat": "cold_resistance",
+     "kind": "flat",
+     "value": 10
+    }
+   ],
+   "links": [
+    "int_dex_w1_3"
+   ]
+  },
+  {
+   "id": "int_dex_s1_1",
+   "kind": "small",
+   "name": "10% increased Cold Damage",
+   "x": 214,
+   "y": -123,
+   "stats": [
+    {
+     "stat": "cold_damage",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "ring_1",
+    "int_dex_s1_2"
+   ]
+  },
+  {
+   "id": "int_dex_s1_2",
+   "kind": "small",
+   "name": "8% increased Projectile Damage",
+   "x": 281,
+   "y": -162,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "int_dex_s1_1",
+    "int_dex_s1_3"
+   ]
+  },
+  {
+   "id": "int_dex_s1_3",
+   "kind": "small",
+   "name": "10% increased Projectile Speed",
+   "x": 347,
+   "y": -200,
+   "stats": [
+    {
+     "stat": "projectile_speed",
+     "kind": "increased",
+     "value": 10,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "int_dex_s1_2",
+    "int_dex_w1_0"
+   ]
+  },
+  {
+   "id": "int_dex_w2_0",
+   "kind": "small",
+   "name": "+8% to Cold Resistance",
+   "x": 691,
+   "y": -399,
+   "stats": [
+    {
+     "stat": "cold_resistance",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "int_dex_w2_1",
+    "int_dex_w2_7",
+    "int_dex_s2_2"
+   ]
+  },
+  {
+   "id": "int_dex_w2_1",
+   "kind": "small",
+   "name": "+4 Intelligence, +4 Dexterity",
+   "x": 741,
+   "y": -361,
+   "stats": [
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "int_dex_w2_0",
+    "int_dex_w2_2"
+   ]
+  },
+  {
+   "id": "int_dex_w2_2",
+   "kind": "small",
+   "name": "10% increased Cold Damage",
+   "x": 803,
+   "y": -369,
+   "stats": [
+    {
+     "stat": "cold_damage",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "int_dex_w2_1",
+    "int_dex_w2_3",
+    "int_dex_w2_n0",
+    "bridge2_dex_int_dex_4"
+   ]
+  },
+  {
+   "id": "int_dex_w2_3",
+   "kind": "small",
+   "name": "8% increased Projectile Damage",
+   "x": 841,
+   "y": -419,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "int_dex_w2_2",
+    "int_dex_w2_4"
+   ]
+  },
+  {
+   "id": "int_dex_w2_4",
+   "kind": "small",
+   "name": "10% increased Projectile Speed",
+   "x": 833,
+   "y": -481,
+   "stats": [
+    {
+     "stat": "projectile_speed",
+     "kind": "increased",
+     "value": 10,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "int_dex_w2_3",
+    "int_dex_w2_5",
+    "int_dex_s3_1"
+   ]
+  },
+  {
+   "id": "int_dex_w2_5",
+   "kind": "small",
+   "name": "+8% to Cold Resistance",
+   "x": 783,
+   "y": -519,
+   "stats": [
+    {
+     "stat": "cold_resistance",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "int_dex_w2_4",
+    "int_dex_w2_6"
+   ]
+  },
+  {
+   "id": "int_dex_w2_6",
+   "kind": "small",
+   "name": "+4 Intelligence, +4 Dexterity",
+   "x": 721,
+   "y": -511,
+   "stats": [
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "int_dex_w2_5",
+    "int_dex_w2_7",
+    "int_dex_w2_n1",
+    "bridge2_int_dex_int_1"
+   ]
+  },
+  {
+   "id": "int_dex_w2_7",
+   "kind": "small",
+   "name": "10% increased Cold Damage",
+   "x": 683,
+   "y": -461,
+   "stats": [
+    {
+     "stat": "cold_damage",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "int_dex_w2_6",
+    "int_dex_w2_0"
+   ]
+  },
+  {
+   "id": "int_dex_w2_n0",
+   "kind": "notable",
+   "name": "Far Shot",
+   "x": 749,
+   "y": -463,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 18,
+     "tags": [
+      "projectile"
+     ]
+    },
+    {
+     "stat": "projectile_speed",
+     "kind": "increased",
+     "value": 20,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "int_dex_w2_2"
+   ]
+  },
+  {
+   "id": "int_dex_w2_n1",
+   "kind": "notable",
+   "name": "Winter's Edge",
+   "x": 775,
+   "y": -417,
+   "stats": [
+    {
+     "stat": "cold_damage",
+     "kind": "increased",
+     "value": 15
+    },
+    {
+     "stat": "crit_chance",
+     "kind": "increased",
+     "value": 30
+    }
+   ],
+   "links": [
+    "int_dex_w2_6"
+   ]
+  },
+  {
+   "id": "int_dex_s2_1",
+   "kind": "small",
+   "name": "8% increased Projectile Damage",
+   "x": 601,
+   "y": -347,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "int_dex_w1_3",
+    "int_dex_s2_2"
+   ]
+  },
+  {
+   "id": "int_dex_s2_2",
+   "kind": "small",
+   "name": "10% increased Projectile Speed",
+   "x": 646,
+   "y": -373,
+   "stats": [
+    {
+     "stat": "projectile_speed",
+     "kind": "increased",
+     "value": 10,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "int_dex_s2_1",
+    "int_dex_w2_0"
+   ]
+  },
+  {
+   "id": "int_dex_keystone",
+   "kind": "keystone",
+   "name": "Piercing Doctrine",
+   "x": 1005,
+   "y": -580,
+   "stats": [
+    {
+     "stat": "pierce",
+     "kind": "flat",
+     "value": 3,
+     "tags": [
+      "projectile"
+     ]
+    },
+    {
+     "stat": "damage",
+     "kind": "more",
+     "value": -20,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "int_dex_s3_2"
+   ],
+   "text": [
+    "Projectiles Pierce 3 additional targets",
+    "20% less Projectile Damage"
+   ]
+  },
+  {
+   "id": "int_dex_s3_1",
+   "kind": "small",
+   "name": "+8% to Cold Resistance",
+   "x": 890,
+   "y": -514,
+   "stats": [
+    {
+     "stat": "cold_resistance",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "int_dex_w2_4",
+    "int_dex_s3_2"
+   ]
+  },
+  {
+   "id": "int_dex_s3_2",
+   "kind": "small",
+   "name": "+4 Intelligence, +4 Dexterity",
+   "x": 947,
+   "y": -547,
+   "stats": [
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "int_dex_s3_1",
+    "int_dex_keystone"
+   ]
+  },
+  {
+   "id": "dex_w1_0",
+   "kind": "small",
+   "name": "+8 Dexterity",
+   "x": 414,
+   "y": 239,
+   "stats": [
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "dex_w1_1",
+    "dex_w1_5",
+    "dex_s1_3"
+   ]
+  },
+  {
+   "id": "dex_w1_1",
+   "kind": "small",
+   "name": "+20 to Evasion Rating",
+   "x": 414,
+   "y": 321,
+   "stats": [
+    {
+     "stat": "evasion",
+     "kind": "flat",
+     "value": 20
+    }
+   ],
+   "links": [
+    "dex_w1_0",
+    "dex_w1_2",
+    "dex_side_1",
+    "bridge1_dex_str_dex_3"
+   ]
+  },
+  {
+   "id": "dex_w1_2",
+   "kind": "small",
+   "name": "5% increased Attack Speed",
+   "x": 485,
+   "y": 362,
+   "stats": [
+    {
+     "stat": "attack_speed",
+     "kind": "increased",
+     "value": 5,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_w1_1",
+    "dex_w1_3"
+   ]
+  },
+  {
+   "id": "dex_w1_3",
+   "kind": "small",
+   "name": "8% increased Projectile Damage",
+   "x": 556,
+   "y": 321,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "dex_w1_2",
+    "dex_w1_4",
+    "dex_w1_n0",
+    "dex_s2_1"
+   ]
+  },
+  {
+   "id": "dex_w1_4",
+   "kind": "small",
+   "name": "+25 to Accuracy Rating",
+   "x": 556,
+   "y": 239,
+   "stats": [
+    {
+     "stat": "accuracy",
+     "kind": "flat",
+     "value": 25
+    }
+   ],
+   "links": [
+    "dex_w1_3",
+    "dex_w1_5",
+    "bridge1_dex_int_dex_1"
+   ]
+  },
+  {
+   "id": "dex_w1_5",
+   "kind": "small",
+   "name": "10% increased Critical Strike Chance",
+   "x": 485,
+   "y": 198,
+   "stats": [
+    {
+     "stat": "crit_chance",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "dex_w1_4",
+    "dex_w1_0"
+   ]
+  },
+  {
+   "id": "dex_w1_n0",
+   "kind": "notable",
+   "name": "Fleet Foot",
+   "x": 485,
+   "y": 280,
+   "stats": [
+    {
+     "stat": "movement_speed",
+     "kind": "increased",
+     "value": 8
+    },
+    {
+     "stat": "evasion",
+     "kind": "increased",
+     "value": 15
+    }
+   ],
+   "links": [
+    "dex_w1_3"
+   ]
+  },
+  {
+   "id": "dex_s1_1",
+   "kind": "small",
+   "name": "+8 Dexterity",
+   "x": 214,
+   "y": 124,
+   "stats": [
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "ring_11",
+    "dex_s1_2"
+   ]
+  },
+  {
+   "id": "dex_s1_2",
+   "kind": "small",
+   "name": "+20 to Evasion Rating",
+   "x": 281,
+   "y": 162,
+   "stats": [
+    {
+     "stat": "evasion",
+     "kind": "flat",
+     "value": 20
+    }
+   ],
+   "links": [
+    "dex_s1_1",
+    "dex_s1_3"
+   ]
+  },
+  {
+   "id": "dex_s1_3",
+   "kind": "small",
+   "name": "5% increased Attack Speed",
+   "x": 347,
+   "y": 201,
+   "stats": [
+    {
+     "stat": "attack_speed",
+     "kind": "increased",
+     "value": 5,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_s1_2",
+    "dex_w1_0"
+   ]
+  },
+  {
+   "id": "dex_w2_0",
+   "kind": "small",
+   "name": "8% increased Projectile Damage",
+   "x": 691,
+   "y": 399,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "dex_w2_1",
+    "dex_w2_7",
+    "dex_s2_2"
+   ]
+  },
+  {
+   "id": "dex_w2_1",
+   "kind": "small",
+   "name": "+25 to Accuracy Rating",
+   "x": 683,
+   "y": 461,
+   "stats": [
+    {
+     "stat": "accuracy",
+     "kind": "flat",
+     "value": 25
+    }
+   ],
+   "links": [
+    "dex_w2_0",
+    "dex_w2_2"
+   ]
+  },
+  {
+   "id": "dex_w2_2",
+   "kind": "small",
+   "name": "10% increased Critical Strike Chance",
+   "x": 721,
+   "y": 511,
+   "stats": [
+    {
+     "stat": "crit_chance",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "dex_w2_1",
+    "dex_w2_3",
+    "dex_w2_n0",
+    "bridge2_dex_str_dex_4"
+   ]
+  },
+  {
+   "id": "dex_w2_3",
+   "kind": "small",
+   "name": "+8 Dexterity",
+   "x": 783,
+   "y": 519,
+   "stats": [
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "dex_w2_2",
+    "dex_w2_4"
+   ]
+  },
+  {
+   "id": "dex_w2_4",
+   "kind": "small",
+   "name": "+20 to Evasion Rating",
+   "x": 833,
+   "y": 481,
+   "stats": [
+    {
+     "stat": "evasion",
+     "kind": "flat",
+     "value": 20
+    }
+   ],
+   "links": [
+    "dex_w2_3",
+    "dex_w2_5",
+    "dex_s3_1"
+   ]
+  },
+  {
+   "id": "dex_w2_5",
+   "kind": "small",
+   "name": "5% increased Attack Speed",
+   "x": 841,
+   "y": 419,
+   "stats": [
+    {
+     "stat": "attack_speed",
+     "kind": "increased",
+     "value": 5,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_w2_4",
+    "dex_w2_6"
+   ]
+  },
+  {
+   "id": "dex_w2_6",
+   "kind": "small",
+   "name": "8% increased Projectile Damage",
+   "x": 803,
+   "y": 369,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "dex_w2_5",
+    "dex_w2_7",
+    "dex_w2_n1",
+    "bridge2_dex_int_dex_1"
+   ]
+  },
+  {
+   "id": "dex_w2_7",
+   "kind": "small",
+   "name": "+25 to Accuracy Rating",
+   "x": 741,
+   "y": 361,
+   "stats": [
+    {
+     "stat": "accuracy",
+     "kind": "flat",
+     "value": 25
+    }
+   ],
+   "links": [
+    "dex_w2_6",
+    "dex_w2_0"
+   ]
+  },
+  {
+   "id": "dex_w2_n0",
+   "kind": "notable",
+   "name": "Deadeye",
+   "x": 775,
+   "y": 417,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 25,
+     "tags": [
+      "projectile"
+     ]
+    },
+    {
+     "stat": "accuracy",
+     "kind": "flat",
+     "value": 50
+    }
+   ],
+   "links": [
+    "dex_w2_2"
+   ]
+  },
+  {
+   "id": "dex_w2_n1",
+   "kind": "notable",
+   "name": "Quick Draw",
+   "x": 749,
+   "y": 463,
+   "stats": [
+    {
+     "stat": "attack_speed",
+     "kind": "increased",
+     "value": 12,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_w2_6"
+   ]
+  },
+  {
+   "id": "dex_s2_1",
+   "kind": "small",
+   "name": "10% increased Critical Strike Chance",
+   "x": 601,
+   "y": 347,
+   "stats": [
+    {
+     "stat": "crit_chance",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "dex_w1_3",
+    "dex_s2_2"
+   ]
+  },
+  {
+   "id": "dex_s2_2",
+   "kind": "small",
+   "name": "+8 Dexterity",
+   "x": 646,
+   "y": 373,
+   "stats": [
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "dex_s2_1",
+    "dex_w2_0"
+   ]
+  },
+  {
+   "id": "dex_keystone",
+   "kind": "keystone",
+   "name": "Endless Volley",
+   "x": 1005,
+   "y": 580,
+   "stats": [
+    {
+     "stat": "projectile_count",
+     "kind": "flat",
+     "value": 2,
+     "tags": [
+      "projectile"
+     ]
+    },
+    {
+     "stat": "damage",
+     "kind": "more",
+     "value": -35,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "dex_s3_2"
+   ],
+   "text": [
+    "Skills fire 2 additional Projectiles",
+    "35% less Projectile Damage"
+   ]
+  },
+  {
+   "id": "dex_s3_1",
+   "kind": "small",
+   "name": "+20 to Evasion Rating",
+   "x": 890,
+   "y": 514,
+   "stats": [
+    {
+     "stat": "evasion",
+     "kind": "flat",
+     "value": 20
+    }
+   ],
+   "links": [
+    "dex_w2_4",
+    "dex_s3_2"
+   ]
+  },
+  {
+   "id": "dex_s3_2",
+   "kind": "small",
+   "name": "5% increased Attack Speed",
+   "x": 947,
+   "y": 547,
+   "stats": [
+    {
+     "stat": "attack_speed",
+     "kind": "increased",
+     "value": 5,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_s3_1",
+    "dex_keystone"
+   ]
+  },
+  {
+   "id": "dex_side_n",
+   "kind": "notable",
+   "name": "Keen Edge",
+   "x": 500,
+   "y": 518,
+   "stats": [
+    {
+     "stat": "crit_chance",
+     "kind": "increased",
+     "value": 40
+    },
+    {
+     "stat": "crit_bonus",
+     "kind": "flat",
+     "value": 15
+    }
+   ],
+   "links": [
+    "dex_side_2"
+   ]
+  },
+  {
+   "id": "dex_side_1",
+   "kind": "small",
+   "name": "8% increased Projectile Damage",
+   "x": 443,
+   "y": 387,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "dex_w1_1",
+    "dex_side_2"
+   ]
+  },
+  {
+   "id": "dex_side_2",
+   "kind": "small",
+   "name": "+25 to Accuracy Rating",
+   "x": 471,
+   "y": 452,
+   "stats": [
+    {
+     "stat": "accuracy",
+     "kind": "flat",
+     "value": 25
+    }
+   ],
+   "links": [
+    "dex_side_1",
+    "dex_side_n"
+   ]
+  },
+  {
+   "id": "dex_str_w1_0",
+   "kind": "small",
+   "name": "+4 Strength, +4 Dexterity",
+   "x": 0,
+   "y": 478,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "dex_str_w1_1",
+    "dex_str_w1_5",
+    "dex_str_s1_3"
+   ]
+  },
+  {
+   "id": "dex_str_w1_1",
+   "kind": "small",
+   "name": "8% increased Attack Damage",
+   "x": -71,
+   "y": 519,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_str_w1_0",
+    "dex_str_w1_2",
+    "bridge1_str_dex_str_3"
+   ]
+  },
+  {
+   "id": "dex_str_w1_2",
+   "kind": "small",
+   "name": "+8 to maximum Life, +12 to Evasion Rating",
+   "x": -71,
+   "y": 601,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 8
+    },
+    {
+     "stat": "evasion",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "dex_str_w1_1",
+    "dex_str_w1_3"
+   ]
+  },
+  {
+   "id": "dex_str_w1_3",
+   "kind": "small",
+   "name": "4% increased Attack Speed",
+   "x": 0,
+   "y": 642,
+   "stats": [
+    {
+     "stat": "attack_speed",
+     "kind": "increased",
+     "value": 4,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_str_w1_2",
+    "dex_str_w1_4",
+    "dex_str_w1_n0",
+    "dex_str_s2_1"
+   ]
+  },
+  {
+   "id": "dex_str_w1_4",
+   "kind": "small",
+   "name": "0.4% of Attack Damage Leeched as Life",
+   "x": 71,
+   "y": 601,
+   "stats": [
+    {
+     "stat": "life_leech",
+     "kind": "flat",
+     "value": 0.4,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_str_w1_3",
+    "dex_str_w1_5",
+    "bridge1_dex_str_dex_1"
+   ]
+  },
+  {
+   "id": "dex_str_w1_5",
+   "kind": "small",
+   "name": "+4 Strength, +4 Dexterity",
+   "x": 71,
+   "y": 519,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "dex_str_w1_4",
+    "dex_str_w1_0"
+   ]
+  },
+  {
+   "id": "dex_str_w1_n0",
+   "kind": "notable",
+   "name": "Duelist's Grace",
+   "x": 0,
+   "y": 560,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 15,
+     "tags": [
+      "attack"
+     ]
+    },
+    {
+     "stat": "attack_speed",
+     "kind": "increased",
+     "value": 6,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_str_w1_3"
+   ]
+  },
+  {
+   "id": "dex_str_s1_1",
+   "kind": "small",
+   "name": "8% increased Attack Damage",
+   "x": 0,
+   "y": 247,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "ring_9",
+    "dex_str_s1_2"
+   ]
+  },
+  {
+   "id": "dex_str_s1_2",
+   "kind": "small",
+   "name": "+8 to maximum Life, +12 to Evasion Rating",
+   "x": 0,
+   "y": 324,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 8
+    },
+    {
+     "stat": "evasion",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "dex_str_s1_1",
+    "dex_str_s1_3"
+   ]
+  },
+  {
+   "id": "dex_str_s1_3",
+   "kind": "small",
+   "name": "4% increased Attack Speed",
+   "x": 0,
+   "y": 401,
+   "stats": [
+    {
+     "stat": "attack_speed",
+     "kind": "increased",
+     "value": 4,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_str_s1_2",
+    "dex_str_w1_0"
+   ]
+  },
+  {
+   "id": "dex_str_w2_0",
+   "kind": "small",
+   "name": "0.4% of Attack Damage Leeched as Life",
+   "x": 0,
+   "y": 798,
+   "stats": [
+    {
+     "stat": "life_leech",
+     "kind": "flat",
+     "value": 0.4,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_str_w2_1",
+    "dex_str_w2_7",
+    "dex_str_s2_2"
+   ]
+  },
+  {
+   "id": "dex_str_w2_1",
+   "kind": "small",
+   "name": "+4 Strength, +4 Dexterity",
+   "x": -58,
+   "y": 822,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "dex_str_w2_0",
+    "dex_str_w2_2"
+   ]
+  },
+  {
+   "id": "dex_str_w2_2",
+   "kind": "small",
+   "name": "8% increased Attack Damage",
+   "x": -82,
+   "y": 880,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_str_w2_1",
+    "dex_str_w2_3",
+    "dex_str_w2_n0",
+    "bridge2_str_dex_str_4"
+   ]
+  },
+  {
+   "id": "dex_str_w2_3",
+   "kind": "small",
+   "name": "+8 to maximum Life, +12 to Evasion Rating",
+   "x": -58,
+   "y": 938,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 8
+    },
+    {
+     "stat": "evasion",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "dex_str_w2_2",
+    "dex_str_w2_4"
+   ]
+  },
+  {
+   "id": "dex_str_w2_4",
+   "kind": "small",
+   "name": "4% increased Attack Speed",
+   "x": 0,
+   "y": 962,
+   "stats": [
+    {
+     "stat": "attack_speed",
+     "kind": "increased",
+     "value": 4,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_str_w2_3",
+    "dex_str_w2_5",
+    "dex_str_s3_1"
+   ]
+  },
+  {
+   "id": "dex_str_w2_5",
+   "kind": "small",
+   "name": "0.4% of Attack Damage Leeched as Life",
+   "x": 58,
+   "y": 938,
+   "stats": [
+    {
+     "stat": "life_leech",
+     "kind": "flat",
+     "value": 0.4,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_str_w2_4",
+    "dex_str_w2_6"
+   ]
+  },
+  {
+   "id": "dex_str_w2_6",
+   "kind": "small",
+   "name": "+4 Strength, +4 Dexterity",
+   "x": 82,
+   "y": 880,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "dex_str_w2_5",
+    "dex_str_w2_7",
+    "dex_str_w2_n1",
+    "bridge2_dex_str_dex_1"
+   ]
+  },
+  {
+   "id": "dex_str_w2_7",
+   "kind": "small",
+   "name": "8% increased Attack Damage",
+   "x": 58,
+   "y": 822,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_str_w2_6",
+    "dex_str_w2_0"
+   ]
+  },
+  {
+   "id": "dex_str_w2_n0",
+   "kind": "notable",
+   "name": "Bloodletter",
+   "x": 26,
+   "y": 880,
+   "stats": [
+    {
+     "stat": "life_leech",
+     "kind": "flat",
+     "value": 1.5,
+     "tags": [
+      "attack"
+     ]
+    },
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 15
+    }
+   ],
+   "links": [
+    "dex_str_w2_2"
+   ]
+  },
+  {
+   "id": "dex_str_w2_n1",
+   "kind": "notable",
+   "name": "Momentum",
+   "x": -26,
+   "y": 880,
+   "stats": [
+    {
+     "stat": "movement_speed",
+     "kind": "increased",
+     "value": 6
+    },
+    {
+     "stat": "attack_speed",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_str_w2_6"
+   ]
+  },
+  {
+   "id": "dex_str_s2_1",
+   "kind": "small",
+   "name": "+8 to maximum Life, +12 to Evasion Rating",
+   "x": 0,
+   "y": 694,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 8
+    },
+    {
+     "stat": "evasion",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "dex_str_w1_3",
+    "dex_str_s2_2"
+   ]
+  },
+  {
+   "id": "dex_str_s2_2",
+   "kind": "small",
+   "name": "4% increased Attack Speed",
+   "x": 0,
+   "y": 746,
+   "stats": [
+    {
+     "stat": "attack_speed",
+     "kind": "increased",
+     "value": 4,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_str_s2_1",
+    "dex_str_w2_0"
+   ]
+  },
+  {
+   "id": "dex_str_keystone",
+   "kind": "keystone",
+   "name": "Vampiric Pact",
+   "x": 0,
+   "y": 1160,
+   "stats": [
+    {
+     "stat": "life_leech",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "mana",
+     "kind": "more",
+     "value": -25
+    }
+   ],
+   "links": [
+    "dex_str_s3_2"
+   ],
+   "text": [
+    "4% of Damage Leeched as Life",
+    "25% less maximum Mana"
+   ]
+  },
+  {
+   "id": "dex_str_s3_1",
+   "kind": "small",
+   "name": "0.4% of Attack Damage Leeched as Life",
+   "x": 0,
+   "y": 1028,
+   "stats": [
+    {
+     "stat": "life_leech",
+     "kind": "flat",
+     "value": 0.4,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "dex_str_w2_4",
+    "dex_str_s3_2"
+   ]
+  },
+  {
+   "id": "dex_str_s3_2",
+   "kind": "small",
+   "name": "+4 Strength, +4 Dexterity",
+   "x": 0,
+   "y": 1094,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "dex_str_s3_1",
+    "dex_str_keystone"
+   ]
+  },
+  {
+   "id": "str_w1_0",
+   "kind": "small",
+   "name": "+8 Strength",
+   "x": -414,
+   "y": 239,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_w1_1",
+    "str_w1_5",
+    "str_s1_3"
+   ]
+  },
+  {
+   "id": "str_w1_1",
+   "kind": "small",
+   "name": "+12 to maximum Life",
+   "x": -485,
+   "y": 198,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "str_w1_0",
+    "str_w1_2",
+    "str_side_1",
+    "bridge1_str_int_str_3"
+   ]
+  },
+  {
+   "id": "str_w1_2",
+   "kind": "small",
+   "name": "10% increased Armour",
+   "x": -556,
+   "y": 239,
+   "stats": [
+    {
+     "stat": "armour",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "str_w1_1",
+    "str_w1_3"
+   ]
+  },
+  {
+   "id": "str_w1_3",
+   "kind": "small",
+   "name": "8% increased Melee Damage",
+   "x": -556,
+   "y": 321,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "melee"
+     ]
+    }
+   ],
+   "links": [
+    "str_w1_2",
+    "str_w1_4",
+    "str_w1_n0",
+    "str_s2_1"
+   ]
+  },
+  {
+   "id": "str_w1_4",
+   "kind": "small",
+   "name": "8% increased Physical Damage",
+   "x": -485,
+   "y": 362,
+   "stats": [
+    {
+     "stat": "physical_damage",
+     "kind": "increased",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_w1_3",
+    "str_w1_5",
+    "bridge1_str_dex_str_1"
+   ]
+  },
+  {
+   "id": "str_w1_5",
+   "kind": "small",
+   "name": "+15 to Armour",
+   "x": -414,
+   "y": 321,
+   "stats": [
+    {
+     "stat": "armour",
+     "kind": "flat",
+     "value": 15
+    }
+   ],
+   "links": [
+    "str_w1_4",
+    "str_w1_0"
+   ]
+  },
+  {
+   "id": "str_w1_n0",
+   "kind": "notable",
+   "name": "Iron Hide",
+   "x": -485,
+   "y": 280,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 25
+    },
+    {
+     "stat": "armour",
+     "kind": "increased",
+     "value": 25
+    }
+   ],
+   "links": [
+    "str_w1_3"
+   ]
+  },
+  {
+   "id": "str_s1_1",
+   "kind": "small",
+   "name": "+8 Strength",
+   "x": -214,
+   "y": 124,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "ring_7",
+    "str_s1_2"
+   ]
+  },
+  {
+   "id": "str_s1_2",
+   "kind": "small",
+   "name": "+12 to maximum Life",
+   "x": -280,
+   "y": 162,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "str_s1_1",
+    "str_s1_3"
+   ]
+  },
+  {
+   "id": "str_s1_3",
+   "kind": "small",
+   "name": "10% increased Armour",
+   "x": -347,
+   "y": 201,
+   "stats": [
+    {
+     "stat": "armour",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "str_s1_2",
+    "str_w1_0"
+   ]
+  },
+  {
+   "id": "str_w2_0",
+   "kind": "small",
+   "name": "8% increased Melee Damage",
+   "x": -691,
+   "y": 399,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "melee"
+     ]
+    }
+   ],
+   "links": [
+    "str_w2_1",
+    "str_w2_7",
+    "str_s2_2"
+   ]
+  },
+  {
+   "id": "str_w2_1",
+   "kind": "small",
+   "name": "8% increased Physical Damage",
+   "x": -741,
+   "y": 361,
+   "stats": [
+    {
+     "stat": "physical_damage",
+     "kind": "increased",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_w2_0",
+    "str_w2_2"
+   ]
+  },
+  {
+   "id": "str_w2_2",
+   "kind": "small",
+   "name": "+15 to Armour",
+   "x": -803,
+   "y": 369,
+   "stats": [
+    {
+     "stat": "armour",
+     "kind": "flat",
+     "value": 15
+    }
+   ],
+   "links": [
+    "str_w2_1",
+    "str_w2_3",
+    "str_w2_n0",
+    "bridge2_str_int_str_4"
+   ]
+  },
+  {
+   "id": "str_w2_3",
+   "kind": "small",
+   "name": "+8 Strength",
+   "x": -841,
+   "y": 419,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_w2_2",
+    "str_w2_4"
+   ]
+  },
+  {
+   "id": "str_w2_4",
+   "kind": "small",
+   "name": "+12 to maximum Life",
+   "x": -833,
+   "y": 481,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "str_w2_3",
+    "str_w2_5",
+    "str_s3_1"
+   ]
+  },
+  {
+   "id": "str_w2_5",
+   "kind": "small",
+   "name": "10% increased Armour",
+   "x": -783,
+   "y": 519,
+   "stats": [
+    {
+     "stat": "armour",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "str_w2_4",
+    "str_w2_6"
+   ]
+  },
+  {
+   "id": "str_w2_6",
+   "kind": "small",
+   "name": "8% increased Melee Damage",
+   "x": -721,
+   "y": 511,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "melee"
+     ]
+    }
+   ],
+   "links": [
+    "str_w2_5",
+    "str_w2_7",
+    "str_w2_n1",
+    "bridge2_str_dex_str_1"
+   ]
+  },
+  {
+   "id": "str_w2_7",
+   "kind": "small",
+   "name": "8% increased Physical Damage",
+   "x": -683,
+   "y": 461,
+   "stats": [
+    {
+     "stat": "physical_damage",
+     "kind": "increased",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_w2_6",
+    "str_w2_0"
+   ]
+  },
+  {
+   "id": "str_w2_n0",
+   "kind": "notable",
+   "name": "Brutal Force",
+   "x": -749,
+   "y": 463,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 20,
+     "tags": [
+      "melee"
+     ]
+    },
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 10
+    }
+   ],
+   "links": [
+    "str_w2_2"
+   ]
+  },
+  {
+   "id": "str_w2_n1",
+   "kind": "notable",
+   "name": "Heavy Hands",
+   "x": -775,
+   "y": 417,
+   "stats": [
+    {
+     "stat": "physical_damage",
+     "kind": "increased",
+     "value": 20
+    },
+    {
+     "stat": "knockback",
+     "kind": "flat",
+     "value": 20
+    }
+   ],
+   "links": [
+    "str_w2_6"
+   ]
+  },
+  {
+   "id": "str_s2_1",
+   "kind": "small",
+   "name": "+15 to Armour",
+   "x": -601,
+   "y": 347,
+   "stats": [
+    {
+     "stat": "armour",
+     "kind": "flat",
+     "value": 15
+    }
+   ],
+   "links": [
+    "str_w1_3",
+    "str_s2_2"
+   ]
+  },
+  {
+   "id": "str_s2_2",
+   "kind": "small",
+   "name": "+8 Strength",
+   "x": -646,
+   "y": 373,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_s2_1",
+    "str_w2_0"
+   ]
+  },
+  {
+   "id": "str_keystone",
+   "kind": "keystone",
+   "name": "Juggernaut's Oath",
+   "x": -1005,
+   "y": 580,
+   "stats": [
+    {
+     "stat": "armour",
+     "kind": "more",
+     "value": 50
+    },
+    {
+     "stat": "life",
+     "kind": "more",
+     "value": 20
+    },
+    {
+     "stat": "movement_speed",
+     "kind": "more",
+     "value": -15
+    }
+   ],
+   "links": [
+    "str_s3_2"
+   ],
+   "text": [
+    "50% more Armour",
+    "20% more maximum Life",
+    "15% less Movement Speed"
+   ]
+  },
+  {
+   "id": "str_s3_1",
+   "kind": "small",
+   "name": "+12 to maximum Life",
+   "x": -890,
+   "y": 514,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "str_w2_4",
+    "str_s3_2"
+   ]
+  },
+  {
+   "id": "str_s3_2",
+   "kind": "small",
+   "name": "10% increased Armour",
+   "x": -947,
+   "y": 547,
+   "stats": [
+    {
+     "stat": "armour",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "str_s3_1",
+    "str_keystone"
+   ]
+  },
+  {
+   "id": "str_side_n",
+   "kind": "notable",
+   "name": "Unbreakable",
+   "x": -699,
+   "y": 174,
+   "stats": [
+    {
+     "stat": "armour",
+     "kind": "increased",
+     "value": 35
+    },
+    {
+     "stat": "fire_resistance",
+     "kind": "flat",
+     "value": 10
+    }
+   ],
+   "links": [
+    "str_side_2"
+   ]
+  },
+  {
+   "id": "str_side_1",
+   "kind": "small",
+   "name": "8% increased Melee Damage",
+   "x": -556,
+   "y": 190,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "melee"
+     ]
+    }
+   ],
+   "links": [
+    "str_w1_1",
+    "str_side_2"
+   ]
+  },
+  {
+   "id": "str_side_2",
+   "kind": "small",
+   "name": "8% increased Physical Damage",
+   "x": -627,
+   "y": 182,
+   "stats": [
+    {
+     "stat": "physical_damage",
+     "kind": "increased",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_side_1",
+    "str_side_n"
+   ]
+  },
+  {
+   "id": "str_int_w1_0",
+   "kind": "small",
+   "name": "+4 Strength, +4 Intelligence",
+   "x": -414,
+   "y": -239,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "str_int_w1_1",
+    "str_int_w1_5",
+    "str_int_s1_3"
+   ]
+  },
+  {
+   "id": "str_int_w1_1",
+   "kind": "small",
+   "name": "10% increased Fire Damage",
+   "x": -414,
+   "y": -321,
+   "stats": [
+    {
+     "stat": "fire_damage",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "str_int_w1_0",
+    "str_int_w1_2",
+    "bridge1_int_str_int_3"
+   ]
+  },
+  {
+   "id": "str_int_w1_2",
+   "kind": "small",
+   "name": "8% increased Area of Effect",
+   "x": -485,
+   "y": -362,
+   "stats": [
+    {
+     "stat": "area_of_effect",
+     "kind": "increased",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_int_w1_1",
+    "str_int_w1_3"
+   ]
+  },
+  {
+   "id": "str_int_w1_3",
+   "kind": "small",
+   "name": "+8 to maximum Life, +8 to maximum Mana",
+   "x": -556,
+   "y": -321,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 8
+    },
+    {
+     "stat": "mana",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_int_w1_2",
+    "str_int_w1_4",
+    "str_int_w1_n0",
+    "str_int_s2_1"
+   ]
+  },
+  {
+   "id": "str_int_w1_4",
+   "kind": "small",
+   "name": "+8% to Fire Resistance",
+   "x": -556,
+   "y": -239,
+   "stats": [
+    {
+     "stat": "fire_resistance",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_int_w1_3",
+    "str_int_w1_5",
+    "bridge1_str_int_str_1"
+   ]
+  },
+  {
+   "id": "str_int_w1_5",
+   "kind": "small",
+   "name": "+4 Strength, +4 Intelligence",
+   "x": -485,
+   "y": -198,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "str_int_w1_4",
+    "str_int_w1_0"
+   ]
+  },
+  {
+   "id": "str_int_w1_n0",
+   "kind": "notable",
+   "name": "Pyromancer",
+   "x": -485,
+   "y": -280,
+   "stats": [
+    {
+     "stat": "fire_damage",
+     "kind": "increased",
+     "value": 25
+    },
+    {
+     "stat": "ignite_chance",
+     "kind": "flat",
+     "value": 10
+    }
+   ],
+   "links": [
+    "str_int_w1_3"
+   ]
+  },
+  {
+   "id": "str_int_s1_1",
+   "kind": "small",
+   "name": "10% increased Fire Damage",
+   "x": -214,
+   "y": -123,
+   "stats": [
+    {
+     "stat": "fire_damage",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "ring_5",
+    "str_int_s1_2"
+   ]
+  },
+  {
+   "id": "str_int_s1_2",
+   "kind": "small",
+   "name": "8% increased Area of Effect",
+   "x": -280,
+   "y": -162,
+   "stats": [
+    {
+     "stat": "area_of_effect",
+     "kind": "increased",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_int_s1_1",
+    "str_int_s1_3"
+   ]
+  },
+  {
+   "id": "str_int_s1_3",
+   "kind": "small",
+   "name": "+8 to maximum Life, +8 to maximum Mana",
+   "x": -347,
+   "y": -200,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 8
+    },
+    {
+     "stat": "mana",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_int_s1_2",
+    "str_int_w1_0"
+   ]
+  },
+  {
+   "id": "str_int_w2_0",
+   "kind": "small",
+   "name": "+8% to Fire Resistance",
+   "x": -691,
+   "y": -399,
+   "stats": [
+    {
+     "stat": "fire_resistance",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_int_w2_1",
+    "str_int_w2_7",
+    "str_int_s2_2"
+   ]
+  },
+  {
+   "id": "str_int_w2_1",
+   "kind": "small",
+   "name": "+4 Strength, +4 Intelligence",
+   "x": -683,
+   "y": -461,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "str_int_w2_0",
+    "str_int_w2_2"
+   ]
+  },
+  {
+   "id": "str_int_w2_2",
+   "kind": "small",
+   "name": "10% increased Fire Damage",
+   "x": -721,
+   "y": -511,
+   "stats": [
+    {
+     "stat": "fire_damage",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "str_int_w2_1",
+    "str_int_w2_3",
+    "str_int_w2_n0",
+    "bridge2_int_str_int_4"
+   ]
+  },
+  {
+   "id": "str_int_w2_3",
+   "kind": "small",
+   "name": "8% increased Area of Effect",
+   "x": -783,
+   "y": -519,
+   "stats": [
+    {
+     "stat": "area_of_effect",
+     "kind": "increased",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_int_w2_2",
+    "str_int_w2_4"
+   ]
+  },
+  {
+   "id": "str_int_w2_4",
+   "kind": "small",
+   "name": "+8 to maximum Life, +8 to maximum Mana",
+   "x": -833,
+   "y": -481,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 8
+    },
+    {
+     "stat": "mana",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_int_w2_3",
+    "str_int_w2_5",
+    "str_int_s3_1"
+   ]
+  },
+  {
+   "id": "str_int_w2_5",
+   "kind": "small",
+   "name": "+8% to Fire Resistance",
+   "x": -841,
+   "y": -419,
+   "stats": [
+    {
+     "stat": "fire_resistance",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_int_w2_4",
+    "str_int_w2_6"
+   ]
+  },
+  {
+   "id": "str_int_w2_6",
+   "kind": "small",
+   "name": "+4 Strength, +4 Intelligence",
+   "x": -803,
+   "y": -369,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "str_int_w2_5",
+    "str_int_w2_7",
+    "str_int_w2_n1",
+    "bridge2_str_int_str_1"
+   ]
+  },
+  {
+   "id": "str_int_w2_7",
+   "kind": "small",
+   "name": "10% increased Fire Damage",
+   "x": -741,
+   "y": -361,
+   "stats": [
+    {
+     "stat": "fire_damage",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "str_int_w2_6",
+    "str_int_w2_0"
+   ]
+  },
+  {
+   "id": "str_int_w2_n0",
+   "kind": "notable",
+   "name": "Wide Reach",
+   "x": -775,
+   "y": -417,
+   "stats": [
+    {
+     "stat": "area_of_effect",
+     "kind": "increased",
+     "value": 20
+    },
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 10,
+     "tags": [
+      "area"
+     ]
+    }
+   ],
+   "links": [
+    "str_int_w2_2"
+   ]
+  },
+  {
+   "id": "str_int_w2_n1",
+   "kind": "notable",
+   "name": "Ember Heart",
+   "x": -749,
+   "y": -463,
+   "stats": [
+    {
+     "stat": "fire_damage",
+     "kind": "increased",
+     "value": 15
+    },
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 20
+    }
+   ],
+   "links": [
+    "str_int_w2_6"
+   ]
+  },
+  {
+   "id": "str_int_s2_1",
+   "kind": "small",
+   "name": "8% increased Area of Effect",
+   "x": -601,
+   "y": -347,
+   "stats": [
+    {
+     "stat": "area_of_effect",
+     "kind": "increased",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_int_w1_3",
+    "str_int_s2_2"
+   ]
+  },
+  {
+   "id": "str_int_s2_2",
+   "kind": "small",
+   "name": "+8 to maximum Life, +8 to maximum Mana",
+   "x": -646,
+   "y": -373,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 8
+    },
+    {
+     "stat": "mana",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_int_s2_1",
+    "str_int_w2_0"
+   ]
+  },
+  {
+   "id": "str_int_keystone",
+   "kind": "keystone",
+   "name": "Cataclysm",
+   "x": -1005,
+   "y": -580,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "more",
+     "value": 30,
+     "tags": [
+      "area"
+     ]
+    },
+    {
+     "stat": "area_of_effect",
+     "kind": "increased",
+     "value": 25
+    },
+    {
+     "stat": "cast_speed",
+     "kind": "more",
+     "value": -20
+    },
+    {
+     "stat": "attack_speed",
+     "kind": "more",
+     "value": -20
+    }
+   ],
+   "links": [
+    "str_int_s3_2"
+   ],
+   "text": [
+    "30% more Area Damage",
+    "25% increased Area of Effect",
+    "20% less Cast and Attack Speed"
+   ]
+  },
+  {
+   "id": "str_int_s3_1",
+   "kind": "small",
+   "name": "+8% to Fire Resistance",
+   "x": -890,
+   "y": -514,
+   "stats": [
+    {
+     "stat": "fire_resistance",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_int_w2_4",
+    "str_int_s3_2"
+   ]
+  },
+  {
+   "id": "str_int_s3_2",
+   "kind": "small",
+   "name": "+4 Strength, +4 Intelligence",
+   "x": -947,
+   "y": -547,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "str_int_s3_1",
+    "str_int_keystone"
+   ]
+  },
+  {
+   "id": "bridge1_int_dex_int_1",
+   "kind": "small",
+   "name": "+4 Intelligence, +4 Dexterity",
+   "x": 382,
+   "y": -401,
+   "stats": [
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "int_dex_w1_4",
+    "bridge1_int_dex_int_2"
+   ]
+  },
+  {
+   "id": "bridge1_int_dex_int_2",
+   "kind": "small",
+   "name": "10% increased Cold Damage",
+   "x": 278,
+   "y": -440,
+   "stats": [
+    {
+     "stat": "cold_damage",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "bridge1_int_dex_int_1",
+    "bridge1_int_dex_int_3"
+   ]
+  },
+  {
+   "id": "bridge1_int_dex_int_3",
+   "kind": "small",
+   "name": "8% increased Projectile Damage",
+   "x": 175,
+   "y": -480,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "bridge1_int_dex_int_2",
+    "int_w1_1"
+   ]
+  },
+  {
+   "id": "bridge2_int_dex_int_1",
+   "kind": "small",
+   "name": "8% increased Elemental Damage",
+   "x": 593,
+   "y": -585,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "elemental"
+     ]
+    }
+   ],
+   "links": [
+    "int_dex_w2_6",
+    "bridge2_int_dex_int_2"
+   ]
+  },
+  {
+   "id": "bridge2_int_dex_int_2",
+   "kind": "small",
+   "name": "+0.6 Mana Regeneration per second",
+   "x": 465,
+   "y": -659,
+   "stats": [
+    {
+     "stat": "mana_regen",
+     "kind": "flat",
+     "value": 0.6
+    }
+   ],
+   "links": [
+    "bridge2_int_dex_int_1",
+    "bridge2_int_dex_int_3"
+   ]
+  },
+  {
+   "id": "bridge2_int_dex_int_3",
+   "kind": "small",
+   "name": "5% increased Cast Speed",
+   "x": 338,
+   "y": -732,
+   "stats": [
+    {
+     "stat": "cast_speed",
+     "kind": "increased",
+     "value": 5,
+     "tags": [
+      "spell"
+     ]
+    }
+   ],
+   "links": [
+    "bridge2_int_dex_int_2",
+    "bridge2_int_dex_int_4"
+   ]
+  },
+  {
+   "id": "bridge2_int_dex_int_4",
+   "kind": "small",
+   "name": "+8 Intelligence",
+   "x": 210,
+   "y": -806,
+   "stats": [
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "bridge2_int_dex_int_3",
+    "int_w2_2"
+   ]
+  },
+  {
+   "id": "bridge1_int_str_int_1",
+   "kind": "small",
+   "name": "+8 Intelligence",
+   "x": -157,
+   "y": -531,
+   "stats": [
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "int_w1_4",
+    "bridge1_int_str_int_2"
+   ]
+  },
+  {
+   "id": "bridge1_int_str_int_2",
+   "kind": "small",
+   "name": "+12 to maximum Mana",
+   "x": -242,
+   "y": -461,
+   "stats": [
+    {
+     "stat": "mana",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "bridge1_int_str_int_1",
+    "bridge1_int_str_int_3"
+   ]
+  },
+  {
+   "id": "bridge1_int_str_int_3",
+   "kind": "small",
+   "name": "10% increased Spell Damage",
+   "x": -328,
+   "y": -391,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 10,
+     "tags": [
+      "spell"
+     ]
+    }
+   ],
+   "links": [
+    "bridge1_int_str_int_2",
+    "str_int_w1_1"
+   ]
+  },
+  {
+   "id": "bridge2_int_str_int_1",
+   "kind": "small",
+   "name": "+8 to maximum Life, +8 to maximum Mana",
+   "x": -210,
+   "y": -806,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 8
+    },
+    {
+     "stat": "mana",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "int_w2_6",
+    "bridge2_int_str_int_2"
+   ]
+  },
+  {
+   "id": "bridge2_int_str_int_2",
+   "kind": "small",
+   "name": "+8% to Fire Resistance",
+   "x": -338,
+   "y": -732,
+   "stats": [
+    {
+     "stat": "fire_resistance",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "bridge2_int_str_int_1",
+    "bridge2_int_str_int_3"
+   ]
+  },
+  {
+   "id": "bridge2_int_str_int_3",
+   "kind": "small",
+   "name": "+4 Strength, +4 Intelligence",
+   "x": -465,
+   "y": -659,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "bridge2_int_str_int_2",
+    "bridge2_int_str_int_4"
+   ]
+  },
+  {
+   "id": "bridge2_int_str_int_4",
+   "kind": "small",
+   "name": "10% increased Fire Damage",
+   "x": -593,
+   "y": -585,
+   "stats": [
+    {
+     "stat": "fire_damage",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "bridge2_int_str_int_3",
+    "str_int_w2_2"
+   ]
+  },
+  {
+   "id": "bridge1_str_int_str_1",
+   "kind": "small",
+   "name": "+4 Strength, +4 Intelligence",
+   "x": -538,
+   "y": -130,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "str_int_w1_4",
+    "bridge1_str_int_str_2"
+   ]
+  },
+  {
+   "id": "bridge1_str_int_str_2",
+   "kind": "small",
+   "name": "10% increased Fire Damage",
+   "x": -520,
+   "y": -20,
+   "stats": [
+    {
+     "stat": "fire_damage",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "bridge1_str_int_str_1",
+    "bridge1_str_int_str_3"
+   ]
+  },
+  {
+   "id": "bridge1_str_int_str_3",
+   "kind": "small",
+   "name": "8% increased Area of Effect",
+   "x": -503,
+   "y": 89,
+   "stats": [
+    {
+     "stat": "area_of_effect",
+     "kind": "increased",
+     "value": 8
+    }
+   ],
+   "links": [
+    "bridge1_str_int_str_2",
+    "str_w1_1"
+   ]
+  },
+  {
+   "id": "bridge2_str_int_str_1",
+   "kind": "small",
+   "name": "8% increased Melee Damage",
+   "x": -803,
+   "y": -221,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "melee"
+     ]
+    }
+   ],
+   "links": [
+    "str_int_w2_6",
+    "bridge2_str_int_str_2"
+   ]
+  },
+  {
+   "id": "bridge2_str_int_str_2",
+   "kind": "small",
+   "name": "8% increased Physical Damage",
+   "x": -803,
+   "y": -74,
+   "stats": [
+    {
+     "stat": "physical_damage",
+     "kind": "increased",
+     "value": 8
+    }
+   ],
+   "links": [
+    "bridge2_str_int_str_1",
+    "bridge2_str_int_str_3"
+   ]
+  },
+  {
+   "id": "bridge2_str_int_str_3",
+   "kind": "small",
+   "name": "+15 to Armour",
+   "x": -803,
+   "y": 74,
+   "stats": [
+    {
+     "stat": "armour",
+     "kind": "flat",
+     "value": 15
+    }
+   ],
+   "links": [
+    "bridge2_str_int_str_2",
+    "bridge2_str_int_str_4"
+   ]
+  },
+  {
+   "id": "bridge2_str_int_str_4",
+   "kind": "small",
+   "name": "+8 Strength",
+   "x": -803,
+   "y": 221,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "bridge2_str_int_str_3",
+    "str_w2_2"
+   ]
+  },
+  {
+   "id": "bridge1_str_dex_str_1",
+   "kind": "small",
+   "name": "+8 Strength",
+   "x": -381,
+   "y": 401,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "str_w1_4",
+    "bridge1_str_dex_str_2"
+   ]
+  },
+  {
+   "id": "bridge1_str_dex_str_2",
+   "kind": "small",
+   "name": "+12 to maximum Life",
+   "x": -278,
+   "y": 441,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "bridge1_str_dex_str_1",
+    "bridge1_str_dex_str_3"
+   ]
+  },
+  {
+   "id": "bridge1_str_dex_str_3",
+   "kind": "small",
+   "name": "10% increased Armour",
+   "x": -174,
+   "y": 480,
+   "stats": [
+    {
+     "stat": "armour",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "bridge1_str_dex_str_2",
+    "dex_str_w1_1"
+   ]
+  },
+  {
+   "id": "bridge2_str_dex_str_1",
+   "kind": "small",
+   "name": "4% increased Attack Speed",
+   "x": -593,
+   "y": 585,
+   "stats": [
+    {
+     "stat": "attack_speed",
+     "kind": "increased",
+     "value": 4,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "str_w2_6",
+    "bridge2_str_dex_str_2"
+   ]
+  },
+  {
+   "id": "bridge2_str_dex_str_2",
+   "kind": "small",
+   "name": "0.4% of Attack Damage Leeched as Life",
+   "x": -465,
+   "y": 659,
+   "stats": [
+    {
+     "stat": "life_leech",
+     "kind": "flat",
+     "value": 0.4,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "bridge2_str_dex_str_1",
+    "bridge2_str_dex_str_3"
+   ]
+  },
+  {
+   "id": "bridge2_str_dex_str_3",
+   "kind": "small",
+   "name": "+4 Strength, +4 Dexterity",
+   "x": -338,
+   "y": 732,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "bridge2_str_dex_str_2",
+    "bridge2_str_dex_str_4"
+   ]
+  },
+  {
+   "id": "bridge2_str_dex_str_4",
+   "kind": "small",
+   "name": "8% increased Attack Damage",
+   "x": -210,
+   "y": 806,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "bridge2_str_dex_str_3",
+    "dex_str_w2_2"
+   ]
+  },
+  {
+   "id": "bridge1_dex_str_dex_1",
+   "kind": "small",
+   "name": "+4 Strength, +4 Dexterity",
+   "x": 157,
+   "y": 531,
+   "stats": [
+    {
+     "stat": "strength",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "dex_str_w1_4",
+    "bridge1_dex_str_dex_2"
+   ]
+  },
+  {
+   "id": "bridge1_dex_str_dex_2",
+   "kind": "small",
+   "name": "8% increased Attack Damage",
+   "x": 243,
+   "y": 461,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "bridge1_dex_str_dex_1",
+    "bridge1_dex_str_dex_3"
+   ]
+  },
+  {
+   "id": "bridge1_dex_str_dex_3",
+   "kind": "small",
+   "name": "+8 to maximum Life, +12 to Evasion Rating",
+   "x": 328,
+   "y": 391,
+   "stats": [
+    {
+     "stat": "life",
+     "kind": "flat",
+     "value": 8
+    },
+    {
+     "stat": "evasion",
+     "kind": "flat",
+     "value": 12
+    }
+   ],
+   "links": [
+    "bridge1_dex_str_dex_2",
+    "dex_w1_1"
+   ]
+  },
+  {
+   "id": "bridge2_dex_str_dex_1",
+   "kind": "small",
+   "name": "8% increased Projectile Damage",
+   "x": 210,
+   "y": 806,
+   "stats": [
+    {
+     "stat": "damage",
+     "kind": "increased",
+     "value": 8,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "dex_str_w2_6",
+    "bridge2_dex_str_dex_2"
+   ]
+  },
+  {
+   "id": "bridge2_dex_str_dex_2",
+   "kind": "small",
+   "name": "+25 to Accuracy Rating",
+   "x": 338,
+   "y": 732,
+   "stats": [
+    {
+     "stat": "accuracy",
+     "kind": "flat",
+     "value": 25
+    }
+   ],
+   "links": [
+    "bridge2_dex_str_dex_1",
+    "bridge2_dex_str_dex_3"
+   ]
+  },
+  {
+   "id": "bridge2_dex_str_dex_3",
+   "kind": "small",
+   "name": "10% increased Critical Strike Chance",
+   "x": 465,
+   "y": 659,
+   "stats": [
+    {
+     "stat": "crit_chance",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "bridge2_dex_str_dex_2",
+    "bridge2_dex_str_dex_4"
+   ]
+  },
+  {
+   "id": "bridge2_dex_str_dex_4",
+   "kind": "small",
+   "name": "+8 Dexterity",
+   "x": 593,
+   "y": 585,
+   "stats": [
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "bridge2_dex_str_dex_3",
+    "dex_w2_2"
+   ]
+  },
+  {
+   "id": "bridge1_dex_int_dex_1",
+   "kind": "small",
+   "name": "+8 Dexterity",
+   "x": 538,
+   "y": 130,
+   "stats": [
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "dex_w1_4",
+    "bridge1_dex_int_dex_2"
+   ]
+  },
+  {
+   "id": "bridge1_dex_int_dex_2",
+   "kind": "small",
+   "name": "+20 to Evasion Rating",
+   "x": 521,
+   "y": 21,
+   "stats": [
+    {
+     "stat": "evasion",
+     "kind": "flat",
+     "value": 20
+    }
+   ],
+   "links": [
+    "bridge1_dex_int_dex_1",
+    "bridge1_dex_int_dex_3"
+   ]
+  },
+  {
+   "id": "bridge1_dex_int_dex_3",
+   "kind": "small",
+   "name": "5% increased Attack Speed",
+   "x": 503,
+   "y": -89,
+   "stats": [
+    {
+     "stat": "attack_speed",
+     "kind": "increased",
+     "value": 5,
+     "tags": [
+      "attack"
+     ]
+    }
+   ],
+   "links": [
+    "bridge1_dex_int_dex_2",
+    "int_dex_w1_1"
+   ]
+  },
+  {
+   "id": "bridge2_dex_int_dex_1",
+   "kind": "small",
+   "name": "10% increased Projectile Speed",
+   "x": 803,
+   "y": 221,
+   "stats": [
+    {
+     "stat": "projectile_speed",
+     "kind": "increased",
+     "value": 10,
+     "tags": [
+      "projectile"
+     ]
+    }
+   ],
+   "links": [
+    "dex_w2_6",
+    "bridge2_dex_int_dex_2"
+   ]
+  },
+  {
+   "id": "bridge2_dex_int_dex_2",
+   "kind": "small",
+   "name": "+8% to Cold Resistance",
+   "x": 803,
+   "y": 74,
+   "stats": [
+    {
+     "stat": "cold_resistance",
+     "kind": "flat",
+     "value": 8
+    }
+   ],
+   "links": [
+    "bridge2_dex_int_dex_1",
+    "bridge2_dex_int_dex_3"
+   ]
+  },
+  {
+   "id": "bridge2_dex_int_dex_3",
+   "kind": "small",
+   "name": "+4 Intelligence, +4 Dexterity",
+   "x": 803,
+   "y": -74,
+   "stats": [
+    {
+     "stat": "intelligence",
+     "kind": "flat",
+     "value": 4
+    },
+    {
+     "stat": "dexterity",
+     "kind": "flat",
+     "value": 4
+    }
+   ],
+   "links": [
+    "bridge2_dex_int_dex_2",
+    "bridge2_dex_int_dex_4"
+   ]
+  },
+  {
+   "id": "bridge2_dex_int_dex_4",
+   "kind": "small",
+   "name": "10% increased Cold Damage",
+   "x": 803,
+   "y": -221,
+   "stats": [
+    {
+     "stat": "cold_damage",
+     "kind": "increased",
+     "value": 10
+    }
+   ],
+   "links": [
+    "bridge2_dex_int_dex_3",
+    "int_dex_w2_2"
+   ]
+  }
+ ]
+}
