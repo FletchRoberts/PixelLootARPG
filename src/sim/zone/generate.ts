@@ -1,10 +1,13 @@
 // Linear zone generator: a winding main path (start → end arena) with short
 // dead-end side branches. Built as a polyline of capsules + circles in tile
 // space, rasterized to a grid, smoothed, and checked for connectivity.
+// A layout (zone-gen.json `layouts`) picked per seed sets the shape: a narrow winding
+// corridor, a short and very wide expanse, or corridors that open into halls. Wide floor
+// gets rock pillars so it isn't an empty field.
 
 import { Rng } from "../core/rng";
 import { add, clamp, dist, normalize, scale, sub, type Vec } from "../core/vec";
-import type { Range, ZoneGenConfig } from "../data/types";
+import type { Range, ZoneGenConfig, ZoneLayoutDef } from "../data/types";
 import { FLOOR, SOLID, type PackSpawn, type Zone } from "./zone";
 
 const DEG = Math.PI / 180;
@@ -30,6 +33,7 @@ interface Layout {
   segments: Segment[];
   circles: Circle[];
   branchEnds: Vec[];
+  branchRoots: Vec[]; // main nodes a branch leaves from (pillars keep clear of them)
 }
 
 const rollRange = (rng: Rng, r: Range) => rng.range(r[0], r[1]);
@@ -68,9 +72,11 @@ function buildLayout(cfg: ZoneGenConfig, rng: Rng): Layout | null {
   const main: Vec[] = [{ x: 0, y: 0 }];
   const mainWidths: number[] = [rollRange(rng, mp.halfWidth)];
   const mainHeadings: number[] = [0];
+  const along: number[] = [0]; // path distance from the start to each node
   const segments: Segment[] = [];
   const count = rollInt(rng, mp.segments);
   let heading = rng.range(-mp.maxHeadingDegrees, mp.maxHeadingDegrees) * DEG * 0.5;
+  let hallLeft = 0; // nodes left in the current hall (halls layout)
 
   for (let i = 1; i <= count; i++) {
     const prev = main[i - 1]!;
@@ -82,15 +88,21 @@ function buildLayout(cfg: ZoneGenConfig, rng: Rng): Layout | null {
         mp.maxHeadingDegrees * DEG,
       );
       const p = add(prev, fromAngle(dir + h, rollRange(rng, mp.segmentLength)));
-      const hw = rollRange(rng, mp.halfWidth);
-      // Non-adjacent main segments must stay apart so the path never merges with itself.
-      if (!clearOf(segments, prev, p, hw, cfg.gap, (s) => s.owner >= i - 2)) continue;
+      // Halls: a run of 1–2 nodes much wider than the corridor, never at the very start or end.
+      if (mp.halls && hallLeft === 0 && i > 2 && i < count - 2 && rng.next() < mp.halls.chance) hallLeft = rollInt(rng, mp.halls.length);
+      const hw = hallLeft > 0 && mp.halls ? rollRange(rng, mp.halls.halfWidth) : rollRange(rng, mp.halfWidth);
+      // Segments further back along the path must stay apart so it never merges with itself.
+      // "Further back" is by path distance, so wide corridors skip more neighbours than narrow ones.
+      const near = (s: Segment) => along[i - 1]! - along[s.owner + 1]! < hw + Math.max(s.hwA, s.hwB) + cfg.gap;
+      if (!clearOf(segments, prev, p, hw, cfg.gap, near)) continue;
       segments.push({ a: prev, b: p, hwA: mainWidths[i - 1]!, hwB: hw, owner: i - 1, path: "main" });
       main.push(p);
+      along.push(along[i - 1]! + dist(prev, p));
       mainWidths.push(hw);
       mainHeadings.push(h);
       heading = h;
       placed = true;
+      if (hallLeft > 0) hallLeft--;
     }
     if (!placed) return null;
   }
@@ -102,8 +114,9 @@ function buildLayout(cfg: ZoneGenConfig, rng: Rng): Layout | null {
   // The end arena is big; make sure it doesn't swallow earlier parts of the path.
   const endC = circles[1]!;
   for (const s of segments) {
-    if (s.owner >= count - 2) continue;
-    if (pointSegDist(endC.c, s.a, s.b).d < endC.r + Math.max(s.hwA, s.hwB) + cfg.gap) return null;
+    const need = endC.r + Math.max(s.hwA, s.hwB) + cfg.gap;
+    if (along[count]! - along[s.owner + 1]! < need) continue; // the path's own approach to the arena
+    if (pointSegDist(endC.c, s.a, s.b).d < need) return null;
   }
   for (let i = 2; i < main.length - 2; i++) {
     if (rng.next() >= mp.clearingChance) continue;
@@ -117,6 +130,7 @@ function buildLayout(cfg: ZoneGenConfig, rng: Rng): Layout | null {
   // Dead-end branches off interior nodes, heading out to one side.
   const br = cfg.branches;
   const branchEnds: Vec[] = [];
+  const branchRoots: Vec[] = [];
   for (let i = 2; i < main.length - 3; i++) {
     if (rng.next() >= br.chance) continue;
     const side = rng.next() < 0.5 ? -1 : 1;
@@ -146,9 +160,10 @@ function buildLayout(cfg: ZoneGenConfig, rng: Rng): Layout | null {
     segments.push(...parts);
     circles.push(end);
     branchEnds.push(at);
+    branchRoots.push(main[i]!);
   }
 
-  return { main, mainWidths, segments, circles, branchEnds };
+  return { main, mainWidths, segments, circles, branchEnds, branchRoots };
 }
 
 function rasterize(cfg: ZoneGenConfig, layout: Layout, rng: Rng) {
@@ -198,6 +213,7 @@ function rasterize(cfg: ZoneGenConfig, layout: Layout, rng: Rng) {
     const cc = add(c.c, offset);
     mark(cc.x - c.r - 1, cc.y - c.r - 1, cc.x + c.r + 1, cc.y + c.r + 1, (p, j) => dist(p, cc) < c.r + j);
   }
+  if (cfg.pillars) placePillars(cfg.pillars, layout, offset, tiles, width, height, rng);
 
   // One smoothing pass: fill pinholes, drop single-tile spurs.
   const next = tiles.slice();
@@ -218,6 +234,38 @@ function rasterize(cfg: ZoneGenConfig, layout: Layout, rng: Rng) {
     }
   }
   return { tiles, width, height, offset };
+}
+
+/**
+ * Rock pillars in wide main-path corridors: off the centre line (a clear lane stays open),
+ * away from the start/end/clearing circles and from branch junctions.
+ */
+function placePillars(p: NonNullable<ZoneGenConfig["pillars"]>, layout: Layout, offset: Vec, tiles: number[], width: number, height: number, rng: Rng): void {
+  const LANE = 1.6; // half-width of the lane kept clear along the path
+  for (const s of layout.segments) {
+    if (s.path !== "main") continue;
+    const hw = Math.min(s.hwA, s.hwB);
+    if (hw < p.minHalfWidth) continue;
+    const len = dist(s.a, s.b);
+    const n = Math.round(p.density * len * hw * 2 + rng.next() - 0.5);
+    const dir = normalize(sub(s.b, s.a));
+    const perp = { x: -dir.y, y: dir.x };
+    for (let k = 0; k < n; k++) {
+      const r = rollRange(rng, p.radius);
+      const room = hw - r - 1;
+      if (room <= LANE + r) continue;
+      const side = rng.next() < 0.5 ? -1 : 1;
+      const c = add(add(s.a, scale(dir, rng.range(0.15, 0.85) * len)), scale(perp, side * rng.range(LANE + r, room)));
+      if (layout.circles.some((ci) => dist(ci.c, c) < ci.r + r + 1)) continue;
+      if (layout.branchRoots.some((b) => dist(b, c) < hw + r + 2)) continue;
+      const cc = add(c, offset);
+      for (let ty = Math.max(0, Math.floor(cc.y - r - 1)); ty <= Math.min(height - 1, Math.ceil(cc.y + r + 1)); ty++) {
+        for (let tx = Math.max(0, Math.floor(cc.x - r - 1)); tx <= Math.min(width - 1, Math.ceil(cc.x + r + 1)); tx++) {
+          if (dist({ x: tx + 0.5, y: ty + 0.5 }, cc) < r) tiles[ty * width + tx] = SOLID;
+        }
+      }
+    }
+  }
 }
 
 /** Flood fill from (sx, sy); clears any floor not reachable. Returns reachable count. */
@@ -252,6 +300,28 @@ function keepReachable(tiles: number[], width: number, height: number, sx: numbe
   return count;
 }
 
+/** The point itself if it's on floor, else the centre of the closest floor tile within 6 tiles. */
+function nearestFloor(tiles: number[], width: number, height: number, p: Vec): Vec | null {
+  const tx = Math.floor(p.x);
+  const ty = Math.floor(p.y);
+  if (tiles[ty * width + tx] === FLOOR) return p;
+  let best: Vec | null = null;
+  let bestD = Infinity;
+  for (let dy = -6; dy <= 6; dy++) {
+    for (let dx = -6; dx <= 6; dx++) {
+      const x = tx + dx;
+      const y = ty + dy;
+      if (x < 0 || y < 0 || x >= width || y >= height || tiles[y * width + x] !== FLOOR) continue;
+      const d = dx * dx + dy * dy;
+      if (d < bestD) {
+        bestD = d;
+        best = { x: x + 0.5, y: y + 0.5 };
+      }
+    }
+  }
+  return best;
+}
+
 /** Pack centres in tile space: spaced along the main path, at branch ends, and in the end arena. */
 function placePacks(cfg: ZoneGenConfig, rng: Rng, mainTiles: Vec[], widths: number[], branchEnds: Vec[], pathLength: number): PackSpawn[] {
   const pk = cfg.packs;
@@ -268,7 +338,8 @@ function placePacks(cfg: ZoneGenConfig, rng: Rng, mainTiles: Vec[], widths: numb
       const along = add(a, scale(sub(b, a), t));
       const perp = normalize({ x: -(b.y - a.y), y: b.x - a.x });
       const hw = widths[i - 1]! + (widths[i]! - widths[i - 1]!) * t;
-      out.push({ pos: add(along, scale(perp, rng.range(-0.4, 0.4) * hw)), size: rollInt(rng, pk.size), kind: "path" });
+      const across = pk.across ?? 0.4;
+      out.push({ pos: add(along, scale(perp, rng.range(-across, across) * hw)), size: rollInt(rng, pk.size), kind: "path" });
       nextAt += rollRange(rng, pk.spacing);
     }
     travelled += l;
@@ -280,9 +351,27 @@ function placePacks(cfg: ZoneGenConfig, rng: Rng, mainTiles: Vec[], widths: numb
   return out;
 }
 
-export function generateZone(cfg: ZoneGenConfig, seed: number): Zone {
+/** The generator settings with a layout's overrides applied. */
+export function withLayout(cfg: ZoneGenConfig, l: ZoneLayoutDef | undefined): ZoneGenConfig {
+  if (!l) return cfg;
+  return {
+    ...cfg,
+    mainPath: { ...cfg.mainPath, ...l.mainPath },
+    branches: { ...cfg.branches, ...l.branches },
+    packs: { ...cfg.packs, ...l.packs },
+    gap: l.gap ?? cfg.gap,
+    edgeRoughness: l.edgeRoughness ?? cfg.edgeRoughness,
+    startRadius: l.startRadius ?? cfg.startRadius,
+    endRadius: l.endRadius ?? cfg.endRadius,
+    pillars: l.pillars ?? cfg.pillars,
+  };
+}
+
+export function generateZone(base: ZoneGenConfig, seed: number): Zone {
   const rng = new Rng(seed);
-  const biome = rng.weighted(cfg.biomes)?.id ?? cfg.biomes[0]!.id;
+  const biome = rng.weighted(base.biomes)?.id ?? base.biomes[0]!.id;
+  const layoutDef = rng.weighted(base.layouts);
+  const cfg = withLayout(base, layoutDef);
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const layout = buildLayout(cfg, rng);
@@ -297,14 +386,20 @@ export function generateZone(cfg: ZoneGenConfig, seed: number): Zone {
     const mainTiles = layout.main.map(toTile);
     let pathLength = 0;
     for (let i = 1; i < mainTiles.length; i++) pathLength += dist(mainTiles[i - 1]!, mainTiles[i]!);
-    const branchTiles = layout.branchEnds.map(toTile);
+    // Pillars and rough edges can cover a branch end or a pack spot: move those onto the nearest floor.
+    const onFloor = (p: Vec) => nearestFloor(tiles, width, height, p);
+    const branchTiles = layout.branchEnds.map(toTile).map(onFloor).filter((p): p is Vec => !!p);
     const ts = cfg.tileSize;
     const px = (p: Vec): Vec => ({ x: p.x * ts, y: p.y * ts });
-    const packs = placePacks(cfg, rng, mainTiles, layout.mainWidths, branchTiles, pathLength).map((p) => ({ ...p, pos: px(p.pos) }));
+    const packs = placePacks(cfg, rng, mainTiles, layout.mainWidths, branchTiles, pathLength)
+      .map((p) => ({ ...p, pos: onFloor(p.pos) }))
+      .filter((p): p is typeof p & { pos: Vec } => !!p.pos)
+      .map((p) => ({ ...p, pos: px(p.pos) }));
 
     return {
       seed,
       biome,
+      layout: layoutDef?.id ?? "winding",
       width,
       height,
       tileSize: ts,

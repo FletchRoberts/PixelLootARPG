@@ -227,6 +227,7 @@ export interface ZoneGenConfig {
     maxHeadingDegrees: number; // max deviation from the zone's overall direction
     clearingChance: number;
     clearingRadius: Range;
+    halls?: { chance: number; halfWidth: Range; length: Range }; // stretches of nodes that widen into halls
   };
   branches: {
     chance: number; // per eligible main-path node
@@ -241,6 +242,7 @@ export interface ZoneGenConfig {
   edgeRoughness: number;
   startRadius: number;
   endRadius: number;
+  pillars?: { density: number; radius: Range; minHalfWidth: number }; // rocks in wide floor (per tile² of corridor)
   packs: {
     spacing: Range; // tiles of main path between packs
     size: Range;
@@ -249,10 +251,27 @@ export interface ZoneGenConfig {
     branchChance: number;
     branchSize: Range;
     endSize: Range;
+    across?: number; // packs sit up to this fraction of the corridor half-width off-centre (default 0.4)
   };
   monsterPool: WeightedRef[];
   biomes: WeightedRef[];
   endPackDropTable: string; // the end-arena pack drops from this instead of its own table
+  layouts: ZoneLayoutDef[]; // map shapes; one is picked per seed and overrides the settings above
+}
+
+/** A map shape: overrides for the generator settings (winding corridor, wide expanse, mixed halls…). */
+export interface ZoneLayoutDef {
+  id: string;
+  name: string;
+  weight: number;
+  mainPath?: Partial<ZoneGenConfig["mainPath"]>;
+  branches?: Partial<ZoneGenConfig["branches"]>;
+  packs?: Partial<ZoneGenConfig["packs"]>;
+  gap?: number;
+  edgeRoughness?: number;
+  startRadius?: number;
+  endRadius?: number;
+  pillars?: ZoneGenConfig["pillars"];
 }
 
 /** Visual set for a zone. Client-only; the sim just picks one by id. */

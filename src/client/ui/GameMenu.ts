@@ -2,7 +2,8 @@
 //   Character  stats sheet
 //   Gear       equipment slots and the gear bag, with tooltips, comparison and salvage
 //   Gems       skill gems on the four buttons, support gems in their sockets
-//   Currency   the currency stash: use currency on gear/gems, bulk salvage
+//   Stones     Cairnstones in the bag: craft them with currency, salvage
+//   Currency   the currency stash: use currency on gear/gems/stones, bulk salvage
 //   Debug      spawn gems, gear and currency, reset the character
 // Fully usable with keyboard or controller: D-pad/WASD move, ✕/Enter confirm, ○/Esc back.
 
@@ -19,8 +20,9 @@ import { computeStat } from "../../sim/stats/stats";
 import { skillSummary, SKILL_SLOTS, type InventoryCommand, type WorldState } from "../../sim/world";
 import type { InputManager } from "../input/InputManager";
 
-export type MenuTab = "character" | "gear" | "gems" | "currency" | "debug";
-const TABS: MenuTab[] = ["character", "gear", "gems", "currency", "debug"];
+export type MenuTab = "character" | "gear" | "gems" | "stones" | "currency" | "debug";
+const TABS: MenuTab[] = ["character", "gear", "gems", "stones", "currency", "debug"];
+const STONE_RARITY_ORDER = { rare: 0, magic: 1, normal: 2 } as const;
 const FULL_CURRENCIES = content.currencies.filter((c) => !c.combine);
 const fragmentOf = (id: string) => content.currencies.find((c) => c.combine?.into === id);
 const CRAFT_ROWS = 9; // visible targets in the currency picker
@@ -79,6 +81,7 @@ export class GameMenu {
   private diffCache: { key: string; title: string; changes: StatChange[] } | null = null;
   private confirmSalvage: number | null = null; // uid of a rare/unique waiting for a second salvage press
   private craft: { currency: string; index: number; result: string[] } | null = null; // choosing a target for currency
+  private stoneCraft: { uid: number; index: number; result: string[] } | null = null; // choosing a currency for a stone
 
   constructor(
     private scene: Phaser.Scene,
@@ -116,6 +119,7 @@ export class GameMenu {
     this.confirmReset = false;
     this.confirmSalvage = null;
     this.craft = null;
+    this.stoneCraft = null;
     this.root.setVisible(true);
     this.render();
   }
@@ -136,6 +140,10 @@ export class GameMenu {
       this.updateCraft();
       return this.render();
     }
+    if (this.stoneCraft) {
+      this.updateStoneCraft();
+      return this.render();
+    }
     if (i.pressed("cancel") || i.pressed("character") || i.pressed("inventory")) return this.hide();
     if (i.pressed("tabNext") || i.pressed("tabPrev")) {
       const dir = i.pressed("tabNext") ? 1 : -1;
@@ -148,6 +156,7 @@ export class GameMenu {
     }
     if (this.tab === "gear") this.updateGear();
     if (this.tab === "gems") this.updateInventory();
+    if (this.tab === "stones") this.updateStones();
     if (this.tab === "currency") this.updateCurrency();
     if (this.tab === "debug") this.updateDebug();
     this.render();
@@ -572,22 +581,118 @@ export class GameMenu {
     c.index = Math.min(c.index, targets.length - 1);
     if (!i.pressed("confirm")) return;
     const target = targets[c.index]!;
-    const before = this.itemLines(target);
-    const refused = this.actions.command({ type: "apply_currency", currency: c.currency, target });
-    if (refused) {
-      c.result = [`Can't: ${refused}`];
-      return;
-    }
-    // Show what changed: lines that appeared (+) and disappeared (−).
-    const after = this.itemLines(target);
-    const added = after.slice(1).filter((l) => l && !before.includes(l)).map((l) => `  + ${l}`);
-    const removed = before.slice(1).filter((l) => l && !after.includes(l)).map((l) => `  − ${l}`);
-    c.result = [`Used ${currencyName(c.currency)} on ${after[0] ?? "item"}:`, ...(added.length + removed.length ? [...added, ...removed] : ["  nothing changed"])];
-    this.diffCache = null;
+    c.result = this.applyCurrency(c.currency, target);
+    if (c.result[0]?.startsWith("Can't")) return;
     // Keep pointing at the same item if it can still take this currency.
     const still = this.craftTargets(c.currency).findIndex((t) => JSON.stringify(t) === JSON.stringify(target));
     if (still >= 0) c.index = still;
-    if ((this.world().player.save.currency[c.currency] ?? 0) < 1) c.result.push("", `That was your last ${currencyName(c.currency)}.`);
+  }
+
+  /** Use a currency on an item; returns what changed: lines that appeared (+) and disappeared (−). */
+  private applyCurrency(currency: string, target: CraftTarget): string[] {
+    const before = this.itemLines(target);
+    const refused = this.actions.command({ type: "apply_currency", currency, target });
+    if (refused) return [`Can't: ${refused}`];
+    this.diffCache = null;
+    const after = this.itemLines(target);
+    const added = after.slice(1).filter((l) => l && !before.includes(l)).map((l) => `  + ${l}`);
+    const removed = before.slice(1).filter((l) => l && !after.includes(l)).map((l) => `  − ${l}`);
+    const out = [`Used ${currencyName(currency)} on ${after[0] ?? "item"}:`, ...(added.length + removed.length ? [...added, ...removed] : ["  nothing changed"])];
+    if ((this.world().player.save.currency[currency] ?? 0) < 1) out.push("", `That was your last ${currencyName(currency)}.`);
+    return out;
+  }
+
+  // ---------------------------------------------------------------- stones
+
+  /** Stone bag indices, highest level first, rares before magic before normal. */
+  private stoneOrder(): number[] {
+    const bag = this.world().player.save.stoneBag;
+    return bag.map((_, i) => i).sort((a, b) => bag[b]!.level - bag[a]!.level || STONE_RARITY_ORDER[bag[a]!.rarity] - STONE_RARITY_ORDER[bag[b]!.rarity]);
+  }
+
+  /** Currencies you own that work on this stone right now. */
+  private stoneCurrencies(index: number): string[] {
+    const save = this.world().player.save;
+    const stone = save.stoneBag[index];
+    return FULL_CURRENCIES.filter((c) => (save.currency[c.id] ?? 0) > 0 && !currencyProblem(content, c.id, stone)).map((c) => c.id);
+  }
+
+  private updateStones(): void {
+    const i = this.inputs;
+    const order = this.stoneOrder();
+    if (order.length === 0) return;
+    if (i.pressed("down") || i.pressed("up")) {
+      this.row = (this.row + (i.pressed("down") ? 1 : -1) + order.length) % order.length;
+      if (this.confirmSalvage !== null) this.message = "";
+      this.confirmSalvage = null;
+    }
+    this.row = Math.min(this.row, order.length - 1);
+    const index = order[this.row]!;
+    const stone = this.world().player.save.stoneBag[index]!;
+    if (i.pressed("salvage")) {
+      if (stone.rarity === "rare" && this.confirmSalvage !== stone.uid) {
+        this.confirmSalvage = stone.uid;
+        this.message = `Salvage ${itemName(stone)}? Press ${i.prompt("salvage")} again.`;
+        return;
+      }
+      this.confirmSalvage = null;
+      const y = salvageYield(content, stone);
+      const refused = this.actions.command({ type: "salvage", bag: "stones", index });
+      this.message = refused ? `Can't: ${refused}` : `Salvaged ${itemName(stone)}: +${y.count} ${currencyName(y.currency)}`;
+      return;
+    }
+    if (!i.pressed("confirm")) return;
+    if (this.stoneCurrencies(index).length === 0) {
+      this.message = "You have no currency that works on this stone.";
+      return;
+    }
+    this.message = "";
+    this.stoneCraft = { uid: stone.uid, index: 0, result: [] };
+  }
+
+  private updateStoneCraft(): void {
+    const i = this.inputs;
+    const c = this.stoneCraft!;
+    if (i.pressed("cancel")) {
+      this.stoneCraft = null;
+      return;
+    }
+    const index = this.world().player.save.stoneBag.findIndex((s) => s.uid === c.uid);
+    const options = index >= 0 ? this.stoneCurrencies(index) : [];
+    if (options.length === 0) return;
+    if (i.pressed("down")) c.index = (c.index + 1) % options.length;
+    if (i.pressed("up")) c.index = (c.index - 1 + options.length) % options.length;
+    c.index = Math.min(c.index, options.length - 1);
+    if (i.pressed("confirm")) c.result = this.applyCurrency(options[c.index]!, { where: "stone_bag", index });
+  }
+
+  private stoneLines(): { left: string[]; right: string[] } {
+    const save = this.world().player.save;
+    const order = this.stoneOrder();
+    const left = [`CAIRNSTONES (${save.stoneBag.length}/${content.cairnstones.bagSize})`, ""];
+    const first = Math.max(0, Math.min(this.row - 9, order.length - 20));
+    order.slice(first, first + 20).forEach((idx, k) => {
+      const s = save.stoneBag[idx]!;
+      left.push(`${first + k === this.row ? "▶" : " "} Lv ${String(s.level).padStart(2)}  ${s.rarity.padEnd(6)}  ${itemName(s).replace(/ \(lvl \d+\)$/, "")}${s.corrupted ? "  (corrupted)" : ""}`);
+    });
+    if (order.length === 0) left.push("  (no Cairnstones: clear maps to get them)");
+    const index = order[Math.min(this.row, order.length - 1)];
+    const right: string[] = [];
+    if (index === undefined) return { left, right: ["Every cleared map gives a Cairnstone; monsters drop them too."] };
+    const target: CraftTarget = { where: "stone_bag", index };
+    if (this.stoneCraft) {
+      const c = this.stoneCraft;
+      const options = this.stoneCurrencies(index);
+      right.push("Use which currency?", "");
+      options.forEach((id, k) => right.push(`${k === c.index ? "▶" : " "} ${currencyName(id)} ×${save.currency[id] ?? 0}`));
+      if (options.length === 0) right.push("  (nothing left that works on this stone)");
+      right.push("", ...this.itemLines(target).slice(0, 14));
+      if (c.result.length) right.push("", ...c.result);
+    } else {
+      right.push(...this.itemLines(target), "", `${this.inputs.prompt("confirm")} craft with currency   ${this.inputs.prompt("salvage")} salvage`);
+    }
+    if (this.message) right.push("", this.message);
+    return { left, right };
   }
 
   private currencyLines(): { left: string[]; right: string[] } {
@@ -707,7 +812,7 @@ export class GameMenu {
     this.footer.setPosition(x + 16, y + h - 26);
     this.left.setPosition(x + 16, y + 48);
     this.right.setPosition(x + 16 + Math.min(560, w * 0.56), y + 48).setWordWrapWidth(w - Math.min(560, w * 0.56) - 32);
-    const close = `[${this.inputs.prompt("cancel")}] ${this.picker || this.craft ? "back" : "close"}`;
+    const close = `[${this.inputs.prompt("cancel")}] ${this.picker || this.craft || this.stoneCraft ? "back" : "close"}`;
     const gearTab = this.tab === "gear";
     this.left.setVisible(!gearTab);
     this.right.setVisible(!gearTab);
@@ -728,6 +833,12 @@ export class GameMenu {
       this.right.setText(right);
       const nav = pad ? "D-pad move   ✕ choose" : "WASD move   Enter choose";
       this.footer.setText(`${nav}   ${close}      Feed duplicate skill gems to level them; sockets grow with level.`);
+    } else if (this.tab === "stones") {
+      const { left, right } = this.stoneLines();
+      this.left.setText(left);
+      this.right.setText(right);
+      const nav = this.stoneCraft ? (pad ? "D-pad pick currency   ✕ use (repeat)" : "W/S pick currency   Enter use (repeat)") : pad ? "D-pad select   ✕ craft   □ salvage" : "W/S select   Enter craft   X salvage";
+      this.footer.setText(`${nav}   ${close}`);
     } else if (this.tab === "currency") {
       const { left, right } = this.currencyLines();
       this.left.setText(left);

@@ -91,5 +91,99 @@
       "weight": 1
     }
   ],
-  "endPackDropTable": "end_pack"
+  "endPackDropTable": "end_pack",
+  "layouts": [
+    {
+      "id": "winding",
+      "name": "Winding Path",
+      "weight": 4
+    },
+    {
+      "id": "expanse",
+      "name": "Wide Expanse",
+      "weight": 2,
+      "mainPath": {
+        "segments": [
+          6,
+          8
+        ],
+        "segmentLength": [
+          9,
+          13
+        ],
+        "halfWidth": [
+          6.5,
+          8.5
+        ],
+        "maxTurnDegrees": 30,
+        "maxHeadingDegrees": 45,
+        "clearingChance": 0.2,
+        "clearingRadius": [
+          7,
+          9
+        ]
+      },
+      "branches": {
+        "chance": 0.25
+      },
+      "gap": 3,
+      "startRadius": 5,
+      "endRadius": 8,
+      "edgeRoughness": 1.2,
+      "pillars": {
+        "density": 0.012,
+        "radius": [
+          0.8,
+          1.6
+        ],
+        "minHalfWidth": 4
+      },
+      "packs": {
+        "spacing": [
+          5,
+          7
+        ],
+        "size": [
+          6,
+          9
+        ],
+        "spread": 2.4,
+        "across": 0.75,
+        "safeStartDistance": 12
+      }
+    },
+    {
+      "id": "halls",
+      "name": "Broken Halls",
+      "weight": 3,
+      "mainPath": {
+        "segments": [
+          22,
+          28
+        ],
+        "halls": {
+          "chance": 0.22,
+          "halfWidth": [
+            4.5,
+            6.5
+          ],
+          "length": [
+            1,
+            2
+          ]
+        }
+      },
+      "pillars": {
+        "density": 0.01,
+        "radius": [
+          0.8,
+          1.4
+        ],
+        "minHalfWidth": 4
+      },
+      "packs": {
+        "across": 0.55
+      }
+    }
+  ]
 }

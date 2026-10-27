@@ -144,7 +144,7 @@ export class GameScene extends Phaser.Scene {
         return refused;
       },
       open: (stoneIndex) => this.openMap(stoneIndex),
-      openMenu: () => this.menu.show("currency"),
+      openMenu: () => this.menu.show("stones"),
     });
     if (!save.currentMap) this.device.show(data.message);
 
@@ -363,7 +363,7 @@ export class GameScene extends Phaser.Scene {
     this.drawBar(this.hud, 16, height - 14, width - 32, 6, Number.isFinite(need) ? p.xp / need : 1, 0xd8b04a, 0x2a2414);
     this.hudText.setPosition(16, 54).setText([
       `HP ${Math.ceil(p.life)}/${Math.round(p.maxLife)}   MP ${Math.floor(p.mana)}/${Math.round(p.maxMana)}`,
-      `Level ${p.level}   ${w.map.name}: monster lvl ${w.monsterLevel} (${biome.name})`,
+      `Level ${p.level}   ${w.map.name}: monster lvl ${w.monsterLevel} (${biome.name}, ${content.zoneGen.layouts.find((l) => l.id === w.zone.layout)?.name ?? w.zone.layout})`,
       `${w.map.mods.length} map mod${w.map.mods.length === 1 ? "" : "s"}: ${rewardLine(content, w.map.mods)}${w.map.deaths ? `   deaths ${w.map.deaths}` : ""}`,
       `Kills ${w.kills}/${w.totalMonsters}   ${formatTime(w.tick / TICK_RATE)}`,
       `Attack [${this.inputs.device === "pad" ? "R2" : "LMB"}]   Dodge [${this.inputs.prompt("dodge")}]   Menu [${this.inputs.prompt("character")}]   Skills [${this.inputs.prompt("inventory")}]`,

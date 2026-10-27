@@ -61,7 +61,7 @@ describe("drop tables", () => {
     const events = step(w, content, idle());
     expect(events.filter((e) => e.type === "death")).toHaveLength(w.totalMonsters);
     expect(w.groundItems.length).toBeGreaterThan(2);
-    expect(w.groundItems.length).toBeLessThan(25);
+    expect(w.groundItems.length).toBeLessThan(40);
   });
 });
 

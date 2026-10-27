@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { content } from "../../data";
 import { buildFlowField, distAt, UNREACHED } from "./flowfield";
-import { generateZone } from "./generate";
+import { generateZone, withLayout } from "./generate";
 import { isFloorAt, tileOf } from "./zone";
 
 const cfg = content.zoneGen;
@@ -42,11 +42,26 @@ describe("generateZone", () => {
   it("produces linear zones of the intended size", () => {
     const zones = SEEDS.map((s) => generateZone(cfg, s));
     for (const z of zones) {
-      expect(z.pathLength).toBeGreaterThan(cfg.mainPath.segments[0] * cfg.mainPath.segmentLength[0]);
+      const l = withLayout(cfg, cfg.layouts.find((x) => x.id === z.layout));
+      expect(z.pathLength).toBeGreaterThan(l.mainPath.segments[0] * l.mainPath.segmentLength[0]);
       expect(z.packs.filter((p) => p.kind === "end")).toHaveLength(1);
     }
     // Branches are optional per zone but should show up regularly.
     const withBranches = zones.filter((z) => z.branchEnds.length > 0).length;
     expect(withBranches / zones.length).toBeGreaterThan(0.6);
+  });
+
+  it("every layout shows up and always generates", () => {
+    const seen = new Map<string, { n: number; width: number }>();
+    for (let i = 0; i < 300; i++) {
+      const z = generateZone(cfg, i * 104729 + 7);
+      const floor = z.tiles.filter((t) => t).length;
+      const e = seen.get(z.layout) ?? { n: 0, width: 0 };
+      seen.set(z.layout, { n: e.n + 1, width: e.width + floor / z.pathLength });
+    }
+    expect([...seen.keys()].sort()).toEqual(cfg.layouts.map((l) => l.id).sort());
+    // The expanse is much wider (floor per tile of path) than the winding corridor.
+    const w = (id: string) => seen.get(id)!.width / seen.get(id)!.n;
+    expect(w("expanse")).toBeGreaterThan(w("winding") * 2);
   });
 });

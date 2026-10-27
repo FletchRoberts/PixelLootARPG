@@ -14,6 +14,7 @@ export interface PackSpawn {
 export interface Zone {
   seed: number;
   biome: string;
+  layout: string; // zone-gen.json layouts id ("winding", "expanse", "halls")
   width: number; // tiles
   height: number;
   tileSize: number; // px
