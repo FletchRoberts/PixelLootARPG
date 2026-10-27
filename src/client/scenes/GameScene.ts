@@ -23,6 +23,7 @@ import {
 } from "../../sim/world";
 import { xpToNext } from "../../sim/stats/character";
 import { freeMap, rewardLine } from "../../sim/items/cairnstone";
+import { pointsLeft } from "../../sim/passives/tree";
 import { newCharacter } from "../../sim/items/save";
 import type { CairnstoneItem, CharacterSave } from "../../sim/items/types";
 import { itemColor, itemName, itemTextureKey } from "../ui/items";
@@ -246,6 +247,7 @@ export class GameScene extends Phaser.Scene {
     }
     if (this.inputs.pressed("character")) return this.menu.show("character");
     if (this.inputs.pressed("inventory")) return this.menu.show("gear");
+    if (this.inputs.pressed("passives")) return this.menu.show("passives");
 
     this.accumulator += Math.min(deltaMs / 1000, DT * MAX_STEPS_PER_FRAME);
     const input = this.readInput();
@@ -471,17 +473,18 @@ export class GameScene extends Phaser.Scene {
     // XP bar along the bottom edge.
     const { width, height } = this.scale;
     this.drawBar(this.hud, 16, height - 14, width - 32, 6, Number.isFinite(need) ? p.xp / need : 1, 0xd8b04a, 0x2a2414);
+    const unspent = pointsLeft(p.save, p.level, content.progression);
     const hideout = [
       `HP ${Math.ceil(p.life)}/${Math.round(p.maxLife)}   MP ${Math.floor(p.mana)}/${Math.round(p.maxMana)}`,
       `Level ${p.level}   Hideout (safe)   best map level ${p.save.bestMapLevel}   Cairnstones ${p.save.stoneBag.length}`,
       `Walk to a station and press ${this.inputs.prompt("pickup")}: Map Device (run maps), Stash (storage), Crafting Bench`,
-      `Menu [${this.inputs.prompt("character")}]   Gear [${this.inputs.prompt("inventory")}]`,
+      `Menu [${this.inputs.prompt("character")}]   Gear [${this.inputs.prompt("inventory")}]${unspent > 0 ? `   ${unspent} passive point${unspent === 1 ? "" : "s"} to spend (Menu → Passives)` : ""}`,
     ];
     this.hudText.setPosition(16, 54).setText(w.map.hideout ? hideout : [
       `HP ${Math.ceil(p.life)}/${Math.round(p.maxLife)}   MP ${Math.floor(p.mana)}/${Math.round(p.maxMana)}`,
       `Level ${p.level}   ${w.map.name}: monster lvl ${w.monsterLevel} (${biome.name}, ${content.zoneGen.layouts.find((l) => l.id === w.zone.layout)?.name ?? w.zone.layout})`,
       `${w.map.mods.length} map mod${w.map.mods.length === 1 ? "" : "s"}: ${rewardLine(content, w.map.mods)}${w.map.deaths ? `   deaths ${w.map.deaths}` : ""}`,
-      `Kills ${w.kills}/${w.totalMonsters}   ${formatTime(w.tick / TICK_RATE)}`,
+      `Kills ${w.kills}/${w.totalMonsters}   ${formatTime(w.tick / TICK_RATE)}${unspent > 0 ? `   ${unspent} passive point${unspent === 1 ? "" : "s"} to spend (Menu → Passives)` : ""}`,
       `Attack [${this.inputs.device === "pad" ? "R2" : "LMB"}]   Dodge [${this.inputs.prompt("dodge")}]   Portal [${this.inputs.device === "pad" ? "D-pad ↑" : "T"}]   Menu [${this.inputs.prompt("character")}]   Gear [${this.inputs.prompt("inventory")}]`,
     ]);
     const player = this.views.get(p.id)?.sprite;

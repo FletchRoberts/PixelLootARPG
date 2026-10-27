@@ -35,7 +35,9 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 | Skill 1 / 2 / 3 / 4 | Right click / Q / E / R | R1 / □ / △ / L1 |
 | Dodge roll | Space | ○ |
 | **Pick up** the highlighted item | F | ✕ |
-| Menu (Character / Gear / Gems / Stones / Currency / Debug, pauses the game) | C | Options |
+| Menu (Character / Passives / Gear / Gems / Stones / Currency / Debug, pauses the game) | C | Options |
+| Straight to the passive tree | P | Options → R1 |
+| Passive tree: move / allocate / refund / zoom | WASD / Enter / X / Z | D-pad / ✕ / □ / △ |
 | Use a hideout station (Map Device, Stash, Crafting Bench) or a portal | F | ✕ |
 | **Open a portal** to the hideout (in a map) | T | D-pad ↑ |
 | Salvage the selected bag item (Gear tab) | X | □ |
@@ -76,8 +78,13 @@ Controller: plug it in, open the page, press any button. A "Controller connected
    - **Wardens** (Hollow Warden, Cinder Matron, Frostbound Sentinel) can be normal, magic or rare, with mods.
    - Sometimes a **Titan** (Rift Colossus, The Ashen King) appears instead: much tougher, **enrages** at half life, drops a lot.
    - The boss's bar, rarity and mods show along the top of the screen.
-8. **Portal:** in a map, press **D-pad ↑ / T** to open a portal. Walk to it and press **✕** to go to the hideout (stash loot, craft, swap gear), then use the portal by the entrance to go back: same map, same progress. (Refreshing the page while home restarts that map.)
-9. **Menu → Gear** (touchpad / I goes straight there):
+8. **Passive tree** (Menu → R1 to **Passives**, or P): you get 1 point per level.
+   - The tree starts in the middle: **Intelligence** (spells, mana) up, **Dexterity** (projectiles, attack speed, evasion) lower right, **Strength** (life, armour, melee) lower left, with hybrid sectors between them (Frost and Flight, Blade and Blood, Fire and Ruin).
+   - **D-pad** hops to the nearest node in that direction, **✕** allocates (it must connect to what you have), **□** refunds (only nodes nothing else depends on; free below level 10, then 1 **Lethe Ash** each), **△** zooms.
+   - Bright outline = you can take it now; gold = taken. The side panel shows the node's stats and the **green/red change** to your life, defences and skill DPS.
+   - **Notables** (big gold nodes) are strong bundles; **Keystones** (purple, at the edge) change the rules, e.g. *Twin Cast* (your spells Echo, but less spell damage) or *Endless Volley* (+2 projectiles, less damage each).
+9. **Portal:** in a map, press **D-pad ↑ / T** to open a portal. Walk to it and press **✕** to go to the hideout (stash loot, craft, swap gear), then use the portal by the entrance to go back: same map, same progress. (Refreshing the page while home restarts that map.)
+10. **Menu → Gear** (touchpad / I goes straight there):
    - The top 9 rows are your equipment slots; below them is the gear in your bag.
    - Select an item to see its tooltip: item level, requirements, its mods with their **tier** (T1 is best).
    - Under the tooltip, **green and red lines show exactly what would change** if you equip it (life, defences, resistances, attributes, move speed, and the DPS of your attack and each skill), followed by what you're currently wearing in that slot. On an equipped item it shows what you'd lose by taking it off.
@@ -86,23 +93,23 @@ Controller: plug it in, open the page, press any button. A "Controller connected
    - **□ / X salvages** a bag item into currency fragments (rares and uniques ask you to press twice). Equipped items can't be salvaged.
    - Better items need a **level** and sometimes **Strength / Dexterity / Intelligence**. Attribute mods on other gear can get you there.
    - The **weapon decides your R2 attack**: swords swing, bows shoot arrows, wands fire lightning bolts. Take your weapon off and you punch.
-10. **Uniques change your skills.** Examples: *Duplicator's Coil* gives every projectile skill Volley, *Glacier Heart* adds cold damage to everything, *The Patient Blade* makes your attacks Echo.
-11. **Menu → Gems:** equip skill gems on your 4 buttons and socket support gems.
+11. **Uniques change your skills.** Examples: *Duplicator's Coil* gives every projectile skill Volley, *Glacier Heart* adds cold damage to everything, *The Patient Blade* makes your attacks Echo.
+12. **Menu → Gems:** equip skill gems on your 4 buttons and socket support gems.
    - **Level a skill gem by feeding it a duplicate**: press ✕ on the equipped gem and choose "Level up: feed a copy". The copy adds its own level, up to level 10. Sockets grow at levels 3, 6 and 9 (2 → 5).
    - At max level, extra copies just become a fresh gem to level.
    - Support gems don't level; extra copies let you socket the same support into several skills.
    - Taking a skill gem off (or swapping it) puts its supports back in your bag.
-12. **Menu → Stones** (works anywhere, also mid-map): your Cairnstones, best first. ✕ on a stone lists the currencies you own that work on it; ✕ uses one (keep pressing to keep crafting), and the changed lines show as + / −. □ / X salvages a stone.
-13. **Menu → Currency** (L1/R1 to the 5th tab):
+13. **Menu → Stones** (works anywhere, also mid-map): your Cairnstones, best first. ✕ on a stone lists the currencies you own that work on it; ✕ uses one (keep pressing to keep crafting), and the changed lines show as + / −. □ / X salvages a stone.
+14. **Menu → Currency** (L1/R1 to the 5th tab):
    - Lists every currency with how many you have, and fragment progress (e.g. "fragments 7/10"). **10 fragments turn into the full currency automatically.**
    - Pick a currency with ✕, then pick an item (worn gear, bag gear, Cairnstones, or skill gems for Cutter's Prism). Only items it works on are listed. The item's tooltip shows below.
    - ✕ uses it. You stay on the same item, so you can keep pressing ✕ to keep crafting. The lines that changed show as **+** (gained) and **−** (lost). ○ goes back.
    - Currencies: **Whetstone Shard** normal → magic · **Tinker's Spark** reroll a magic item · **Gilded Seal** add a mod to magic · **Crown Ember** magic → rare · **Binding Coin** normal → rare · **Riftglass** add a mod to a rare · **Unmaking Salt** remove a mod · **Chaos Thread** swap one mod on a rare · **Lodestone** reroll the numbers · **Void Pearl** corrupt (gamble; the item is then locked) · **Cutter's Prism** +1 skill gem level.
    - **Salvage** rows at the bottom clear your bags in bulk: all normal / magic / rare gear (rare asks twice; uniques never), spare support gems (keeps one of each), spare skill gems (keeps the best copy).
    - Salvage gives: normal → Whetstone Fragment, magic → Crown Ember Fragment, rare → Chaos Thread Fragment, unique → 3 Void Pearl Fragments, gems → Cutter's Prism Fragments.
-14. Higher-level maps drop **higher item level** gear: better bases and stronger mod tiers.
-15. **Dying** keeps everything and costs 10% of your current level's XP (never a level). You retry the same map.
-16. **Menu → Debug** can spawn random gear of any rarity, any unique, rare weapons, Cairnstones, any gem, 5 of every currency, or reset the character.
+15. Higher-level maps drop **higher item level** gear: better bases and stronger mod tiers.
+16. **Dying** keeps everything and costs 10% of your current level's XP (never a level). You retry the same map.
+17. **Menu → Debug** can spawn random gear of any rarity, any unique, rare weapons, Cairnstones, any gem, 5 of every currency, or reset the character.
 
 ## Reading the screen
 
@@ -117,11 +124,9 @@ Controller: plug it in, open the page, press any button. A "Controller connected
 
 ## New in this version
 
-- **Bosses every map:** Wardens (with rarity) and rare Titans (super bosses that enrage); the exit opens when the boss dies.
-- **New enemies** with ranged attacks, slams, novas and summons, all readable and dodgeable.
-- **Monster rarity:** magic, rare and Legendary packs with mods; they hit harder and drop much better loot.
-- **Loot rebalance:** normal monsters drop less; rare packs and bosses drop a lot more (especially currency).
-- **Portal:** D-pad ↑ / T opens a portal home mid-map; come back to the same map.
+- **Passive tree:** a 214-node tree in the menu's new **Passives** tab. You get 1 point per level; the HUD reminds you when points are unspent.
+- **Keystones** at the edge change how you play: Twin Cast (your spells Echo), Endless Volley (+2 projectiles), Piercing Doctrine, Vampiric Pact, Juggernaut's Oath, Cataclysm.
+- **Lethe Ash**, a new currency that refunds passive points (refunds are free below level 10).
 
 ## Extras
 

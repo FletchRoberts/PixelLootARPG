@@ -26,7 +26,9 @@ export type Action =
   | "tabPrev"
   | "tabNext"
   | "salvage"
-  | "portal";
+  | "portal"
+  | "zoom"
+  | "passives";
 
 interface Binding {
   keys: string[]; // Phaser key names
@@ -51,6 +53,8 @@ const BINDINGS: Record<Action, Binding> = {
   tabNext: { keys: ["TAB"], pad: ["r1"], label: "Tab" },
   salvage: { keys: ["X"], pad: ["square"], label: "X" }, // menus only (□ is a skill in gameplay)
   portal: { keys: ["T"], pad: ["up"], label: "T" }, // gameplay: D-pad up opens a portal to the hideout
+  zoom: { keys: ["Z"], pad: ["triangle"], label: "Z" }, // passive tree zoom
+  passives: { keys: ["P"], pad: [], label: "P" }, // straight to the passive tree
 };
 
 const ATTACK_PAD: PadButton[] = ["r2"];

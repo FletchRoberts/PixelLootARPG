@@ -1,5 +1,6 @@
 // Pause menu with tabs:
 //   Character  stats sheet
+//   Passives   the passive tree (PassiveTreeView)
 //   Gear       equipment slots and the gear bag, with tooltips, comparison and salvage
 //   Gems       skill gems on the four buttons, support gems in their sockets
 //   Stones     Cairnstones in the bag: craft them with currency, salvage
@@ -13,6 +14,8 @@ import { compareWorlds, type StatChange } from "../../sim/items/compare";
 import { allTargets, currencyProblem, salvageYield, targetItem, type BulkSalvage, type CraftTarget } from "../../sim/items/crafting";
 import { supportFitsTarget } from "../../sim/items/inventory";
 import { EQUIP_SLOTS, type EquipSlot, type GearItem, type GemItem, type SocketTarget } from "../../sim/items/types";
+import { PassiveTreeView } from "./PassiveTree";
+import { totalPoints } from "../../sim/passives/tree";
 import { currencyName, gearTooltip, itemColor, itemName, RARITY_COLOR, stoneTooltip } from "./items";
 import { describeSkill } from "../../sim/skills/describe";
 import { xpToNext } from "../../sim/stats/character";
@@ -20,8 +23,8 @@ import { computeStat } from "../../sim/stats/stats";
 import { skillSummary, SKILL_SLOTS, type InventoryCommand, type WorldState } from "../../sim/world";
 import type { InputManager } from "../input/InputManager";
 
-export type MenuTab = "character" | "gear" | "gems" | "stones" | "currency" | "debug";
-const TABS: MenuTab[] = ["character", "gear", "gems", "stones", "currency", "debug"];
+export type MenuTab = "character" | "passives" | "gear" | "gems" | "stones" | "currency" | "debug";
+const TABS: MenuTab[] = ["character", "passives", "gear", "gems", "stones", "currency", "debug"];
 const STONE_RARITY_ORDER = { rare: 0, magic: 1, normal: 2 } as const;
 const FULL_CURRENCIES = content.currencies.filter((c) => !c.combine);
 const fragmentOf = (id: string) => content.currencies.find((c) => c.combine?.into === id);
@@ -82,6 +85,7 @@ export class GameMenu {
   private confirmSalvage: number | null = null; // uid of a rare/unique waiting for a second salvage press
   private craft: { currency: string; index: number; result: string[] } | null = null; // choosing a target for currency
   private stoneCraft: { uid: number; index: number; result: string[] } | null = null; // choosing a currency for a stone
+  private tree: PassiveTreeView;
 
   constructor(
     private scene: Phaser.Scene,
@@ -102,8 +106,9 @@ export class GameMenu {
       cmpTitle: scene.add.text(0, 0, "", { ...FONT, fontSize: "13px" }),
       cmpBody: scene.add.text(0, 0, "", { ...FONT, fontSize: "12px", color: "#9a9aa6", lineSpacing: 2 }),
     };
+    this.tree = new PassiveTreeView(scene, inputs, world, { command: (cmd) => actions.command(cmd), preview: (cmd) => actions.preview(cmd) });
     this.root = scene.add
-      .container(0, 0, [this.bg, this.header, this.left, this.right, this.footer, ...this.gearRows, ...this.diffRows, this.tip.title, this.tip.body, this.tip.cmpTitle, this.tip.cmpBody])
+      .container(0, 0, [this.bg, this.header, this.left, this.right, this.footer, ...this.gearRows, ...this.diffRows, this.tip.title, this.tip.body, this.tip.cmpTitle, this.tip.cmpBody, ...this.tree.objects])
       .setScrollFactor(0)
       .setDepth(35_000)
       .setVisible(false);
@@ -156,6 +161,7 @@ export class GameMenu {
     }
     if (this.tab === "gear") this.updateGear();
     if (this.tab === "gems") this.updateInventory();
+    if (this.tab === "passives") this.tree.update();
     if (this.tab === "stones") this.updateStones();
     if (this.tab === "currency") this.updateCurrency();
     if (this.tab === "debug") this.updateDebug();
@@ -806,16 +812,24 @@ export class GameMenu {
     const x = (width - w) / 2;
     const y = Math.max(16, (height - h) / 2 - 20);
     this.bg.setPosition(x, y).setSize(w, h);
-    const tabs = TABS.map((t) => (t === this.tab ? `[ ${t.toUpperCase()} ]` : `  ${t}  `)).join("  ");
+    const tabs = TABS.map((t) => (t === this.tab ? `[${t.toUpperCase()}]` : ` ${t} `)).join(" ");
     const pad = this.inputs.device === "pad";
-    this.header.setPosition(x + 16, y + 12).setText(`${pad ? "L1" : "Q"} ◀  ${tabs}  ▶ ${pad ? "R1" : "Tab"}      (game paused)`);
+    this.header.setPosition(x + 16, y + 12).setText(`${pad ? "L1" : "Q"} ◀ ${tabs} ▶ ${pad ? "R1" : "Tab"}`);
     this.footer.setPosition(x + 16, y + h - 26);
     this.left.setPosition(x + 16, y + 48);
     this.right.setPosition(x + 16 + Math.min(560, w * 0.56), y + 48).setWordWrapWidth(w - Math.min(560, w * 0.56) - 32);
     const close = `[${this.inputs.prompt("cancel")}] ${this.picker || this.craft || this.stoneCraft ? "back" : "close"}`;
     const gearTab = this.tab === "gear";
-    this.left.setVisible(!gearTab);
-    this.right.setVisible(!gearTab);
+    const treeTab = this.tab === "passives";
+    this.left.setVisible(!gearTab && !treeTab);
+    this.right.setVisible(!gearTab && !treeTab);
+    this.tree.setVisible(treeTab);
+    if (treeTab) {
+      for (const t of [...this.gearRows, ...this.diffRows, this.tip.title, this.tip.body, this.tip.cmpTitle, this.tip.cmpBody]) t.setVisible(false);
+      this.tree.render(x + 16, y + 44, w - 32, h - 80);
+      this.footer.setText(`${pad ? "D-pad move   ✕ allocate   □ refund   △ zoom" : "WASD move   Enter allocate   X refund   Z zoom"}   ${close}`);
+      return;
+    }
     for (const t of [...this.gearRows, ...this.diffRows, this.tip.title, this.tip.body, this.tip.cmpTitle, this.tip.cmpBody]) t.setVisible(gearTab);
     if (gearTab) {
       this.renderGear(x, y, w);
@@ -860,9 +874,10 @@ export class GameMenu {
     const s = p.stats;
     const need = xpToNext(p.level, content.progression);
     const r = (n: number | undefined) => Math.round(n ?? 0);
-    const points = (p.level - 1) * content.progression.passivePointsPerLevel;
+    const points = totalPoints(p.level, content.progression);
+    const unspent = points - p.save.passives.length;
     const lines = [
-      `Level ${p.level}   XP ${r(p.xp)} / ${Number.isFinite(need) ? need : "max"}   Passive points ${points} (tree later)`,
+      `Level ${p.level}   XP ${r(p.xp)} / ${Number.isFinite(need) ? need : "max"}   Passive points ${p.save.passives.length} / ${points}${unspent > 0 ? ` (${unspent} unspent: Passives tab)` : ""}`,
       `Maps cleared ${w.zonesCleared}   Best map level ${p.save.bestMapLevel}   Death costs ${content.progression.deathXpPenalty}% of a level's XP (never a level)`,
       ``,
       `Strength ${r(s.strength)}   Dexterity ${r(s.dexterity)}   Intelligence ${r(s.intelligence)}`,

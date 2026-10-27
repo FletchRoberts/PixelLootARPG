@@ -167,12 +167,28 @@ export const fill = (template: string, values: number[]) => template.replace(/\{
 const STAT_LABEL: Record<string, string> = {
   life: "maximum Life",
   mana: "maximum Mana",
+  mana_regen: "Mana Regeneration per second",
+  projectile_count: "Projectiles",
+  crit_bonus: "Critical Strike Multiplier",
   added_physical_min: "minimum Physical Damage to Attacks",
   added_physical_max: "maximum Physical Damage to Attacks",
 };
 
 /** "fire_resistance" → "Fire Resistance" unless there's a better label above. */
 const statLabel = (stat: string) => STAT_LABEL[stat] ?? stat.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+/**
+ * Any modifier as a line of text: "+12 to maximum Life", "10% increased Spell Damage",
+ * "35% less Projectile Damage". Tags become a prefix on the stat name.
+ */
+export function modifierText(m: { stat: string; kind: "flat" | "increased" | "more"; value: number; tags?: string[] }): string {
+  const scope = (m.tags ?? []).map((t) => t[0]!.toUpperCase() + t.slice(1)).join(" ");
+  const label = [scope, statLabel(m.stat)].filter(Boolean).join(" ");
+  const pct = m.stat.endsWith("resistance") || m.stat.endsWith("leech") || m.stat === "crit_bonus" || m.stat === "ignite_chance";
+  if (m.kind === "flat") return `${m.value >= 0 ? "+" : ""}${m.value}${pct ? "%" : ""} to ${label}`;
+  if (m.kind === "increased") return `${Math.abs(m.value)}% ${m.value >= 0 ? "increased" : "reduced"} ${label}`;
+  return `${Math.abs(m.value)}% ${m.value >= 0 ? "more" : "less"} ${label}`;
+}
 
 function rangedText(m: RangedModDef, value: number): string {
   const label = statLabel(m.stat);

@@ -106,6 +106,15 @@ currency, juicier bosses).
 A **large** passive skill tree (hundreds to 1000+ nodes): small nodes, notable
 nodes, keystones, class start positions, clusters/wheels. Defined entirely as
 data (node id, position, stats, connections). The renderer just draws it.
+Implemented: `src/data/passive-tree.json` is **generated** by
+`node scripts/gen-passive-tree.mjs` (edit the sector themes there, rerun):
+start → inner ring → 6 sectors (Int, Dex, Str + 3 hybrids), each with two
+wheels (rings of small nodes around notables), a side notable and a keystone,
+plus bridges between neighbouring sectors (214 nodes now; add sectors/wheels
+to grow it). 1 point per level after the first. `src/sim/passives/tree.ts`:
+allocate (must touch your tree), refund (only if the rest stays connected;
+free below level 10, then 1 Lethe Ash). Node stats join gear modifiers;
+keystones can `grants` supports like uniques (Twin Cast → Echo on spells).
 
 ### Loot
 
@@ -251,7 +260,9 @@ they show `E` or `✕` depending on the last-used device.
 | dodge roll | Space | ○ |
 | pickup / use station or portal | F | ✕ |
 | open portal to hideout (maps) | T | D-pad ↑ |
-| menu (Character/Gear/Gems/Stones/Currency/Debug tabs) | C | Options |
+| menu (Character/Passives/Gear/Gems/Stones/Currency/Debug tabs) | C | Options |
+| passive tree tab shortcut | P | (Options → R1) |
+| passive tree: allocate / refund / zoom | Enter / X / Z | ✕ / □ / △ |
 | salvage (Gear tab) | X | □ |
 | gear tab shortcut | I | touchpad click |
 | confirm (menus/overlays) | Enter / Space / click | ✕ |
@@ -289,6 +300,7 @@ tsconfig.json             app config (DOM + Phaser)
 tsconfig.sim.json         sim/data-only config (no DOM) — enforces rule 1
 scripts/
   check-boundaries.mjs    forbids rendering imports in sim/data
+  gen-passive-tree.mjs    builds src/data/passive-tree.json from sector themes
 src/
   client/
     main.ts               Phaser.Game config
@@ -296,7 +308,8 @@ src/
     input/InputManager.ts keyboard/mouse + gamepad -> PlayerInput and UI actions
     input/gamepad.ts      standard-mapping buttons, deadzones (pure, tested)
     input/aim.ts          controller aim assist (pure, tested)
-    ui/GameMenu.ts        pause menu: Character, Gear, Gems (sockets), Stones, Currency, Debug tabs
+    ui/GameMenu.ts        pause menu: Character, Passives, Gear, Gems (sockets), Stones, Currency, Debug tabs
+    ui/PassiveTree.ts     passive tree view (hand-clipped drawing, D-pad node hopping, stat preview)
     ui/MapDevice.ts       hideout station: pick a Cairnstone or the free map, salvage stones
     ui/Stash.ts           hideout station: bag ⇄ stash per tab (gear, gems, stones)
     ui/items.ts           item names, rarity colours, icon keys, gear tooltips
@@ -331,6 +344,7 @@ src/
     zone/hideout.ts       the hideout room (Zone with stations, no packs) and its MapRun
     monsters/attacks.ts   monster attacks: projectiles, telegraphed slams/novas, summons; hits on the player
     monsters/rarity.ts    pack rarity (magic / rare / Legendary), monster mods, applyRarity
+    passives/tree.ts      passive points, allocate / refund (connectivity), passive modifiers + grants
   data/
     characters.json       player characters (base stats, attributes, starting weapon, sprite)
     weapons.json          weapon bases and the attack each grants (a DeliveryDef)
@@ -357,6 +371,7 @@ src/
     cairnstones.json      stone bag size, rarity weights, level-up chance, free map rules, maxDeaths
     map-mods.json         map mods (affix format, tiers gated by stone level; danger + reward stats)
     hideout.json          hideout room size, station positions, interact range, stash sizes
+    passive-tree.json     GENERATED passive tree (scripts/gen-passive-tree.mjs): nodes, positions, stats, links
     index.ts              typed content loader
 docs/
   combat.md               stats, damage and defence formulas
@@ -532,6 +547,14 @@ currency, repeatable; salvage). Map **layouts** (see Zones).
 - **Loot rebalance:** trash drops ~12% (gear 4%, currency 4% ×1–2, gems
   3.5%, stones 0.5%); rare/Legendary monsters and bosses carry the loot.
 
+**Passive tree (done):** 214-node tree (see "Character passive tree"),
+Passives menu tab (P on keyboard): D-pad hops to the nearest node in that
+direction, ✕ allocate, □ refund, △ zoom; side panel with node stats and the
+green/red change to your stats (`compareWorlds` on a previewed world).
+Keystones: Twin Cast, Piercing Doctrine, Endless Volley, Vampiric Pact,
+Juggernaut's Oath, Cataclysm. New currency Lethe Ash (refunds). Save v6 adds
+`passives`. HUD nags about unspent points.
+
 ### Balance & feel backlog (revisit after gear)
 
 - Cast on Kill chains: cooldown (0.3 s) and damage penalty feel; whether
@@ -554,6 +577,8 @@ currency, repeatable; salvage). Map **layouts** (see Zones).
   monster mods) so accuracy and the accuracy affix earn their place. Player
   evasion already works against monster accuracy.
 - Gem drop rates now need duplicates for levelling: tune skill gem weights.
+- Passive tree values (small node sizes, notables, keystone trade-offs) and
+  1 point per level are first guesses.
 - Monster/boss numbers are first guesses: rarity multipliers, boss life
   (Wardens 330–480 × level scaling, Titans 1250–1500), Titan chance 8%,
   enrage, attack damage/cooldowns; loot from rare packs and bosses.
@@ -580,8 +605,9 @@ currency, repeatable; salvage). Map **layouts** (see Zones).
 5. ~~Monsters: enemy types, rarity, bosses, loot rebalance~~ (done). Next
    candidates: map mods that affect monster rarity / boss (e.g. "+1 rare
    pack", "Titan guaranteed"), more boss abilities (charges, phases).
-6. The Reach, passive tree, map mechanics (free maps should also roll
-   low-tier events then).
+6. ~~Passive tree~~ (done; grow it: more sectors/wheels, class starts, masteries).
+7. The Reach, map mechanics (free maps should also roll low-tier events then),
+   loot filter + stacked/navigable ground labels.
 
 **Controller support (done):** DualSense/Xbox via the browser Gamepad API,
 twin-stick aim with aim assist, rumble on hits/death, prompts swap between
