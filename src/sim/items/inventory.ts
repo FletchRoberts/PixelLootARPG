@@ -1,9 +1,11 @@
-// Inventory commands on the saved character: equip skill gems, socket supports.
+// Inventory commands on the saved character: equip gear and skill gems, socket supports.
+// Gear, gems and currency live in separate places: gearBag, gemBag and the currency stash.
 // Each returns null on success or a short reason it was refused. Pure: no world access.
 
 import { supportFits, weaponAttackSkill } from "../skills/compile";
 import type { SkillDef, SupportDef } from "../skills/types";
-import type { GemRules, ItemBase, WeaponDef } from "../data/types";
+import type { Currency, GearRules, GemRules, ItemBase, WeaponDef } from "../data/types";
+import { addCurrency } from "./crafting";
 import { requirementProblem, slotAccepts, slotFor } from "./gear";
 import { raiseGemLevel } from "./gems";
 import type { CharacterSave, EquipSlot, GemItem, Item, SocketTarget } from "./types";
@@ -11,16 +13,31 @@ import type { CharacterSave, EquipSlot, GemItem, Item, SocketTarget } from "./ty
 export interface InventoryContent {
   itemBases: ItemBase[];
   gems: GemRules;
+  gear: GearRules;
+  currencies: Currency[];
   skills: SkillDef[];
   supports: SupportDef[];
   weapons: WeaponDef[];
 }
 
+/** Put an item where it belongs: gear bag, gem bag, or the currency stash (never full). */
 export function addToBag(save: CharacterSave, item: Item, content: InventoryContent): boolean {
-  if (save.bag.length >= content.gems.bagSize) return false;
-  save.bag.push(item);
+  if (item.kind === "currency") {
+    addCurrency(save, item.id, item.count, content);
+    return true;
+  }
+  if (item.kind === "gear") {
+    if (save.gearBag.length >= content.gear.bagSize) return false;
+    save.gearBag.push(item);
+    return true;
+  }
+  if (save.gemBag.length >= content.gems.bagSize) return false;
+  save.gemBag.push(item);
   return true;
 }
+
+/** Which bag an item would go into, for "gem bag is full" messages. */
+export const bagOf = (item: Item): "gear" | "gems" | "currency" => (item.kind === "gear" ? "gear" : item.kind === "currency" ? "currency" : "gems");
 
 /** The weapon attack follows the equipped weapon; no weapon = fists. */
 function syncWeapon(save: CharacterSave, content: InventoryContent): void {
@@ -36,8 +53,8 @@ export function equipGear(
   character: { level: number; strength: number; dexterity: number; intelligence: number },
   content: InventoryContent,
 ): string | null {
-  const item = save.bag[bagIndex];
-  if (!item || item.kind !== "gear") return "not equipment";
+  const item = save.gearBag[bagIndex];
+  if (!item) return "not equipment";
   const base = content.itemBases.find((b) => b.id === item.base);
   if (!base) return "unknown item";
   const target = slot ?? slotFor(base, save.equipment);
@@ -46,8 +63,8 @@ export function equipGear(
   if (problem) return problem;
   const old = save.equipment[target];
   save.equipment[target] = item;
-  if (old) save.bag[bagIndex] = old;
-  else save.bag.splice(bagIndex, 1);
+  if (old) save.gearBag[bagIndex] = old;
+  else save.gearBag.splice(bagIndex, 1);
   syncWeapon(save, content);
   return null;
 }
@@ -55,7 +72,7 @@ export function equipGear(
 export function unequipGear(save: CharacterSave, slot: EquipSlot, content: InventoryContent): string | null {
   const item = save.equipment[slot];
   if (!item) return "slot is empty";
-  if (!addToBag(save, item, content)) return "bag is full";
+  if (!addToBag(save, item, content)) return "gear bag is full";
   delete save.equipment[slot];
   syncWeapon(save, content);
   return null;
@@ -73,17 +90,17 @@ function emptySockets(gem: GemItem): GemItem[] {
  * and its socketed supports come out into the bag too.
  */
 export function equipSkill(save: CharacterSave, bagIndex: number, slot: number, content: InventoryContent): string | null {
-  const gem = save.bag[bagIndex];
+  const gem = save.gemBag[bagIndex];
   if (!gem || gem.kind !== "skill_gem") return "not a skill gem";
   if (slot < 0 || slot >= save.skillBar.length) return "no such slot";
   const old = save.skillBar[slot];
   const freed = old?.sockets?.filter(Boolean).length ?? 0;
-  if (save.bag.length + freed > content.gems.bagSize) return "bag is full";
+  if (save.gemBag.length + freed > content.gems.bagSize) return "gem bag is full";
   save.skillBar[slot] = gem;
   if (old) {
-    save.bag[bagIndex] = old;
-    save.bag.push(...emptySockets(old));
-  } else save.bag.splice(bagIndex, 1);
+    save.gemBag[bagIndex] = old;
+    save.gemBag.push(...emptySockets(old));
+  } else save.gemBag.splice(bagIndex, 1);
   return null;
 }
 
@@ -92,8 +109,8 @@ export function unequipSkill(save: CharacterSave, slot: number, content: Invento
   const gem = save.skillBar[slot];
   if (!gem) return "slot is empty";
   const freed = gem.sockets?.filter(Boolean).length ?? 0;
-  if (save.bag.length + 1 + freed > content.gems.bagSize) return "bag is full";
-  save.bag.push(gem, ...emptySockets(gem));
+  if (save.gemBag.length + 1 + freed > content.gems.bagSize) return "gem bag is full";
+  save.gemBag.push(gem, ...emptySockets(gem));
   save.skillBar[slot] = null;
   return null;
 }
@@ -104,12 +121,12 @@ export function unequipSkill(save: CharacterSave, slot: number, content: Invento
  */
 export function levelSkillGem(save: CharacterSave, slot: number, copyBagIndex: number, content: InventoryContent): string | null {
   const gem = save.skillBar[slot];
-  const copy = save.bag[copyBagIndex];
+  const copy = save.gemBag[copyBagIndex];
   if (!gem) return "no skill gem there";
   if (!copy || copy.kind !== "skill_gem" || copy.defId !== gem.defId) return "needs a copy of the same skill gem";
   if (gem.level >= content.gems.maxLevel) return "already max level";
-  save.bag.splice(copyBagIndex, 1);
-  save.bag.push(...emptySockets(copy)); // supports left in the copy aren't destroyed
+  save.gemBag.splice(copyBagIndex, 1);
+  save.gemBag.push(...emptySockets(copy)); // supports left in the copy aren't destroyed
   raiseGemLevel(gem, copy.level, content.gems);
   return null;
 }
@@ -134,7 +151,7 @@ export function supportFitsTarget(save: CharacterSave, supportId: string, target
 
 /** Socket a support gem from the bag; whatever was in that socket goes back to the bag. */
 export function socketSupport(save: CharacterSave, bagIndex: number, target: SocketTarget, socket: number, content: InventoryContent): string | null {
-  const gem = save.bag[bagIndex];
+  const gem = save.gemBag[bagIndex];
   if (!gem || gem.kind !== "support_gem") return "not a support gem";
   const sockets = socketsOf(save, target);
   if (!sockets) return "no skill there";
@@ -142,8 +159,8 @@ export function socketSupport(save: CharacterSave, bagIndex: number, target: Soc
   if (!supportFitsTarget(save, gem.defId, target, content)) return "doesn't fit this skill";
   const old = sockets[socket];
   sockets[socket] = gem;
-  if (old) save.bag[bagIndex] = old;
-  else save.bag.splice(bagIndex, 1);
+  if (old) save.gemBag[bagIndex] = old;
+  else save.gemBag.splice(bagIndex, 1);
   return null;
 }
 
@@ -151,7 +168,7 @@ export function unsocket(save: CharacterSave, target: SocketTarget, socket: numb
   const sockets = socketsOf(save, target);
   const gem = sockets?.[socket];
   if (!sockets || !gem) return "socket is empty";
-  if (!addToBag(save, gem, content)) return "bag is full";
+  if (!addToBag(save, gem, content)) return "gem bag is full";
   sockets[socket] = null;
   return null;
 }

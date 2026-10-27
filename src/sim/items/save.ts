@@ -26,7 +26,7 @@ export function normalItem(base: ItemBase, uid: number, ilvl = 1): GearItem {
 export function newCharacter(content: SaveContent, seed: number, characterId = "hero"): CharacterSave {
   const hero = content.characters.find((c) => c.id === characterId) ?? content.characters[0]!;
   const save: CharacterSave = {
-    version: 2,
+    version: 3,
     characterId: hero.id,
     level: 1,
     xp: 0,
@@ -35,7 +35,9 @@ export function newCharacter(content: SaveContent, seed: number, characterId = "
     equipment: {},
     skillBar: Array.from({ length: SKILL_BAR_SIZE }, () => null),
     attackSockets: Array.from({ length: content.gems.attackSockets }, () => null),
-    bag: [],
+    gearBag: [],
+    gemBag: [],
+    currency: {},
     nextUid: 1,
   };
   const weaponBase = content.itemBases.find((b) => b.weapon === hero.startingWeapon);
@@ -44,7 +46,7 @@ export function newCharacter(content: SaveContent, seed: number, characterId = "
   if (start) save.skillBar[0] = makeGem(save, "skill_gem", start.id, content.gems);
   const rng = new Rng(seed);
   const support = content.supports[Math.floor(rng.next() * content.supports.length)];
-  if (support) save.bag.push(makeGem(save, "support_gem", support.id, content.gems));
+  if (support) save.gemBag.push(makeGem(save, "support_gem", support.id, content.gems));
   return save;
 }
 
@@ -69,16 +71,25 @@ export function applyDeathPenalty(save: CharacterSave, progression: Progression)
 
 /**
  * Bring an older save up to date. v1 had no equipment: its weapon becomes an equipped
- * normal item. Returns null if the data isn't a recognisable save.
+ * normal item. v2 had one shared bag: it splits into the gear and gem bags. Returns null if
+ * the data isn't a recognisable save.
  */
 export function migrateSave(raw: unknown, content: SaveContent): CharacterSave | null {
-  const s = raw as Partial<CharacterSave> & { version?: number };
-  if (!s || typeof s !== "object" || !Array.isArray(s.skillBar) || !Array.isArray(s.bag)) return null;
-  if (s.version === 2) return s as CharacterSave;
-  if (s.version !== 1) return null;
-  const save = { ...(s as unknown as CharacterSave), version: 2 as const, equipment: {}, nextUid: s.nextUid ?? 1 };
-  const base = content.itemBases.find((b) => b.weapon === save.weapon);
-  if (base) save.equipment = { weapon: normalItem(base, save.nextUid++) };
-  else save.weapon = "unarmed";
+  type Old = Omit<CharacterSave, "version"> & { version?: number; bag?: (GearItem | GemItem)[] };
+  const s = raw as Old;
+  if (!s || typeof s !== "object" || !Array.isArray(s.skillBar)) return null;
+  if (s.version === 3) return Array.isArray(s.gearBag) && Array.isArray(s.gemBag) ? (s as unknown as CharacterSave) : null;
+  if ((s.version !== 1 && s.version !== 2) || !Array.isArray(s.bag)) return null;
+  const save: CharacterSave = { ...s, version: 3, equipment: s.equipment ?? {}, nextUid: s.nextUid ?? 1, gearBag: [], gemBag: [], currency: {} };
+  delete (save as { bag?: unknown }).bag;
+  for (const item of s.bag) {
+    if (item.kind === "gear") save.gearBag.push(item);
+    else save.gemBag.push(item);
+  }
+  if (s.version === 1) {
+    const base = content.itemBases.find((b) => b.weapon === save.weapon);
+    if (base) save.equipment = { weapon: normalItem(base, save.nextUid++) };
+    else save.weapon = "unarmed";
+  }
   return save;
 }

@@ -202,7 +202,7 @@ describe("skill runtime", () => {
   it("equipped gems (with their supports) carry into the next zone", () => {
     const w = createWorld(quiet, 21);
     expect(inventoryCommand(w, quiet, { type: "debug_give", kind: "support_gem", defId: "volley" })).toBeNull();
-    const bagIndex = w.player.save.bag.findIndex((g) => g.kind !== "gear" && g.defId === "volley");
+    const bagIndex = w.player.save.gemBag.findIndex((g) => g.defId === "volley");
     expect(inventoryCommand(w, quiet, { type: "socket", bagIndex, target: { kind: "skill", slot: 0 }, socket: 0 })).toBeNull();
     expect(w.player.compiled[1]!.nodes[0]!.count).toBe(3);
     const next = createWorld(quiet, 3, saveAfterClear(w));

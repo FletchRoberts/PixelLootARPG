@@ -34,8 +34,9 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 | Weapon attack | Hold left click | Hold R2 |
 | Skill 1 / 2 / 3 / 4 | Right click / Q / E / R | R1 / □ / △ / L1 |
 | Dodge roll | Space | ○ |
-| **Pick up** the highlighted gem | F | ✕ |
-| Menu (Character / Gear / Gems / Debug, pauses the game) | C | Options |
+| **Pick up** the highlighted item | F | ✕ |
+| Menu (Character / Gear / Gems / Currency / Debug, pauses the game) | C | Options |
+| Salvage the selected bag item (Gear tab) | X | □ |
 | Straight to Gear | I | Touchpad click (or Options → R1) |
 | Next zone / retry | Enter, Space or click | ✕ |
 
@@ -47,9 +48,11 @@ Controller: plug it in, open the page, press any button. A "Controller connected
 
 1. **Your character is saved in the browser.** Refreshing or closing the page keeps your level, gear, gems and bag. (Menu → Debug → Reset character starts over.)
 2. You start with a **Rusty Sword** equipped, **Frost Bolt** on Skill 1 (R1 / right click) and one random support gem.
-3. **Monsters drop loot**: gear and gems. Names on the floor are coloured by type:
+3. **Monsters drop loot**: gear, gems and currency. Names on the floor are coloured by type:
    - **white** = normal gear, **blue** = magic (1–2 mods), **yellow** = rare (4–6 mods), **orange** = unique,
-   - **teal** = gems.
+   - **teal** = gems, **gold** = currency.
+
+   You have **three separate inventories**: a gear bag (40), a gem bag (40), and a currency stash with no limit.
 
    The closest item shows the pick-up button: **✕ / F**. The end-of-zone pack drops the most.
 4. **Menu → Gear** (touchpad / I goes straight there):
@@ -58,6 +61,7 @@ Controller: plug it in, open the page, press any button. A "Controller connected
    - Under the tooltip, **green and red lines show exactly what would change** if you equip it (life, defences, resistances, attributes, move speed, and the DPS of your attack and each skill), followed by what you're currently wearing in that slot. On an equipped item it shows what you'd lose by taking it off.
    - **Rings:** if a ring slot is free it goes there; if you wear two, press **←/→** to choose which one to replace (the tooltip says "left ring" / "right ring").
    - ✕ / Enter on a bag item **equips** it (whatever was there goes back to the bag). ✕ on a slot **takes it off**.
+   - **□ / X salvages** a bag item into currency fragments (rares and uniques ask you to press twice). Equipped items can't be salvaged.
    - Better items need a **level** and sometimes **Strength / Dexterity / Intelligence**. Attribute mods on other gear can get you there.
    - The **weapon decides your R2 attack**: swords swing, bows shoot arrows, wands fire lightning bolts. Take your weapon off and you punch.
 5. **Uniques change your skills.** Examples: *Duplicator's Coil* gives every projectile skill Volley, *Glacier Heart* adds cold damage to everything, *The Patient Blade* makes your attacks Echo.
@@ -66,9 +70,16 @@ Controller: plug it in, open the page, press any button. A "Controller connected
    - At max level, extra copies just become a fresh gem to level.
    - Support gems don't level; extra copies let you socket the same support into several skills.
    - Taking a skill gem off (or swapping it) puts its supports back in your bag.
-7. Higher zones (monster level) drop **higher item level** gear: better bases and stronger mod tiers.
-8. **Dying** keeps everything and costs 10% of your current level's XP (never a level). You retry the same zone.
-9. **Menu → Debug** can spawn random gear of any rarity, any unique, rare weapons, any gem, or reset the character.
+7. **Menu → Currency** (L1/R1 to the 4th tab):
+   - Lists every currency with how many you have, and fragment progress (e.g. "fragments 7/10"). **10 fragments turn into the full currency automatically.**
+   - Pick a currency with ✕, then pick an item (worn gear, bag gear, or skill gems for Cutter's Prism). Only items it works on are listed. The item's tooltip shows below.
+   - ✕ uses it. You stay on the same item, so you can keep pressing ✕ to keep crafting. The lines that changed show as **+** (gained) and **−** (lost). ○ goes back.
+   - Currencies: **Whetstone Shard** normal → magic · **Tinker's Spark** reroll a magic item · **Gilded Seal** add a mod to magic · **Crown Ember** magic → rare · **Binding Coin** normal → rare · **Riftglass** add a mod to a rare · **Unmaking Salt** remove a mod · **Chaos Thread** swap one mod on a rare · **Lodestone** reroll the numbers · **Void Pearl** corrupt (gamble; the item is then locked) · **Cutter's Prism** +1 skill gem level.
+   - **Salvage** rows at the bottom clear your bags in bulk: all normal / magic / rare gear (rare asks twice; uniques never), spare support gems (keeps one of each), spare skill gems (keeps the best copy).
+   - Salvage gives: normal → Whetstone Fragment, magic → Crown Ember Fragment, rare → Chaos Thread Fragment, unique → 3 Void Pearl Fragments, gems → Cutter's Prism Fragments.
+8. Higher zones (monster level) drop **higher item level** gear: better bases and stronger mod tiers.
+9. **Dying** keeps everything and costs 10% of your current level's XP (never a level). You retry the same zone.
+10. **Menu → Debug** can spawn random gear of any rarity, any unique, rare weapons, any gem, 5 of every currency, or reset the character.
 
 ## Reading the screen
 
@@ -81,10 +92,9 @@ Controller: plug it in, open the page, press any button. A "Controller connected
 
 ## New in this version
 
-- **Ring choice:** with two rings on, ←/→ picks which one a new ring replaces.
-- **Green/red stat changes** when you look at gear: see exactly what you gain and lose before equipping.
-- **Gem levelling changed:** gems no longer level from kills. Feed duplicate copies to level them (max 10).
-- **Supports come back to your bag** when you take a skill gem off or swap it.
+- **Currency drops** (gold names) and a **Currency tab** to craft with them on your gear and gems.
+- **Salvage**: destroy unwanted items for fragments; 10 fragments combine into a full currency.
+- **Separate inventories**: gear bag, gem bag and currency stash. Your old save's bag is split automatically.
 
 ## Extras
 

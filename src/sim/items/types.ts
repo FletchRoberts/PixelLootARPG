@@ -31,9 +31,18 @@ export interface GearItem {
   mods: RolledMod[]; // prefixes and suffixes (magic/rare)
   unique?: string; // uniques.json id
   uniqueValues?: number[]; // rolled values, parallel to the unique's mods
+  corrupted?: boolean; // Void Pearl: no further currency works on it
 }
 
-export type Item = GemItem | GearItem; // currency and Cairnstones join this union later
+/** A stack of currency on the ground. Picked up into the currency stash (save.currency), not a bag. */
+export interface CurrencyItem {
+  uid: number;
+  kind: "currency";
+  id: string; // currencies.json id
+  count: number;
+}
+
+export type Item = GemItem | GearItem | CurrencyItem; // Cairnstones join this union later
 
 export type EquipSlot = "weapon" | "helmet" | "body" | "gloves" | "boots" | "belt" | "amulet" | "ring1" | "ring2";
 export const EQUIP_SLOTS: EquipSlot[] = ["weapon", "helmet", "body", "gloves", "boots", "belt", "amulet", "ring1", "ring2"];
@@ -50,7 +59,7 @@ export type SocketTarget = { kind: "skill"; slot: number } | { kind: "attack" };
 
 /** Everything that persists between zones and browser sessions. */
 export interface CharacterSave {
-  version: 2;
+  version: 3;
   characterId: string;
   level: number;
   xp: number;
@@ -59,6 +68,8 @@ export interface CharacterSave {
   equipment: Partial<Record<EquipSlot, GearItem>>;
   skillBar: (GemItem | null)[]; // one skill gem per button
   attackSockets: (GemItem | null)[]; // supports for the weapon attack
-  bag: Item[];
+  gearBag: GearItem[]; // unequipped gear (gear.bagSize)
+  gemBag: GemItem[]; // unequipped skill and support gems (gems.bagSize)
+  currency: Record<string, number>; // currency id → count; no limit
   nextUid: number;
 }

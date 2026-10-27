@@ -24,7 +24,8 @@ export type Action =
   | "left"
   | "right"
   | "tabPrev"
-  | "tabNext";
+  | "tabNext"
+  | "salvage";
 
 interface Binding {
   keys: string[]; // Phaser key names
@@ -47,6 +48,7 @@ const BINDINGS: Record<Action, Binding> = {
   right: { keys: ["D", "RIGHT"], pad: ["right"], stick: "right", repeat: true, label: "D" },
   tabPrev: { keys: ["Q"], pad: ["l1"], label: "Q" },
   tabNext: { keys: ["TAB"], pad: ["r1"], label: "Tab" },
+  salvage: { keys: ["X"], pad: ["square"], label: "X" }, // menus only (□ is a skill in gameplay)
 };
 
 const ATTACK_PAD: PadButton[] = ["r2"];

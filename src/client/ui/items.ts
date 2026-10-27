@@ -12,18 +12,23 @@ export const RARITY_COLOR: Record<Rarity, string> = {
   unique: "#e08a3a",
 };
 export const GEM_COLOR = "#4ad8c8"; // PoE-style teal for gems
+export const CURRENCY_COLOR = "#d8b86a";
+
+export const currencyName = (id: string) => content.currencies.find((c) => c.id === id)?.name ?? id;
 
 export function itemName(item: Item): string {
+  if (item.kind === "currency") return `${item.count > 1 ? `${item.count}× ` : ""}${currencyName(item.id)}`;
   if (item.kind === "gear") return itemText(content, item).name;
   if (item.kind === "skill_gem") return `${content.skills.find((s) => s.id === item.defId)?.name ?? item.defId}${item.level > 1 ? ` (Lv${item.level})` : ""}`;
   return `${content.supports.find((s) => s.id === item.defId)?.name ?? item.defId} Support`;
 }
 
 export function itemColor(item: Item): string {
-  return item.kind === "gear" ? RARITY_COLOR[item.rarity] : GEM_COLOR;
+  return item.kind === "gear" ? RARITY_COLOR[item.rarity] : item.kind === "currency" ? CURRENCY_COLOR : GEM_COLOR;
 }
 
 export function itemTextureKey(item: Item): string {
+  if (item.kind === "currency") return `currency:${item.id}`;
   return item.kind === "gear" ? `gear:${item.base}` : `gem:${item.kind}:${item.defId}`;
 }
 
@@ -38,5 +43,6 @@ export function gearTooltip(item: GearItem): { title: string; lines: string[] } 
   if (t.mods.length) lines.push("", ...t.mods);
   if (t.grants.length) lines.push("", ...t.grants.map((g) => `★ ${g}`));
   if (t.flavour) lines.push("", `"${t.flavour}"`);
+  if (t.corrupted) lines.push("", "Corrupted");
   return { title: t.name, lines };
 }

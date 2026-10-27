@@ -1,0 +1,49 @@
+{
+  "salvage": {
+    "gear": {
+      "normal": {
+        "currency": "whetstone_fragment",
+        "count": 1
+      },
+      "magic": {
+        "currency": "crown_ember_fragment",
+        "count": 1
+      },
+      "rare": {
+        "currency": "chaos_thread_fragment",
+        "count": 1
+      },
+      "unique": {
+        "currency": "void_pearl_fragment",
+        "count": 3
+      }
+    },
+    "skill_gem": {
+      "currency": "cutters_prism_fragment",
+      "count": 2,
+      "perLevel": 2
+    },
+    "support_gem": {
+      "currency": "cutters_prism_fragment",
+      "count": 1
+    }
+  },
+  "corruption": [
+    {
+      "outcome": "nothing",
+      "weight": 30
+    },
+    {
+      "outcome": "reroll_rare",
+      "weight": 30
+    },
+    {
+      "outcome": "tier_up",
+      "weight": 25
+    },
+    {
+      "outcome": "lose_mod",
+      "weight": 15
+    }
+  ]
+}

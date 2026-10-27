@@ -8,6 +8,8 @@ import { clone } from "./core/clone";
 import { Rng } from "./core/rng";
 import { add, angleOf, dist, len, normalize, scale, sub, type Vec } from "./core/vec";
 import type {
+  CraftingRules,
+  Currency,
   AttributeBonuses,
   Biome,
   Character,
@@ -30,7 +32,8 @@ import type { CompiledNode, CompiledSkill, Loadout, SkillDef, SupportDef } from 
 import { rollDrops } from "./items/drops";
 import { makeGem } from "./items/gems";
 import { equipmentGrants, equipmentModifiers, rollGear, type RollOptions } from "./items/gear";
-import { addToBag, equipGear, equipSkill, levelSkillGem, socketSupport, unequipGear, unequipSkill, unsocket } from "./items/inventory";
+import { addCurrency, applyCurrency, salvage, salvageBulk, type BulkSalvage, type CraftTarget } from "./items/crafting";
+import { addToBag, bagOf, equipGear, equipSkill, levelSkillGem, socketSupport, unequipGear, unequipSkill, unsocket } from "./items/inventory";
 import { applyDeathPenalty, loadoutOf, newCharacter } from "./items/save";
 import type { CharacterSave, EquipSlot, GemItem, GroundItem, Item, SocketTarget } from "./items/types";
 import { gainXp, monsterScale, playerModifiers, playerStats, xpForKill } from "./stats/character";
@@ -67,6 +70,8 @@ export interface SimContent {
   affixes: Affix[];
   uniques: UniqueDef[];
   gear: GearRules;
+  currencies: Currency[];
+  crafting: CraftingRules;
 }
 
 export interface Actor {
@@ -162,7 +167,7 @@ export type SimEvent =
   | { type: "level_up"; level: number }
   | { type: "drop"; itemId: number }
   | { type: "pickup"; item: Item }
-  | { type: "bag_full" }
+  | { type: "bag_full"; bag: "gear" | "gems" | "currency" }
   | { type: "wake"; packId: number }
   | { type: "player_died" }
   | { type: "zone_complete" };
@@ -268,7 +273,11 @@ export type InventoryCommand =
   | { type: "equip_gear"; bagIndex: number; slot?: EquipSlot }
   | { type: "unequip_gear"; slot: EquipSlot }
   | { type: "debug_give"; kind: GemItem["kind"]; defId: string }
-  | { type: "debug_give_gear"; opts: RollOptions; seed: number };
+  | { type: "debug_give_gear"; opts: RollOptions; seed: number }
+  | { type: "apply_currency"; currency: string; target: CraftTarget }
+  | { type: "salvage"; bag: "gear" | "gems"; index: number }
+  | { type: "salvage_bulk"; what: BulkSalvage }
+  | { type: "debug_give_currency"; currency: string; count: number };
 
 /** Change equipped gems. Returns null on success or why it was refused. */
 export function inventoryCommand(world: WorldState, content: SimContent, cmd: InventoryCommand): string | null {
@@ -291,7 +300,7 @@ export function inventoryCommand(world: WorldState, content: SimContent, cmd: In
       result = unsocket(save, cmd.target, cmd.socket, content);
       break;
     case "debug_give":
-      result = addToBag(save, makeGem(save, cmd.kind, cmd.defId, content.gems), content) ? null : "bag is full";
+      result = addToBag(save, makeGem(save, cmd.kind, cmd.defId, content.gems), content) ? null : "gem bag is full";
       break;
     case "equip_gear": {
       const s = world.player.stats;
@@ -304,9 +313,26 @@ export function inventoryCommand(world: WorldState, content: SimContent, cmd: In
     case "debug_give_gear": {
       const item = rollGear(content, new Rng(cmd.seed), world.monsterLevel, save.nextUid, cmd.opts);
       if (item) save.nextUid++;
-      result = !item ? "nothing fits" : addToBag(save, item, content) ? null : "bag is full";
+      result = !item ? "nothing fits" : addToBag(save, item, content) ? null : "gear bag is full";
       break;
     }
+    case "apply_currency": {
+      // Crafting rolls come from the zone rng, so a host and its clients agree.
+      const rng = new Rng(world.rngState);
+      result = applyCurrency(save, content, cmd.currency, cmd.target, rng);
+      world.rngState = rng.state;
+      break;
+    }
+    case "salvage":
+      result = salvage(save, content, cmd.bag, cmd.index);
+      break;
+    case "salvage_bulk":
+      result = salvageBulk(save, content, cmd.what) > 0 ? null : "nothing to salvage";
+      break;
+    case "debug_give_currency":
+      addCurrency(save, cmd.currency, cmd.count, content);
+      result = null;
+      break;
   }
   if (result === null) refreshSkills(world, content);
   return result;
@@ -626,7 +652,7 @@ function pickUpNearest(world: WorldState, content: SimContent, events: SimEvent[
   const g = nearestPickup(world, content);
   if (!g) return;
   if (!addToBag(world.player.save, g.item, content)) {
-    events.push({ type: "bag_full" });
+    events.push({ type: "bag_full", bag: bagOf(g.item) });
     return;
   }
   world.groundItems = world.groundItems.filter((x) => x !== g);
@@ -645,12 +671,14 @@ function reapDead(world: WorldState, content: SimContent, ctx: SkillContext, rng
     events.push({ type: "death", actorId: m.id, pos: { ...m.pos } });
     const def = lookup(content.monsters, m.defId, "monster");
     xp += xpForKill(def.xp, m.level, p.level, content.progression, content.monsterScaling);
-    for (const drop of rollDrops(content, m.dropTable, rng)) {
+    for (const drop of rollDrops(content, m.dropTable, rng, m.level)) {
       // Gear rolls at the monster's level (item level gates affix tiers and bases).
       const item: Item | null =
-        drop.kind === "gear" || drop.kind === "unique"
-          ? rollGear(content, rng, m.level, p.save.nextUid++, drop.kind === "unique" ? (drop.unique ? { unique: drop.unique } : { rarity: "unique" }) : { base: drop.base })
-          : makeGem(p.save, drop.kind, drop.defId, content.gems);
+        drop.kind === "currency"
+          ? { uid: p.save.nextUid++, kind: "currency", id: drop.id, count: drop.count }
+          : drop.kind === "gear" || drop.kind === "unique"
+            ? rollGear(content, rng, m.level, p.save.nextUid++, drop.kind === "unique" ? (drop.unique ? { unique: drop.unique } : { rarity: "unique" }) : { base: drop.base })
+            : makeGem(p.save, drop.kind, drop.defId, content.gems);
       if (!item) continue;
       const spread = 24;
       const pos = resolveWalls(world.zone, { x: m.pos.x + rng.range(-spread, spread), y: m.pos.y + rng.range(-spread, spread) }, 8);

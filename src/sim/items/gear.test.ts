@@ -17,8 +17,8 @@ function rolls(n: number, ilvl: number, opts: Parameters<typeof rollGear>[4] = {
 
 /** Put an item straight into the bag and equip it. Returns the refusal, if any. */
 function equip(w: WorldState, item: GearItem): string | null {
-  w.player.save.bag.push(item);
-  return inventoryCommand(w, quiet, { type: "equip_gear", bagIndex: w.player.save.bag.length - 1 });
+  w.player.save.gearBag.push(item);
+  return inventoryCommand(w, quiet, { type: "equip_gear", bagIndex: w.player.save.gearBag.length - 1 });
 }
 
 function item(baseId: string, mods: GearItem["mods"] = [], extra: Partial<GearItem> = {}): GearItem {
@@ -112,8 +112,8 @@ describe("equipping gear", () => {
     const w10 = createWorld(quiet, 1, { ...newCharacter(quiet, 1), level: 10 });
     expect(equip(w10, item("broadsword"))).toMatch(/20 strength/); // 10 base + 9 from levels = 19
     expect(equip(w10, item("bone_amulet", [{ affix: "strength", tier: 1, values: [5] }]))).toBeNull();
-    expect(w10.player.save.bag.findIndex((g) => g.kind === "gear" && g.base === "broadsword")).toBeGreaterThanOrEqual(0);
-    const idx = w10.player.save.bag.findIndex((g) => g.kind === "gear" && g.base === "broadsword");
+    expect(w10.player.save.gearBag.findIndex((g) => g.base === "broadsword")).toBeGreaterThanOrEqual(0);
+    const idx = w10.player.save.gearBag.findIndex((g) => g.base === "broadsword");
     expect(inventoryCommand(w10, quiet, { type: "equip_gear", bagIndex: idx })).toBeNull();
   });
 
@@ -123,7 +123,7 @@ describe("equipping gear", () => {
     equip(w, item("short_bow"));
     expect(w.player.save.weapon).toBe("short_bow");
     expect(w.player.compiled[0]!.nodes[0]!.kind).toBe("projectile");
-    expect(w.player.save.bag.some((g) => g.kind === "gear" && g.base === "rusty_sword")).toBe(true);
+    expect(w.player.save.gearBag.some((g) => g.base === "rusty_sword")).toBe(true);
     inventoryCommand(w, quiet, { type: "unequip_gear", slot: "weapon" });
     expect(w.player.save.weapon).toBe("unarmed");
     expect(w.player.compiled[0]!.name).toBe("Punch");
@@ -159,10 +159,12 @@ describe("gear drops and saves", () => {
   });
 
   it("old (v1) saves get their weapon as an equipped item", () => {
-    const v1 = { ...newCharacter(content, 1), version: 1, equipment: undefined, weapon: "short_bow" };
+    const { gearBag: _g, gemBag, currency: _c, ...rest } = newCharacter(content, 1);
+    const v1 = { ...rest, version: 1, equipment: undefined, weapon: "short_bow", bag: gemBag };
     const save = migrateSave(JSON.parse(JSON.stringify(v1)), content)!;
-    expect(save.version).toBe(2);
+    expect(save.version).toBe(3);
     expect(save.equipment.weapon?.base).toBe("short_bow");
+    expect(save.gemBag).toHaveLength(1);
     expect(migrateSave({ nonsense: true }, content)).toBeNull();
   });
 
@@ -184,8 +186,8 @@ describe("equip comparison", () => {
     const { previewInventoryCommand } = await import("../world");
     const w = createWorld(quiet, 1);
     equip(w, item("iron_cap", [{ affix: "life", tier: 1, values: [40] }]));
-    w.player.save.bag.push(item("leather_hood", [{ affix: "dexterity", tier: 1, values: [10] }]));
-    const preview = previewInventoryCommand(w, quiet, { type: "equip_gear", bagIndex: w.player.save.bag.length - 1 });
+    w.player.save.gearBag.push(item("leather_hood", [{ affix: "dexterity", tier: 1, values: [10] }]));
+    const preview = previewInventoryCommand(w, quiet, { type: "equip_gear", bagIndex: w.player.save.gearBag.length - 1 });
     expect(typeof preview).not.toBe("string");
     const changes = compareWorlds(w, preview as WorldState, quiet);
     const byLabel = Object.fromEntries(changes.map((c) => [c.label, c]));
@@ -203,8 +205,8 @@ describe("equip comparison", () => {
     const { compareWorlds } = await import("./compare");
     const { previewInventoryCommand } = await import("../world");
     const w = createWorld(quiet, 1);
-    w.player.save.bag.push(item("rusty_sword", [{ affix: "physical_attack", tier: 1, values: [9, 22] }]));
-    const preview = previewInventoryCommand(w, quiet, { type: "equip_gear", bagIndex: w.player.save.bag.length - 1 }) as WorldState;
+    w.player.save.gearBag.push(item("rusty_sword", [{ affix: "physical_attack", tier: 1, values: [9, 22] }]));
+    const preview = previewInventoryCommand(w, quiet, { type: "equip_gear", bagIndex: w.player.save.gearBag.length - 1 }) as WorldState;
     const dps = compareWorlds(w, preview, quiet).find((c) => c.label.startsWith("Attack DPS"));
     expect(dps?.better).toBe(true);
   });

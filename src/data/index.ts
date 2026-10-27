@@ -4,6 +4,7 @@ import type {
   Biome,
   Character,
   CombatRulesDef,
+  CraftingRules,
   Currency,
   DropTable,
   GearRules,
@@ -35,6 +36,7 @@ import supports from "./supports.json";
 import gems from "./gems.json";
 import uniques from "./uniques.json";
 import gear from "./gear.json";
+import crafting from "./crafting.json";
 
 export const content = {
   itemBases: itemBases as ItemBase[],
@@ -55,6 +57,7 @@ export const content = {
   gems: gems as GemRules,
   uniques: uniques as UniqueDef[],
   gear: gear as GearRules,
+  crafting: crafting as CraftingRules,
 };
 
 export type Content = typeof content;

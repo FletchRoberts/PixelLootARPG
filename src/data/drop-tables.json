@@ -4,7 +4,7 @@
     "rolls": 1,
     "entries": [
       {
-        "weight": 86,
+        "weight": 78,
         "kind": "nothing"
       },
       {
@@ -18,6 +18,10 @@
       {
         "weight": 9,
         "kind": "item"
+      },
+      {
+        "weight": 8,
+        "kind": "currency"
       }
     ]
   },
@@ -26,7 +30,7 @@
     "rolls": 1,
     "entries": [
       {
-        "weight": 52,
+        "weight": 40,
         "kind": "nothing"
       },
       {
@@ -44,6 +48,14 @@
       {
         "weight": 2,
         "kind": "unique"
+      },
+      {
+        "weight": 12,
+        "kind": "currency",
+        "count": [
+          1,
+          3
+        ]
       }
     ]
   }

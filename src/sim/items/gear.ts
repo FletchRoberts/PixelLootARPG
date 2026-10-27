@@ -19,7 +19,7 @@ export interface RollOptions {
   unique?: string; // force a specific unique
 }
 
-const rollRange = (rng: Rng, [lo, hi]: [number, number]) => rng.int(lo, hi);
+export const rollRange = (rng: Rng, [lo, hi]: [number, number]) => rng.int(lo, hi);
 
 /** Roll a new item at an item level. Deterministic for a given rng state. */
 export function rollGear(content: GearContent, rng: Rng, ilvl: number, uid: number, opts: RollOptions = {}): GearItem | null {
@@ -44,17 +44,24 @@ export function rollGear(content: GearContent, rng: Rng, ilvl: number, uid: numb
     mods: [],
   };
   if (item.rarity === "magic" || item.rarity === "rare") {
-    const r = item.rarity;
-    const target = rng.int(content.gear.affixCount[r][0], content.gear.affixCount[r][1]);
-    for (let i = 0; i < target; i++) {
-      const mod = rollAffix(content, rng, base, item, content.gear.maxPerKind[r]);
-      if (mod) item.mods.push(mod);
-    }
+    rollMods(content, rng, base, item, item.rarity);
     if (item.mods.length === 0) item.rarity = "normal";
-    if (item.rarity === "rare") item.name = `${pick(rng, content.gear.rareNames.first)} ${pick(rng, content.gear.rareNames.second)}`;
+    if (item.rarity === "rare") item.name = rareName(content, rng);
   }
   return item;
 }
+
+/** Fill an item with a fresh set of mods for a rarity (magic 1–2, rare 4–6 by default). */
+export function rollMods(content: GearContent, rng: Rng, base: ItemBase, item: GearItem, rarity: "magic" | "rare"): void {
+  item.mods = [];
+  const target = rng.int(content.gear.affixCount[rarity][0], content.gear.affixCount[rarity][1]);
+  for (let i = 0; i < target; i++) {
+    const mod = rollAffix(content, rng, base, item, content.gear.maxPerKind[rarity]);
+    if (mod) item.mods.push(mod);
+  }
+}
+
+export const rareName = (content: GearContent, rng: Rng) => `${pick(rng, content.gear.rareNames.first)} ${pick(rng, content.gear.rareNames.second)}`;
 
 function dropLevel(content: GearContent, baseId: string): number | undefined {
   return content.itemBases.find((b) => b.id === baseId)?.dropLevel;
@@ -182,6 +189,7 @@ export interface ItemText {
   mods: string[]; // with tier tags, e.g. "+42 to maximum Life  (T3)"
   grants: string[];
   flavour?: string;
+  corrupted: boolean;
 }
 
 export function itemText(content: GearContent, item: GearItem): ItemText {
@@ -211,6 +219,7 @@ export function itemText(content: GearContent, item: GearItem): ItemText {
     mods,
     grants: (u?.grants ?? []).map((g) => g.text),
     flavour: u?.flavour,
+    corrupted: !!item.corrupted,
   };
 }
 

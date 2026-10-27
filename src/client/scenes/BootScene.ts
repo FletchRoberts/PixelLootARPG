@@ -38,6 +38,7 @@ export class BootScene extends Phaser.Scene {
       else if (b.slot === "ring" || b.slot === "amulet") this.textures.addCanvas(key, makeSprite({ type: "ring", seed: b.id, theme: jewelTheme[b.id] ?? "gold", size: 16 }));
       else this.textures.addCanvas(key, armourIcon(b.slot, b.tags.includes("dex_armour") || b.slot === "belt" ? "#9a6a3a" : "#9aa3ad"));
     }
+    for (const c of content.currencies) this.textures.addCanvas(`currency:${c.id}`, makeSprite(c.sprite));
     this.scene.start("Game");
   }
 }

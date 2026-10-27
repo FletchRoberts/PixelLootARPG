@@ -265,7 +265,7 @@ export class GameScene extends Phaser.Scene {
         this.persist();
         break;
       case "bag_full":
-        this.toast("Bag is full");
+        this.toast(e.bag === "gear" ? "Gear bag is full: salvage some (menu, □ / X)" : "Gem bag is full: salvage spares in the Currency tab");
         break;
       case "drop":
       case "xp":

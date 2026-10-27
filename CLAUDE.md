@@ -155,6 +155,7 @@ Orb-style consumables that modify items. Our names (working, tweak freely):
 | Chaos Thread | Remove one random mod, add one random mod |
 | Lodestone | Reroll numeric values within current tiers |
 | Void Pearl | Corrupt: unpredictable outcome, item can no longer be changed |
+| Cutter's Prism | +1 level to a skill gem |
 | Essences | Add a guaranteed specific mod (from Essence Prisons) |
 
 Every currency's behaviour is a named **effect** implemented once in the sim
@@ -239,7 +240,8 @@ they show `E` or `✕` depending on the last-used device.
 | skill slots 1–4 | right click, Q, E, R | R1, □, △, L1 |
 | dodge roll | Space | ○ |
 | pickup | F | ✕ |
-| menu (Character/Gear/Gems/Debug tabs) | C | Options |
+| menu (Character/Gear/Gems/Currency/Debug tabs) | C | Options |
+| salvage (Gear tab) | X | □ |
 | gear tab shortcut | I | touchpad click |
 | confirm (menus/overlays) | Enter / Space / click | ✕ |
 | cancel / back (menus) | Esc | ○ |
@@ -307,6 +309,7 @@ src/
     items/inventory.ts    equip / unequip gear and gems, socket / unsocket rules
     items/gear.ts         roll gear (base/rarity/affix tiers), gear -> modifiers & grants, tooltip text
     items/compare.ts      before/after stat diff for equip previews
+    items/crafting.ts     currency stash + fragment combining, currency effects, salvage
     world.test.ts         headless sim tests
     zone/generate.ts      linear zone generator (path, branches, arenas, packs)
     zone/zone.ts          Zone data, tile queries, circle-vs-wall collision
@@ -329,7 +332,8 @@ src/
     affixes.json          prefixes/suffixes with tiers by item level
     uniques.json          unique items (fixed mods, support grants, flavour)
     gear.json             rarity weights, affix counts, rare name words
-    currencies.json       crafting currency (empty until crafting)
+    currencies.json       crafting currency + fragments (effect id, drop weight/level, combine)
+    crafting.json         salvage yields per rarity / gem kind, Void Pearl outcomes
     index.ts              typed content loader
 docs/
   combat.md               stats, damage and defence formulas
@@ -432,6 +436,21 @@ adds its own level) up to `gems.maxLevel` (10); sockets 2/3/4/5 at levels
 crafting currency that levels gems comes with crafting. Unequipping or
 swapping a skill gem returns its socketed supports to the bag.
 
+**Currency + salvage (done):** 11 currencies (`currencies.json`, the table
+above minus Essences) each pointing at a sim effect in
+`src/sim/items/crafting.ts`, plus 5 fragment currencies that combine 10 → 1
+automatically. Monsters drop currency (`drop-tables.json` kind `currency`,
+gated by `dropLevel`). **Save v3** splits storage: `gearBag` (40,
+`gear.bagSize`), `gemBag` (40, `gems.bagSize`) and an unlimited `currency`
+stash; `migrateSave` splits old bags. **Salvage** destroys bagged items for
+fragments (`crafting.json`: normal → Whetstone, magic → Crown Ember, rare →
+Chaos Thread, unique → Void Pearl, gems → Cutter's Prism, more per gem
+level): one at a time in the Gear tab (□ / X, rares and uniques ask twice)
+or in bulk from the Currency tab. Crafting rolls use the world rng
+(`apply_currency` command). Void Pearl corrupts (nothing / reroll as rare /
+a mod gains a tier / lose a mod; uniques reroll or get perfect values) and
+locks the item. Menu tabs: Character, Gear, Gems, Currency, Debug.
+
 ### Balance & feel backlog (revisit after gear)
 
 - Cast on Kill chains: cooldown (0.3 s) and damage penalty feel; whether
@@ -453,13 +472,14 @@ swapping a skill gem returns its socketed supports to the bag.
   monster mods) so accuracy and the accuracy affix earn their place. Player
   evasion already works against monster accuracy.
 - Gem drop rates now need duplicates for levelling: tune skill gem weights.
+- Currency drop rate (8% of trash, 12% end pack ×1–3), per-currency weights,
+  salvage yields; whether Void Pearl outcomes are too swingy.
 
 ### Roadmap
 
 1. ~~Gear~~ (done).
-2. **Crafting currency** (next): the orb table above acting on gear, dropping
-   from monsters, plus a crafting screen.
-3. **Art pass** (after gear exists, so slots and item types are known):
+2. ~~Crafting currency~~ (done; Essences wait for Essence Prisons).
+3. **Art pass** (next; after gear exists, so slots and item types are known):
    extend `tools/pixel-forge.html` with more weapon types, animation frames
    (walk / attack / hit), and paper-doll gear appearance on the character;
    make editing weapon/gear looks easy in the tool.

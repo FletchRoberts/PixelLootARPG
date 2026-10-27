@@ -1,1 +1,246 @@
-[]
+[
+  {
+    "id": "whetstone_shard",
+    "name": "Whetstone Shard",
+    "description": "Upgrades a normal item to magic (1\u20132 mods).",
+    "effect": "upgrade_magic",
+    "dropWeight": 100,
+    "dropLevel": 1,
+    "sprite": {
+      "type": "currency",
+      "seed": "whetstone_shard",
+      "theme": "earth",
+      "size": 16
+    }
+  },
+  {
+    "id": "tinkers_spark",
+    "name": "Tinker's Spark",
+    "description": "Rerolls the mods of a magic item.",
+    "effect": "reroll_magic",
+    "dropWeight": 80,
+    "dropLevel": 1,
+    "sprite": {
+      "type": "currency",
+      "seed": "tinkers_spark",
+      "theme": "arcane",
+      "size": 16
+    }
+  },
+  {
+    "id": "gilded_seal",
+    "name": "Gilded Seal",
+    "description": "Adds a mod to a magic item that has room.",
+    "effect": "add_magic_mod",
+    "dropWeight": 60,
+    "dropLevel": 1,
+    "sprite": {
+      "type": "currency",
+      "seed": "gilded_seal",
+      "theme": "gold",
+      "size": 16
+    }
+  },
+  {
+    "id": "crown_ember",
+    "name": "Crown Ember",
+    "description": "Upgrades a magic item to rare, adding one mod.",
+    "effect": "upgrade_rare",
+    "dropWeight": 40,
+    "dropLevel": 1,
+    "sprite": {
+      "type": "currency",
+      "seed": "crown_ember",
+      "theme": "fire",
+      "size": 16
+    }
+  },
+  {
+    "id": "binding_coin",
+    "name": "Binding Coin",
+    "description": "Upgrades a normal item to rare (4\u20136 mods).",
+    "effect": "normal_to_rare",
+    "dropWeight": 18,
+    "dropLevel": 3,
+    "sprite": {
+      "type": "currency",
+      "seed": "binding_coin",
+      "theme": "gold",
+      "size": 16
+    }
+  },
+  {
+    "id": "riftglass",
+    "name": "Riftglass",
+    "description": "Adds a mod to a rare item that has room.",
+    "effect": "add_rare_mod",
+    "dropWeight": 22,
+    "dropLevel": 3,
+    "sprite": {
+      "type": "currency",
+      "seed": "riftglass",
+      "theme": "ice",
+      "size": 16
+    }
+  },
+  {
+    "id": "unmaking_salt",
+    "name": "Unmaking Salt",
+    "description": "Removes a random mod from a magic or rare item.",
+    "effect": "remove_mod",
+    "dropWeight": 20,
+    "dropLevel": 2,
+    "sprite": {
+      "type": "currency",
+      "seed": "unmaking_salt",
+      "theme": "shadow",
+      "size": 16
+    }
+  },
+  {
+    "id": "chaos_thread",
+    "name": "Chaos Thread",
+    "description": "Removes one random mod from a rare item and adds a new one.",
+    "effect": "chaos",
+    "dropWeight": 25,
+    "dropLevel": 4,
+    "sprite": {
+      "type": "currency",
+      "seed": "chaos_thread",
+      "theme": "blood",
+      "size": 16
+    }
+  },
+  {
+    "id": "lodestone",
+    "name": "Lodestone",
+    "description": "Rerolls the numbers of an item's mods within their tiers (works on uniques).",
+    "effect": "reroll_values",
+    "dropWeight": 20,
+    "dropLevel": 5,
+    "sprite": {
+      "type": "currency",
+      "seed": "lodestone",
+      "theme": "earth",
+      "size": 16
+    }
+  },
+  {
+    "id": "void_pearl",
+    "name": "Void Pearl",
+    "description": "Corrupts an item: nothing, reroll as rare, a mod gains a tier, or a mod is lost. Corrupted items can't be changed again.",
+    "effect": "corrupt",
+    "dropWeight": 6,
+    "dropLevel": 6,
+    "sprite": {
+      "type": "currency",
+      "seed": "void_pearl",
+      "theme": "shadow",
+      "size": 16
+    }
+  },
+  {
+    "id": "cutters_prism",
+    "name": "Cutter's Prism",
+    "description": "Raises a skill gem's level by 1 (equipped or in your bag).",
+    "effect": "gem_level",
+    "dropWeight": 10,
+    "dropLevel": 2,
+    "sprite": {
+      "type": "currency",
+      "seed": "cutters_prism",
+      "theme": "poison",
+      "size": 16
+    }
+  },
+  {
+    "id": "whetstone_fragment",
+    "name": "Whetstone Fragment",
+    "description": "Ten combine into a Whetstone Shard automatically.",
+    "effect": "none",
+    "dropWeight": 60,
+    "dropLevel": 1,
+    "combine": {
+      "into": "whetstone_shard",
+      "count": 10
+    },
+    "sprite": {
+      "type": "currency",
+      "seed": "whetstone_fragment",
+      "theme": "earth",
+      "size": 12
+    }
+  },
+  {
+    "id": "crown_ember_fragment",
+    "name": "Crown Ember Fragment",
+    "description": "Ten combine into a Crown Ember automatically.",
+    "effect": "none",
+    "dropWeight": 30,
+    "dropLevel": 1,
+    "combine": {
+      "into": "crown_ember",
+      "count": 10
+    },
+    "sprite": {
+      "type": "currency",
+      "seed": "crown_ember_fragment",
+      "theme": "fire",
+      "size": 12
+    }
+  },
+  {
+    "id": "chaos_thread_fragment",
+    "name": "Chaos Thread Fragment",
+    "description": "Ten combine into a Chaos Thread automatically.",
+    "effect": "none",
+    "dropWeight": 25,
+    "dropLevel": 2,
+    "combine": {
+      "into": "chaos_thread",
+      "count": 10
+    },
+    "sprite": {
+      "type": "currency",
+      "seed": "chaos_thread_fragment",
+      "theme": "blood",
+      "size": 12
+    }
+  },
+  {
+    "id": "void_pearl_fragment",
+    "name": "Void Pearl Fragment",
+    "description": "Ten combine into a Void Pearl automatically.",
+    "effect": "none",
+    "dropWeight": 8,
+    "dropLevel": 4,
+    "combine": {
+      "into": "void_pearl",
+      "count": 10
+    },
+    "sprite": {
+      "type": "currency",
+      "seed": "void_pearl_fragment",
+      "theme": "shadow",
+      "size": 12
+    }
+  },
+  {
+    "id": "cutters_prism_fragment",
+    "name": "Cutter's Prism Fragment",
+    "description": "Ten combine into a Cutter's Prism automatically.",
+    "effect": "none",
+    "dropWeight": 20,
+    "dropLevel": 1,
+    "combine": {
+      "into": "cutters_prism",
+      "count": 10
+    },
+    "sprite": {
+      "type": "currency",
+      "seed": "cutters_prism_fragment",
+      "theme": "poison",
+      "size": 12
+    }
+  }
+]

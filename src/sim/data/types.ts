@@ -64,14 +64,38 @@ export interface GearRules {
   affixCount: { magic: Range; rare: Range };
   maxPerKind: { magic: number; rare: number }; // max prefixes (and suffixes) per rarity
   rareNames: { first: string[]; second: string[] };
+  bagSize: number; // gear bag slots (gems have their own bag; currency stacks without limit)
 }
 
+/** Crafting currency (src/data/currencies.json). Stacks without limit in the currency stash. */
 export interface Currency {
   id: string;
   name: string;
   description: string;
-  effect: string; // id of the crafting/map-modifying operation in sim
-  stackSize: number;
+  effect: string; // crafting effect id implemented in sim/items/crafting.ts ("none" for fragments)
+  dropWeight: number; // weight among currency drops (0 = never drops on its own)
+  dropLevel: number; // lowest monster level that drops it
+  combine?: { into: string; count: number }; // fragments: `count` of these become one `into`
+  sprite: SpriteSpec;
+}
+
+/** What salvaging gives: `count` (+ `perLevel` per skill gem level above 1) of a currency. */
+export interface SalvageYield {
+  currency: string;
+  count: number;
+  perLevel?: number;
+}
+
+export type CorruptionOutcome = "nothing" | "reroll_rare" | "tier_up" | "lose_mod";
+
+/** Crafting rules (src/data/crafting.json): salvage yields and Void Pearl outcomes. */
+export interface CraftingRules {
+  salvage: {
+    gear: Record<"normal" | "magic" | "rare" | "unique", SalvageYield>;
+    skill_gem: SalvageYield;
+    support_gem: SalvageYield;
+  };
+  corruption: { outcome: CorruptionOutcome; weight: number }[];
 }
 
 /** PixelGen placeholder sprite params (see tools/pixel-forge.html). Client-only; the sim just carries them. */
@@ -233,10 +257,11 @@ export interface Biome {
 export interface DropEntry {
   weight: number;
   // skill_gem / support_gem: a specific gem if `ref` is set, otherwise any gem of that kind.
-  // table: roll another table (`ref`). currency: reserved.
+  // table: roll another table (`ref`). currency: a random currency by dropWeight/dropLevel (or `ref`), `count` of it.
   // item: random gear (or base `ref`) with rolled rarity; unique: a random unique (or `ref`).
   kind: "nothing" | "table" | "skill_gem" | "support_gem" | "item" | "unique" | "currency";
   ref?: string;
+  count?: Range; // currency stack size (default 1)
 }
 
 export interface DropTable {

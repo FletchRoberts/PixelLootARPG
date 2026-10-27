@@ -1,24 +1,29 @@
 // Pause menu with tabs:
 //   Character  stats sheet
-//   Gear       equipment slots and gear in the bag, with tooltips and comparison
+//   Gear       equipment slots and the gear bag, with tooltips, comparison and salvage
 //   Gems       skill gems on the four buttons, support gems in their sockets
-//   Debug      spawn gems and gear, reset the character
+//   Currency   the currency stash: use currency on gear/gems, bulk salvage
+//   Debug      spawn gems, gear and currency, reset the character
 // Fully usable with keyboard or controller: D-pad/WASD move, ✕/Enter confirm, ○/Esc back.
 
 import Phaser from "phaser";
 import { content } from "../../data";
 import { compareWorlds, type StatChange } from "../../sim/items/compare";
+import { allTargets, currencyProblem, salvageYield, targetItem, type BulkSalvage, type CraftTarget } from "../../sim/items/crafting";
 import { supportFitsTarget } from "../../sim/items/inventory";
 import { EQUIP_SLOTS, type EquipSlot, type GearItem, type GemItem, type SocketTarget } from "../../sim/items/types";
-import { gearTooltip, itemColor, itemName, RARITY_COLOR } from "./items";
+import { currencyName, gearTooltip, itemColor, itemName, RARITY_COLOR } from "./items";
 import { describeSkill } from "../../sim/skills/describe";
 import { xpToNext } from "../../sim/stats/character";
 import { computeStat } from "../../sim/stats/stats";
 import { skillSummary, SKILL_SLOTS, type InventoryCommand, type WorldState } from "../../sim/world";
 import type { InputManager } from "../input/InputManager";
 
-export type MenuTab = "character" | "gear" | "gems" | "debug";
-const TABS: MenuTab[] = ["character", "gear", "gems", "debug"];
+export type MenuTab = "character" | "gear" | "gems" | "currency" | "debug";
+const TABS: MenuTab[] = ["character", "gear", "gems", "currency", "debug"];
+const FULL_CURRENCIES = content.currencies.filter((c) => !c.combine);
+const fragmentOf = (id: string) => content.currencies.find((c) => c.combine?.into === id);
+const CRAFT_ROWS = 9; // visible targets in the currency picker
 const GEAR_ROWS = 24; // visible rows in the gear list
 const DIFF_ROWS = 14; // stat change lines in the gear tooltip
 
@@ -72,6 +77,8 @@ export class GameMenu {
   private diffRows: Phaser.GameObjects.Text[] = [];
   private ringTarget: "ring1" | "ring2" = "ring1"; // which ring a new ring replaces when both are worn
   private diffCache: { key: string; title: string; changes: StatChange[] } | null = null;
+  private confirmSalvage: number | null = null; // uid of a rare/unique waiting for a second salvage press
+  private craft: { currency: string; index: number; result: string[] } | null = null; // choosing a target for currency
 
   constructor(
     private scene: Phaser.Scene,
@@ -107,6 +114,8 @@ export class GameMenu {
     this.picker = null;
     this.message = "";
     this.confirmReset = false;
+    this.confirmSalvage = null;
+    this.craft = null;
     this.root.setVisible(true);
     this.render();
   }
@@ -123,6 +132,10 @@ export class GameMenu {
       this.updatePicker();
       return this.render();
     }
+    if (this.craft) {
+      this.updateCraft();
+      return this.render();
+    }
     if (i.pressed("cancel") || i.pressed("character") || i.pressed("inventory")) return this.hide();
     if (i.pressed("tabNext") || i.pressed("tabPrev")) {
       const dir = i.pressed("tabNext") ? 1 : -1;
@@ -131,9 +144,11 @@ export class GameMenu {
       this.col = 0;
       this.message = "";
       this.confirmReset = false;
+      this.confirmSalvage = null;
     }
     if (this.tab === "gear") this.updateGear();
     if (this.tab === "gems") this.updateInventory();
+    if (this.tab === "currency") this.updateCurrency();
     if (this.tab === "debug") this.updateDebug();
     this.render();
   }
@@ -169,16 +184,16 @@ export class GameMenu {
     const save = this.world().player.save;
     const choices: Choice[] = [];
     if (cell.kind === "skill") {
-      save.bag.forEach((g, bagIndex) => {
+      save.gemBag.forEach((g, bagIndex) => {
         if (g.kind === "skill_gem") choices.push({ label: `Equip ${gemName(g)}`, run: () => this.actions.command({ type: "equip", bagIndex, slot: cell.slot }) });
       });
       const equipped = save.skillBar[cell.slot];
       if (equipped) {
-        const copies = save.bag.map((g, i) => ({ g, i })).filter(({ g }) => g.kind === "skill_gem" && g.defId === equipped.defId);
+        const copies = save.gemBag.map((g, i) => ({ g, i })).filter(({ g }) => g.kind === "skill_gem" && g.defId === equipped.defId);
         if (copies.length > 0 && equipped.level < content.gems.maxLevel) {
-          const best = copies.sort((a, b) => (b.g as GemItem).level - (a.g as GemItem).level)[0]!;
+          const best = copies.sort((a, b) => b.g.level - a.g.level)[0]!;
           choices.unshift({
-            label: `Level up: feed a copy (Lv${(best.g as GemItem).level}) → Lv${Math.min(content.gems.maxLevel, equipped.level + (best.g as GemItem).level)}   [${copies.length} in bag]`,
+            label: `Level up: feed a copy (Lv${best.g.level}) → Lv${Math.min(content.gems.maxLevel, equipped.level + best.g.level)}   [${copies.length} in bag]`,
             run: () => this.actions.command({ type: "level_gem", slot: cell.slot, copyBagIndex: best.i }),
           });
         }
@@ -187,7 +202,7 @@ export class GameMenu {
       this.picker = { title: `Skill gem for button ${this.inputs.skillPrompt(cell.slot)}`, choices, index: 0 };
     } else {
       const seen = new Set<string>();
-      save.bag.forEach((g, bagIndex) => {
+      save.gemBag.forEach((g, bagIndex) => {
         if (g.kind !== "support_gem" || seen.has(g.defId)) return;
         seen.add(g.defId); // duplicates are interchangeable; list each support once
         if (!supportFitsTarget(save, g.defId, cell.target, content)) return;
@@ -250,8 +265,8 @@ export class GameMenu {
 
     // Bag, grouped.
     const counts = new Map<string, number>();
-    for (const g of save.bag) if (g.kind !== "gear") counts.set(gemName(g), (counts.get(gemName(g)) ?? 0) + 1);
-    left.push("", `GEMS IN BAG (bag ${save.bag.length}/${content.gems.bagSize})`);
+    for (const g of save.gemBag) counts.set(gemName(g), (counts.get(gemName(g)) ?? 0) + 1);
+    left.push("", `GEM BAG (${save.gemBag.length}/${content.gems.bagSize})`);
     const entries = [...counts.entries()].map(([name, n]) => (n > 1 ? `${name} ×${n}` : name));
     for (let k = 0; k < entries.length; k += 3) left.push("  " + entries.slice(k, k + 3).join("   "));
     if (entries.length === 0) left.push("  (empty: gems drop from monsters, pick up with " + this.inputs.prompt("pickup") + ")");
@@ -282,7 +297,7 @@ export class GameMenu {
     } else {
       const g = save.skillBar[cell.slot];
       if (g) {
-        const copies = save.bag.filter((b) => b.kind === "skill_gem" && b.defId === g.defId).length;
+        const copies = save.gemBag.filter((b) => b.kind === "skill_gem" && b.defId === g.defId).length;
         const max = g.level >= content.gems.maxLevel;
         lines.push(
           `${skillName(g.defId)}: level ${g.level} / ${content.gems.maxLevel}, ${g.sockets?.length ?? 0} sockets`,
@@ -300,17 +315,14 @@ export class GameMenu {
   private gearEntries(): GearEntry[] {
     const save = this.world().player.save;
     const out: GearEntry[] = EQUIP_SLOTS.map((slot) => ({ kind: "slot", slot }));
-    save.bag.forEach((it, bagIndex) => {
-      if (it.kind === "gear") out.push({ kind: "bag", bagIndex });
-    });
+    save.gearBag.forEach((_, bagIndex) => out.push({ kind: "bag", bagIndex }));
     return out;
   }
 
   private entryItem(e: GearEntry | undefined): GearItem | undefined {
     const save = this.world().player.save;
     if (!e) return undefined;
-    const it = e.kind === "slot" ? save.equipment[e.slot] : save.bag[e.bagIndex];
-    return it?.kind === "gear" ? it : undefined;
+    return e.kind === "slot" ? save.equipment[e.slot] : save.gearBag[e.bagIndex];
   }
 
   /** Where a bag item would go: its slot, or for rings the free ring slot / the chosen one. */
@@ -330,15 +342,20 @@ export class GameMenu {
   private updateGear(): void {
     const i = this.inputs;
     const entries = this.gearEntries();
-    if (i.pressed("down")) this.row = (this.row + 1) % entries.length;
-    if (i.pressed("up")) this.row = (this.row - 1 + entries.length) % entries.length;
+    if (i.pressed("down") || i.pressed("up")) {
+      this.row = (this.row + (i.pressed("down") ? 1 : -1) + entries.length) % entries.length;
+      if (this.confirmSalvage !== null) this.message = "";
+      this.confirmSalvage = null;
+    }
     this.row = Math.min(this.row, entries.length - 1);
     const e = entries[this.row];
     const item = this.entryItem(e);
     if (e?.kind === "bag" && this.bothRingsWorn(item) && (i.pressed("left") || i.pressed("right"))) {
       this.ringTarget = this.ringTarget === "ring1" ? "ring2" : "ring1";
     }
+    if (e?.kind === "bag" && item && i.pressed("salvage")) return this.salvageGear(e.bagIndex, item);
     if (!e || !i.pressed("confirm")) return;
+    this.confirmSalvage = null;
     const refused =
       e.kind === "slot"
         ? item
@@ -346,6 +363,20 @@ export class GameMenu {
           : "nothing equipped there"
         : this.actions.command({ type: "equip_gear", bagIndex: e.bagIndex, slot: item ? this.targetSlot(item) : undefined });
     this.message = refused ? `Can't: ${refused}` : "";
+    this.diffCache = null;
+  }
+
+  /** Salvage a bag item into fragments; rares and uniques need a second press. */
+  private salvageGear(bagIndex: number, item: GearItem): void {
+    if ((item.rarity === "rare" || item.rarity === "unique") && this.confirmSalvage !== item.uid) {
+      this.confirmSalvage = item.uid;
+      this.message = `Salvage ${itemName(item)}? Press ${this.inputs.prompt("salvage")} again to confirm.`;
+      return;
+    }
+    this.confirmSalvage = null;
+    const y = salvageYield(content, item);
+    const refused = this.actions.command({ type: "salvage", bag: "gear", index: bagIndex });
+    this.message = refused ? `Can't: ${refused}` : `Salvaged ${itemName(item)}: +${y.count} ${currencyName(y.currency)}`;
     this.diffCache = null;
   }
 
@@ -391,7 +422,7 @@ export class GameMenu {
       this.tip.body.setPosition(tx, y + 72).setWordWrapWidth(wrap).setText([...tip.lines, ...(this.message ? ["", this.message] : [])]);
     } else {
       this.tip.title.setPosition(tx, y + 48).setText(sel?.kind === "slot" ? `${SLOT_LABEL[sel.slot]}: empty` : "").setColor("#8a8a96");
-      this.tip.body.setPosition(tx, y + 72).setText(this.message ? [this.message] : ["Gear drops from monsters. Pick it up, then equip it here."]);
+      this.tip.body.setPosition(tx, y + 72).setText(this.message ? [this.message] : ["Gear drops from monsters. Pick it up, then equip it here.", "", `Unwanted gear: ${this.inputs.prompt("salvage")} salvages it into currency fragments`, "(10 fragments combine into a full currency)."]);
     }
 
     // Green/red stat changes if this item were equipped (or removed).
@@ -431,6 +462,183 @@ export class GameMenu {
     }
   }
 
+  // ---------------------------------------------------------------- currency
+
+  /** Left list: each full currency (with its fragments), then the bulk salvage actions. */
+  private currencyRows(): ({ kind: "currency"; id: string } | { kind: "salvage"; what: BulkSalvage; label: string; count: number })[] {
+    const save = this.world().player.save;
+    const gearOf = (r: GearItem["rarity"]) => save.gearBag.filter((g) => g.rarity === r).length;
+    const spare = (kind: GemItem["kind"]) => {
+      const gems = save.gemBag.filter((g) => g.kind === kind);
+      return gems.length - new Set(gems.map((g) => g.defId)).size;
+    };
+    return [
+      ...FULL_CURRENCIES.map((c) => ({ kind: "currency" as const, id: c.id })),
+      { kind: "salvage", what: "normal", label: "Salvage all normal gear in the bag", count: gearOf("normal") },
+      { kind: "salvage", what: "magic", label: "Salvage all magic gear in the bag", count: gearOf("magic") },
+      { kind: "salvage", what: "rare", label: "Salvage all rare gear in the bag", count: gearOf("rare") },
+      { kind: "salvage", what: "spare_supports", label: "Salvage spare support gems (keeps one of each)", count: spare("support_gem") },
+      { kind: "salvage", what: "spare_skill_gems", label: "Salvage spare skill gems (keeps the best copy)", count: spare("skill_gem") },
+    ];
+  }
+
+  /** Items the selected currency can be used on right now. */
+  private craftTargets(currency: string): CraftTarget[] {
+    const save = this.world().player.save;
+    return allTargets(save).filter((t) => !currencyProblem(content, currency, targetItem(save, t)));
+  }
+
+  private targetLabel(t: CraftTarget): string {
+    const it = targetItem(this.world().player.save, t);
+    const name = it ? itemName(it) : "?";
+    switch (t.where) {
+      case "equipped":
+        return `[worn ${SLOT_LABEL[t.slot]}] ${name}`;
+      case "gear_bag":
+        return `[bag] ${name}`;
+      case "skill":
+        return `[skill ${this.inputs.skillPrompt(t.slot)}] ${name}`;
+      case "gem_bag":
+        return `[gem bag] ${name}`;
+    }
+  }
+
+  private itemLines(t: CraftTarget | undefined): string[] {
+    const it = t && targetItem(this.world().player.save, t);
+    if (!it) return [];
+    if (it.kind === "gear") {
+      const tip = gearTooltip(it);
+      return [tip.title, ...tip.lines];
+    }
+    return [`${itemName(it)}: level ${it.level} / ${content.gems.maxLevel}`];
+  }
+
+  private updateCurrency(): void {
+    const i = this.inputs;
+    const rows = this.currencyRows();
+    if (i.pressed("down")) this.row = (this.row + 1) % rows.length;
+    if (i.pressed("up")) this.row = (this.row - 1 + rows.length) % rows.length;
+    this.row = Math.min(this.row, rows.length - 1);
+    const r = rows[this.row];
+    if (r?.kind === "salvage" && r.what !== "rare") this.confirmReset = false;
+    if (!r || !i.pressed("confirm")) return;
+    if (r.kind === "currency") {
+      if ((this.world().player.save.currency[r.id] ?? 0) < 1) {
+        this.message = `You have no ${currencyName(r.id)}.`;
+        return;
+      }
+      if (this.craftTargets(r.id).length === 0) {
+        this.message = `Nothing you own can take a ${currencyName(r.id)} right now.`;
+        return;
+      }
+      this.message = "";
+      this.craft = { currency: r.id, index: 0, result: [] };
+      return;
+    }
+    if (r.what === "rare" && !this.confirmReset) {
+      this.confirmReset = true; // reused as "press again" for the rare bulk salvage
+      this.message = `Salvage ${r.count} rare item(s)? Press ${i.prompt("confirm")} again.`;
+      return;
+    }
+    this.confirmReset = false;
+    const before = { ...this.world().player.save.currency };
+    const refused = this.actions.command({ type: "salvage_bulk", what: r.what });
+    this.message = refused ? `Can't: ${refused}` : `Salvaged ${r.count}: ${this.currencyGains(before).join(", ")}`;
+    this.diffCache = null;
+  }
+
+  /** "+3 Whetstone Fragment" lines for what the stash gained since `before` (combined fragments show as the full currency). */
+  private currencyGains(before: Record<string, number>): string[] {
+    const now = this.world().player.save.currency;
+    return Object.keys(now)
+      .map((id) => ({ id, d: (now[id] ?? 0) - (before[id] ?? 0) }))
+      .filter((x) => x.d > 0)
+      .map((x) => `+${x.d} ${currencyName(x.id)}`);
+  }
+
+  private updateCraft(): void {
+    const i = this.inputs;
+    const c = this.craft!;
+    if (i.pressed("cancel")) {
+      this.craft = null;
+      return;
+    }
+    const targets = this.craftTargets(c.currency);
+    if (targets.length === 0) return;
+    if (i.pressed("down")) c.index = (c.index + 1) % targets.length;
+    if (i.pressed("up")) c.index = (c.index - 1 + targets.length) % targets.length;
+    c.index = Math.min(c.index, targets.length - 1);
+    if (!i.pressed("confirm")) return;
+    const target = targets[c.index]!;
+    const before = this.itemLines(target);
+    const refused = this.actions.command({ type: "apply_currency", currency: c.currency, target });
+    if (refused) {
+      c.result = [`Can't: ${refused}`];
+      return;
+    }
+    // Show what changed: lines that appeared (+) and disappeared (−).
+    const after = this.itemLines(target);
+    const added = after.slice(1).filter((l) => l && !before.includes(l)).map((l) => `  + ${l}`);
+    const removed = before.slice(1).filter((l) => l && !after.includes(l)).map((l) => `  − ${l}`);
+    c.result = [`Used ${currencyName(c.currency)} on ${after[0] ?? "item"}:`, ...(added.length + removed.length ? [...added, ...removed] : ["  nothing changed"])];
+    this.diffCache = null;
+    // Keep pointing at the same item if it can still take this currency.
+    const still = this.craftTargets(c.currency).findIndex((t) => JSON.stringify(t) === JSON.stringify(target));
+    if (still >= 0) c.index = still;
+    if ((this.world().player.save.currency[c.currency] ?? 0) < 1) c.result.push("", `That was your last ${currencyName(c.currency)}.`);
+  }
+
+  private currencyLines(): { left: string[]; right: string[] } {
+    const save = this.world().player.save;
+    const rows = this.currencyRows();
+    const left = ["CURRENCY STASH (no limit)", ""];
+    rows.forEach((r, k) => {
+      const mark = k === this.row ? "▶" : " ";
+      if (r.kind === "currency") {
+        const frag = fragmentOf(r.id);
+        const fragText = frag ? `   fragments ${save.currency[frag.id] ?? 0}/${frag.combine!.count}` : "";
+        left.push(`${mark} ${currencyName(r.id).padEnd(16)} ×${String(save.currency[r.id] ?? 0).padEnd(4)}${fragText}`);
+      } else {
+        if (rows[k - 1]?.kind === "currency") left.push("", "SALVAGE");
+        left.push(`${mark} ${r.label} (${r.count})`);
+      }
+    });
+
+    const right: string[] = [];
+    const r = rows[this.row];
+    if (this.craft) {
+      const c = this.craft;
+      const targets = this.craftTargets(c.currency);
+      right.push(`${currencyName(c.currency)} ×${save.currency[c.currency] ?? 0}: choose an item`, "");
+      const first = Math.max(0, Math.min(c.index - Math.floor(CRAFT_ROWS / 2), targets.length - CRAFT_ROWS));
+      targets.slice(first, first + CRAFT_ROWS).forEach((t, k) => right.push(`${first + k === c.index ? "▶" : " "} ${this.targetLabel(t)}`));
+      if (targets.length === 0) right.push("  (nothing left that this can be used on)");
+      right.push("", ...this.itemLines(targets[c.index]).slice(0, 16));
+      if (c.result.length) right.push("", ...c.result);
+    } else if (r?.kind === "currency") {
+      const def = content.currencies.find((x) => x.id === r.id)!;
+      const frag = fragmentOf(r.id);
+      right.push(def.name, "", def.description, "");
+      if (frag) right.push(`${frag.name}s come from salvaging and drops; ${frag.combine!.count} combine into one automatically.`, "");
+      right.push(`Usable on ${this.craftTargets(r.id).length} of your items. Press ${this.inputs.prompt("confirm")} to choose one.`);
+    } else if (r) {
+      right.push(r.label, "", "Salvaging destroys the items for currency fragments:");
+      const s = content.crafting.salvage;
+      right.push(
+        `  normal gear → ${s.gear.normal.count} ${currencyName(s.gear.normal.currency)}`,
+        `  magic gear → ${s.gear.magic.count} ${currencyName(s.gear.magic.currency)}`,
+        `  rare gear → ${s.gear.rare.count} ${currencyName(s.gear.rare.currency)}`,
+        `  unique (one at a time, Gear tab) → ${s.gear.unique.count} ${currencyName(s.gear.unique.currency)}`,
+        `  skill gem → ${s.skill_gem.count} + ${s.skill_gem.perLevel ?? 0}/level ${currencyName(s.skill_gem.currency)}`,
+        `  support gem → ${s.support_gem.count} ${currencyName(s.support_gem.currency)}`,
+        "",
+        "Equipped items are never salvaged. Single items: Gear tab, " + this.inputs.prompt("salvage") + ".",
+      );
+    }
+    if (this.message) right.push("", this.message);
+    return { left, right };
+  }
+
   // ---------------------------------------------------------------- debug
 
   private debugRows(): Choice[] {
@@ -443,6 +651,13 @@ export class GameMenu {
     for (const b of content.itemBases.filter((x) => x.slot === "weapon")) {
       rows.push({ label: `Give rare weapon: ${b.name}`, run: () => this.actions.command({ type: "debug_give_gear", opts: { base: b.id, rarity: "rare" }, seed: seed() }) });
     }
+    rows.push({
+      label: "Give 5 of every currency",
+      run: () => {
+        for (const c of FULL_CURRENCIES) this.actions.command({ type: "debug_give_currency", currency: c.id, count: 5 });
+        return null;
+      },
+    });
     for (const s of content.skills) rows.push({ label: `Give skill gem: ${s.name}`, run: () => this.actions.command({ type: "debug_give", kind: "skill_gem", defId: s.id }) });
     for (const s of content.supports) rows.push({ label: `Give support gem: ${s.name}`, run: () => this.actions.command({ type: "debug_give", kind: "support_gem", defId: s.id }) });
     rows.push({
@@ -486,14 +701,14 @@ export class GameMenu {
     this.footer.setPosition(x + 16, y + h - 26);
     this.left.setPosition(x + 16, y + 48);
     this.right.setPosition(x + 16 + Math.min(560, w * 0.56), y + 48).setWordWrapWidth(w - Math.min(560, w * 0.56) - 32);
-    const close = `[${this.inputs.prompt("cancel")}] ${this.picker ? "back" : "close"}`;
+    const close = `[${this.inputs.prompt("cancel")}] ${this.picker || this.craft ? "back" : "close"}`;
     const gearTab = this.tab === "gear";
     this.left.setVisible(!gearTab);
     this.right.setVisible(!gearTab);
     for (const t of [...this.gearRows, ...this.diffRows, this.tip.title, this.tip.body, this.tip.cmpTitle, this.tip.cmpBody]) t.setVisible(gearTab);
     if (gearTab) {
       this.renderGear(x, y, w);
-      this.footer.setText(`${pad ? "D-pad select   ✕ equip / take off" : "W/S select   Enter equip / take off"}   ${close}      Bag ${this.world().player.save.bag.length}/${content.gems.bagSize}`);
+      this.footer.setText(`${pad ? "D-pad select   ✕ equip / take off   □ salvage" : "W/S select   Enter equip / take off   X salvage"}   ${close}      Gear bag ${this.world().player.save.gearBag.length}/${content.gear.bagSize}`);
       return;
     }
 
@@ -507,11 +722,17 @@ export class GameMenu {
       this.right.setText(right);
       const nav = pad ? "D-pad move   ✕ choose" : "WASD move   Enter choose";
       this.footer.setText(`${nav}   ${close}      Feed duplicate skill gems to level them; sockets grow with level.`);
+    } else if (this.tab === "currency") {
+      const { left, right } = this.currencyLines();
+      this.left.setText(left);
+      this.right.setText(right);
+      const nav = pad ? (this.craft ? "D-pad pick item   ✕ use (repeat)" : "D-pad select   ✕ use / salvage") : this.craft ? "W/S pick item   Enter use (repeat)" : "W/S select   Enter use / salvage";
+      this.footer.setText(`${nav}   ${close}`);
     } else {
       const rows = this.debugRows();
       const first = Math.max(0, Math.min(this.row - 8, rows.length - 18));
       this.left.setText(rows.slice(first, first + 18).map((r, k) => `${first + k === this.row ? "▶" : " "} ${r.label}`));
-      this.right.setText(["DEBUG", "", "Spawns gems and gear straight into your bag", "(gear at the current zone's item level).", "", this.message]);
+      this.right.setText(["DEBUG", "", "Spawns gems, gear and currency straight into your bags", "(gear at the current zone's item level).", "", this.message]);
       this.footer.setText(`${pad ? "D-pad select   ✕ give" : "W/S select   Enter give"}   ${close}`);
     }
   }
