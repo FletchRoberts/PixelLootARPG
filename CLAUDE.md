@@ -474,6 +474,10 @@ locks the item. Menu tabs: Character, Gear, Gems, Currency, Debug.
 - Gem drop rates now need duplicates for levelling: tune skill gem weights.
 - Currency drop rate (8% of trash, 12% end pack ×1–3), per-currency weights,
   salvage yields; whether Void Pearl outcomes are too swingy.
+- **Corruption implicits (wanted):** Void Pearl should be able to add special
+  corrupted-only mods (PoE-style corrupted implicits: e.g. +1 socket on a
+  gem, "skills chain +1", "cull", "% chance to Echo"), its own pool in
+  data, beside the current outcomes.
 
 ### Roadmap
 
